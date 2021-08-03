@@ -6,7 +6,7 @@ import * as io from "@actions/io";
 import archiver from "archiver";
 import test from "ava";
 
-import { downloadDatabase, runQuery, unbundleDatabase } from "./main";
+import { runQuery, unbundleDatabase } from "./lib";
 
 test("unbundle creates a stable directory name", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
@@ -22,7 +22,6 @@ test("unbundle creates a stable directory name", async (t) => {
     archive.append(testText, { name: "original-database-name/file.txt" });
     await archive.finalize();
 
-    //await unbundleDatabase(path.resolve(process.cwd(), dbFile))
     await unbundleDatabase(dbFile);
 
     t.is(fs.readFileSync(path.join("database", "file.txt"), "utf-8"), testText);
@@ -71,14 +70,4 @@ test("running a basic query", async (t) => {
     process.chdir(cwd);
     await io.rmRF(tmpDir);
   }
-});
-
-test("we can download a database", async (t) => {
-  process.env.RUNNER_TEMP = "/tmp";
-  const dbZip = await downloadDatabase(
-    process.env.TOKEN || "",
-    "dsp-testing/qc-demo-github-certstore",
-    "go"
-  );
-  t.true(fs.existsSync(dbZip));
 });
