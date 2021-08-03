@@ -1,0 +1,47 @@
+name: "PR checks"
+
+env:
+  GO111MODULE: auto
+
+on:
+  push:
+    branches: [main, v1]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-js:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Lint
+      run: npm run-script lint
+
+  check-js:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check generated JavaScript
+      run: .github/workflows/script/check-js.sh
+
+  check-node-modules:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check node modules up to date
+      run: .github/workflows/script/check-node-modules.sh
+
+  npm-test:
+    needs: [check-js, check-node-modules]
+    strategy:
+      matrix:
+        os: [ubuntu-latest,macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: npm run-script test
+      run: npm run-script test

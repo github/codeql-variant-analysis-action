@@ -1,0 +1,53 @@
+{
+  "name": "codeql-query",
+  "version": "1.0.7",
+  "private": true,
+  "description": "CodeQL query action",
+  "scripts": {
+    "build": "tsc --build",
+    "test": "ava src/** --serial --verbose",
+    "test-debug": "ava src/** --serial --verbose --timeout=20m",
+    "lint": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts",
+    "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix",
+    "removeNPMAbsolutePaths": "removeNPMAbsolutePaths . --force"
+  },
+  "ava": {
+    "typescript": {
+      "rewritePaths": {
+        "src/": "lib/"
+      }
+    }
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@actions/artifact": "^0.5.2",
+    "@actions/core": "^1.4.0",
+    "@actions/exec": "^1.1.0",
+    "@actions/io": "^1.1.1",
+    "@actions/tool-cache": "^1.7.1"
+  },
+  "//": [
+    "micromatch is an unspecified dependency of ava"
+  ],
+  "devDependencies": {
+    "@ava/typescript": "^1.1.1",
+    "@types/archiver": "^5.1.1",
+    "@types/node": "^12.0.4",
+    "@typescript-eslint/eslint-plugin": "^4.29.0",
+    "@typescript-eslint/parser": "^4.1.0",
+    "archiver": "^5.3.0",
+    "ava": "3.8.1",
+    "eslint": "^7.9.0",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-github": "^4.1.1",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-no-async-foreach": "^0.1.1",
+    "micromatch": "^4.0.4",
+    "removeNPMAbsolutePaths": "2.0.0",
+    "typescript": "^3.7.5"
+  },
+  "resolutions": {
+    "glob-parent": ">=5.1.2",
+    "normalize-url": ">=4.5.1"
+  }
+}

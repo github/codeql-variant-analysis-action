@@ -1,0 +1,27 @@
+name: 'CodeQL: Query'
+description: 'Run a CodeQL query against a repository'
+author: 'GitHub'
+inputs:
+  query:
+    description: 'Text of CodeQL query to run'
+    required: true
+
+  language:
+    description: 'Language of CodeQL query'
+    required: true
+
+  repository:
+    description: 'Repository to run the query against'
+    required: true
+
+  # Handle this input very carefully, it is sensitive!
+  token:
+    description: 'token to use to fetch the databases to query'
+    required: true
+
+  codeql:
+    description: 'path to CodeQL binary to use'
+    required: true
+runs:
+  using: 'node12'
+  main: '../dist/index.js'
