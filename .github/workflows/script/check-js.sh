@@ -8,7 +8,7 @@ if [ ! -z "$(git status --porcelain)" ]; then
     exit 1
 fi
 # Wipe the lib directory incase there are extra unnecessary files in there
-rm -rf lib
+rm -rf lib/*.js
 # Generate the JavaScript files
 npm run-script build
 # Check that repo is still clean
