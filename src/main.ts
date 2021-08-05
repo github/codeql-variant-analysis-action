@@ -14,7 +14,6 @@ async function run(): Promise<void> {
     core.setSecret(token);
 
     // 1. Use the GitHub API to download the database using token
-    // TODO: Test this locally
     const dbZip = await downloadDatabase(token, nwo, language);
     await unbundleDatabase(dbZip);
 
