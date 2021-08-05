@@ -1,11 +1,8 @@
 name: "PR checks"
 
-env:
-  GO111MODULE: auto
-
 on:
   push:
-    branches: [main, v1]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -22,6 +19,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Initialize CodeQL
+      id: init
+      uses: github/codeql-action/init@v1
+      with:
+        languages: javascript
+
+    - name: Put CODEQL on PATH
+      run: |
+        echo "$(dirname "${{ steps.init.outputs.codeql-path }}")" >> $GITHUB_PATH
+
     - uses: actions/checkout@v2
     - name: Check generated JavaScript
       run: .github/workflows/script/check-js.sh
