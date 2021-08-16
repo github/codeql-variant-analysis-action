@@ -4,28 +4,23 @@ import path from "path";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
 
+import { interpret } from "./interpret";
+
 export { downloadDatabase, unbundleDatabase, runQuery };
 
 // Will create a directory 'database' in the current working directory
 async function unbundleDatabase(dbZip: string): Promise<void> {
   const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    // extractZip runs in `dest` (tmpDir) and so dbZip must be an absolute path
-    const db = await tc.extractZip(path.resolve(dbZip), tmpDir);
+  // extractZip runs in `dest` (tmpDir) and so dbZip must be an absolute path
+  const db = await tc.extractZip(path.resolve(dbZip), tmpDir);
 
-    const dirs = fs.readdirSync(db);
-    if (
-      dirs.length !== 1 ||
-      !fs.statSync(path.join(db, dirs[0])).isDirectory()
-    ) {
-      throw new Error(
-        `Expected a single top-level folder in the database bundle ${db}, found ${dirs}`
-      );
-    }
-    fs.renameSync(path.join(db, dirs[0]), "database");
-  } finally {
-    fs.rmdirSync(tmpDir);
+  const dirs = fs.readdirSync(db);
+  if (dirs.length !== 1 || !fs.statSync(path.join(db, dirs[0])).isDirectory()) {
+    throw new Error(
+      `Expected a single top-level folder in the database bundle ${db}, found ${dirs}`
+    );
   }
+  fs.renameSync(path.join(db, dirs[0]), "database");
 }
 
 // Will operate on the current working directory and create the following
@@ -80,14 +75,18 @@ libraryPathDependencies: codeql-${language}`
   const sourceLocationPrefix = JSON.parse(
     (await exec.getExecOutput(codeql, ["resolve", "database", database])).stdout
   ).sourceLocationPrefix;
-  await exec.exec(path.join(__dirname, "json2md.py"), [
-    json,
-    "--nwo",
-    nwo,
-    "--src",
-    sourceLocationPrefix,
-    `--output=${path.join("results", "results.md")}`,
-  ]);
+
+  // This will load the whole result set into memory. Given that we just ran a
+  // query, we probably have quite a lot of memory available. However, at some
+  // point this is likely to break down. We could then look at using a streaming
+  // parser such as http://oboejs.com/
+  const jsonResults = JSON.parse(fs.readFileSync(json, "utf8"));
+
+  const s = fs.createWriteStream(path.join("results", "results.md"), {
+    encoding: "utf8",
+  });
+
+  interpret(s, jsonResults, nwo, sourceLocationPrefix);
 }
 
 async function downloadDatabase(
