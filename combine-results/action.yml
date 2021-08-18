@@ -1,0 +1,13 @@
+name: 'CodeQL: Combine and post query results'
+description: 'Combine the results of a batch query run and post to an issue'
+author: 'GitHub'
+inputs:
+  query:
+    description: 'Text of CodeQL query that was run'
+    required: true
+  language:
+    description: 'Language of CodeQL query'
+    required: true
+runs:
+  using: 'node12'
+  main: '../lib/combine-results.js'
