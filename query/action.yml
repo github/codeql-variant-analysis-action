@@ -14,7 +14,6 @@ inputs:
     description: 'Repository to run the query against'
     required: true
 
-  # Handle this input very carefully, it is sensitive!
   token:
     description: 'token to use to fetch the databases to query'
     required: true

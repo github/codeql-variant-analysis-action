@@ -8,6 +8,9 @@ inputs:
   language:
     description: 'Language of CodeQL query'
     required: true
+  token:
+    description: 'Token to use to post the results to an issue'
+    required: true
 runs:
   using: 'node12'
   main: '../lib/combine-results.js'
