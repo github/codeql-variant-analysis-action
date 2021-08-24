@@ -21,6 +21,8 @@ async function run(): Promise<void> {
     await io.mkdirP("results");
 
     const context = github.context;
+    core.debug(`context: ${JSON.stringify(context)}`);
+    core.debug(`env: ${JSON.stringify(process.env)}`);
     const octokit = github.getOctokit(process.env.GITHUB_TOKEN || "");
     const title = `Query run by ${context.actor} against ${downloadResponse.length} \`${language}\` repositories`;
     const issue = await octokit.rest.issues.create({
