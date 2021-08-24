@@ -77,7 +77,7 @@ test("entire row converted correctly", (t) => {
   );
 });
 
-test("entire result set converted correctly", (t) => {
+test("entire result set converted correctly", async (t) => {
   let output = "";
   const w = new Stream.Writable({
     objectMode: true,
@@ -87,7 +87,7 @@ test("entire result set converted correctly", (t) => {
     },
   });
 
-  interpret(
+  await interpret(
     w,
     results,
     "dsp-testing/qc-demo-github-certstore",

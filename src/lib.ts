@@ -86,7 +86,7 @@ libraryPathDependencies: codeql-${language}`
     encoding: "utf8",
   });
 
-  interpret(s, jsonResults, nwo, sourceLocationPrefix);
+  await interpret(s, jsonResults, nwo, sourceLocationPrefix);
 }
 
 async function downloadDatabase(
