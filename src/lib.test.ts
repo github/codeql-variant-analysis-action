@@ -59,6 +59,8 @@ test("running a basic query", async (t) => {
       "a/b"
     );
 
+    t.is(fs.readFileSync(path.join("results", "results.md"), "utf-8"), "");
+
     t.true(
       fs
         .readFileSync(path.join("results", "results.md"), "utf-8")
