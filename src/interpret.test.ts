@@ -100,6 +100,7 @@ test("entire result set converted correctly", (t) => {
     `## dsp-testing/qc-demo-github-certstore
 
 | e | - |
+| - | - |
 | [CERTSTORE_DOESNT_WORK_ON_LINIX](file:/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore/certstore_linux.go#L8) | This expression has no effect. |
 `
   );

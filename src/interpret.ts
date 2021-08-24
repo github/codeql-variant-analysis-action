@@ -61,6 +61,8 @@ function interpret(
   });
   output.write(toMd(colNames));
 
+  output.write(toMd(Array(colNames.length).fill("-")));
+
   for (const tuple of results["#select"]["tuples"]) {
     output.write(toMd(tuple, src, ref));
   }

@@ -31,18 +31,20 @@ async function run(): Promise<void> {
     });
 
     let body = `# Query
-    <details>
-      <summary>Click to expand</summary>
+<details>
+  <summary>Click to expand</summary>
 
-    \`\`\`ql
-    ${query}
-    \`\`\`
-    </details>
+\`\`\`ql
+${query}
+\`\`\`
+</details>
 
-    # Results
+# Results
 
-    |Repository|Results|
-    |---|---|`;
+|Repository|Results|
+|---|---|
+`;
+
     const csvs: string[] = [];
     for (const response of downloadResponse) {
       const csv = path.join(response.downloadPath, "results.csv");
