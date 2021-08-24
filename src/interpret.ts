@@ -74,7 +74,7 @@ async function interpret(
   await write(output, toMd(Array(colNames.length).fill("-")));
 
   for (const tuple of results["#select"]["tuples"]) {
-    await write(output, toMd(tuple, src, ref));
+    await write(output, toMd(tuple, nwo, src, ref));
   }
 
   output.end();
