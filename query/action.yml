@@ -24,4 +24,4 @@ inputs:
     required: true
 runs:
   using: 'node12'
-  main: '../lib/main.js'
+  main: '../lib/query.js'
