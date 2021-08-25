@@ -3,8 +3,12 @@
     // include the defaults from VS Code
     "**/.git": true,
     "**/.DS_Store": true,
-
     // transpiled JavaScript
     "lib": true,
-  }
+  },
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  },
+  "editor.formatOnPaste": false,
 }
