@@ -6,7 +6,7 @@ import * as io from "@actions/io";
 import archiver from "archiver";
 import test from "ava";
 
-import { runQuery, unbundleDatabase } from "./lib";
+import { runQuery, unbundleDatabase } from "./codeql";
 
 test("unbundle creates a stable directory name", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");

@@ -1,7 +1,7 @@
 import * as artifact from "@actions/artifact";
 import * as core from "@actions/core";
 
-import { downloadDatabase, unbundleDatabase, runQuery } from "./lib";
+import { downloadDatabase, unbundleDatabase, runQuery } from "./codeql";
 
 async function run(): Promise<void> {
   try {
