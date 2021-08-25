@@ -54,7 +54,7 @@ libraryPathDependencies: codeql-${language}`
     "run",
     `--database=${database}`,
     `--output=${bqrs}`,
-    queryFile,
+    queryFile
   ]);
 
   await exec.exec(codeql, [
@@ -62,7 +62,7 @@ libraryPathDependencies: codeql-${language}`
     "decode",
     "--format=csv",
     `--output=${path.join("results", "results.csv")}`,
-    bqrs,
+    bqrs
   ]);
   await exec.exec(codeql, [
     "bqrs",
@@ -70,7 +70,7 @@ libraryPathDependencies: codeql-${language}`
     "--format=json",
     `--output=${json}`,
     "--entities=all",
-    bqrs,
+    bqrs
   ]);
   const sourceLocationPrefix = JSON.parse(
     (await exec.getExecOutput(codeql, ["resolve", "database", database])).stdout
@@ -83,7 +83,7 @@ libraryPathDependencies: codeql-${language}`
   const jsonResults = JSON.parse(fs.readFileSync(json, "utf8"));
 
   const s = fs.createWriteStream(path.join("results", "results.md"), {
-    encoding: "utf8",
+    encoding: "utf8"
   });
 
   await interpret(s, jsonResults, nwo, sourceLocationPrefix);

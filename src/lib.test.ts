@@ -8,7 +8,7 @@ import test from "ava";
 
 import { runQuery, unbundleDatabase } from "./lib";
 
-test("unbundle creates a stable directory name", async (t) => {
+test("unbundle creates a stable directory name", async t => {
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -31,7 +31,7 @@ test("unbundle creates a stable directory name", async (t) => {
   }
 });
 
-test("running a basic query", async (t) => {
+test("running a basic query", async t => {
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -48,7 +48,7 @@ test("running a basic query", async (t) => {
       "create",
       "--language=javascript",
       `--source-root=${projectDir}`,
-      dbDir,
+      dbDir
     ]);
 
     await runQuery(

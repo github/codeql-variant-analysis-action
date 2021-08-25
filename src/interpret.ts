@@ -46,7 +46,7 @@ function toS(e: any, nwo?: string, src?: string, ref?: string): string {
 }
 
 function toMd(tuple: any[], nwo?: string, src?: string, ref?: string): string {
-  return `| ${tuple.map((e) => toS(e, nwo, src, ref)).join(" | ")} |\n`;
+  return `| ${tuple.map(e => toS(e, nwo, src, ref)).join(" | ")} |\n`;
 }
 
 async function write(output: stream.Writable, s: string) {
@@ -66,7 +66,7 @@ async function interpret(
 ) {
   await write(output, `## ${nwo}\n\n`);
 
-  const colNames = results["#select"]["columns"].map((column) => {
+  const colNames = results["#select"]["columns"].map(column => {
     return column.name || "-";
   });
   await write(output, toMd(colNames));

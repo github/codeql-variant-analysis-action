@@ -23,11 +23,13 @@ async function run(): Promise<void> {
 
     const context = github.context;
     const octokit = github.getOctokit(token);
-    const title = `Query run by ${context.actor} against ${downloadResponse.length} \`${language}\` repositories`;
+    const title = `Query run by ${context.actor} against ${
+      downloadResponse.length
+    } \`${language}\` repositories`;
     const issue = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
-      title,
+      title
     });
 
     let body = `# Query
@@ -57,14 +59,16 @@ ${query}
         owner: context.repo.owner,
         repo: context.repo.repo,
         issue_number: issue.data.number,
-        body: fs.readFileSync(md, "utf8"),
+        body: fs.readFileSync(md, "utf8")
       });
 
       const repoName = response.artifactName.replace("#", "/");
       const output = await exec.getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
       const results = parseInt(output.stdout.trim()) - 2;
       if (results > 0) {
-        body += `| ${repoName} | [${results} result(s)](${comment.data.html_url}) |\n`;
+        body += `| ${repoName} | [${results} result(s)](${
+          comment.data.html_url
+        }) |\n`;
       } else {
         body += `| ${repoName} | _No results_ |\n`;
       }
@@ -74,7 +78,7 @@ ${query}
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issue.data.number,
-      body,
+      body
     });
 
     await artifactClient.uploadArtifact(

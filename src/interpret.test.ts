@@ -34,7 +34,7 @@ const results = JSON.parse(`{
     }
   }`);
 
-test("relative URL conversion", (t) => {
+test("relative URL conversion", t => {
   const select = results["#select"];
   const input = select.tuples[0][0];
   const result = toS(
@@ -50,7 +50,7 @@ test("relative URL conversion", (t) => {
   );
 });
 
-test("absolute URL left alone", (t) => {
+test("absolute URL left alone", t => {
   const select = results["#select"];
   const input = select.tuples[0][0];
   const result = toS(input, "dsp-testing/qc-demo-github-certstore", "/tmp");
@@ -61,7 +61,7 @@ test("absolute URL left alone", (t) => {
   );
 });
 
-test("entire row converted correctly", (t) => {
+test("entire row converted correctly", t => {
   const select = results["#select"];
   const input = select.tuples[0];
   const result = toMd(
@@ -77,14 +77,14 @@ test("entire row converted correctly", (t) => {
   );
 });
 
-test("entire result set converted correctly", async (t) => {
+test("entire result set converted correctly", async t => {
   let output = "";
   const w = new Stream.Writable({
     objectMode: true,
     write: (chunk, _, cb) => {
       output += chunk;
       cb();
-    },
+    }
   });
 
   await interpret(
