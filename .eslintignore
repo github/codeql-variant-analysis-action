@@ -1,5 +1,1 @@
-**/webpack.config.js
 lib/**
-runner/dist/**
-src/testdata/**
-tests/**
