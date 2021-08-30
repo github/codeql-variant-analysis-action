@@ -45,7 +45,7 @@ async function run(): Promise<void> {
     });
 
     const csvs: string[] = [];
-    const results = await Promise.all(
+    const resultsMd = await Promise.all(
       downloadResponse.map(async function (response) {
         const csv = path.join(response.downloadPath, "results.csv");
         const csvDest = path.join("results", response.artifactName);
@@ -70,9 +70,9 @@ async function run(): Promise<void> {
       })
     );
 
-    let body = formatBody(query, results.join("\n"));
+    const body = formatBody(query, resultsMd.join("\n"));
 
-    Promise.all([
+    void Promise.all([
       octokit.rest.issues.update({
         owner: context.repo.owner,
         repo: context.repo.repo,
