@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
 
-import * as exec from "@actions/exec";
-import * as tc from "@actions/tool-cache";
+import exec from "@actions/exec";
+import tc from "@actions/tool-cache";
+
+class DatabaseUnpackingError extends Error {}
 
 import { interpret } from "./interpret";
 
@@ -16,7 +18,7 @@ async function unbundleDatabase(dbZip: string): Promise<void> {
 
   const dirs = fs.readdirSync(db);
   if (dirs.length !== 1 || !fs.statSync(path.join(db, dirs[0])).isDirectory()) {
-    throw new Error(
+    throw new DatabaseUnpackingError(
       `Expected a single top-level folder in the database bundle ${db}, found ${dirs}`
     );
   }
@@ -49,7 +51,7 @@ libraryPathDependencies: codeql-${language}`
   );
   fs.writeFileSync(queryFile, query);
 
-  await exec.exec(codeql, [
+  const execBqrs = exec.exec(codeql, [
     "query",
     "run",
     `--database=${database}`,
@@ -57,14 +59,15 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  await exec.exec(codeql, [
+  const execCSV = exec.exec(codeql, [
     "bqrs",
     "decode",
     "--format=csv",
     `--output=${path.join("results", "results.csv")}`,
     bqrs,
   ]);
-  await exec.exec(codeql, [
+
+  const execJSON = exec.exec(codeql, [
     "bqrs",
     "decode",
     "--format=json",
@@ -72,6 +75,9 @@ libraryPathDependencies: codeql-${language}`
     "--entities=all",
     bqrs,
   ]);
+
+  await Promise.all([execBqrs, execCSV, execJSON]);
+
   const sourceLocationPrefix = JSON.parse(
     (await exec.getExecOutput(codeql, ["resolve", "database", database])).stdout
   ).sourceLocationPrefix;

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { exec } from "@actions/exec";
-import * as io from "@actions/io";
+import io from "@actions/io";
 import archiver from "archiver";
 import test from "ava";
 

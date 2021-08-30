@@ -1,11 +1,26 @@
 import fs from "fs";
 import path from "path";
 
-import * as artifact from "@actions/artifact";
-import * as core from "@actions/core";
-import * as exec from "@actions/exec";
-import * as github from "@actions/github";
-import * as io from "@actions/io";
+import artifact from "@actions/artifact";
+import core from "@actions/core";
+import exec from "@actions/exec";
+import github from "@actions/github";
+import io from "@actions/io";
+
+const formatBody = (query: string) => `# Query
+<details>
+  <summary>Click to expand</summary>
+
+\`\`\`ql
+${query}
+\`\`\`
+</details>
+
+# Results
+
+|Repository|Results|
+|---|---|
+`;
 
 async function run(): Promise<void> {
   try {
@@ -30,20 +45,7 @@ async function run(): Promise<void> {
       title,
     });
 
-    let body = `# Query
-<details>
-  <summary>Click to expand</summary>
-
-\`\`\`ql
-${query}
-\`\`\`
-</details>
-
-# Results
-
-|Repository|Results|
-|---|---|
-`;
+    let body = formatBody(query);
 
     const csvs: string[] = [];
     for (const response of downloadResponse) {
