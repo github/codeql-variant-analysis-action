@@ -1,17 +1,17 @@
-import artifact from "@actions/artifact";
-import core from "@actions/core";
+import { create as createArtifactClient } from "@actions/artifact";
+import { getInput, setSecret, setFailed } from "@actions/core";
 
 import { downloadDatabase, unbundleDatabase, runQuery } from "./codeql";
 
 async function run(): Promise<void> {
   try {
-    const query = core.getInput("query", { required: true });
-    const language = core.getInput("language", { required: true });
-    const nwo = core.getInput("repository", { required: true });
-    const token = core.getInput("token", { required: true });
-    const codeql = core.getInput("codeql", { required: true });
+    const query = getInput("query", { required: true });
+    const language = getInput("language", { required: true });
+    const nwo = getInput("repository", { required: true });
+    const token = getInput("token", { required: true });
+    const codeql = getInput("codeql", { required: true });
 
-    core.setSecret(token);
+    setSecret(token);
 
     // 1. Use the GitHub API to download the database using token
     const dbZip = await downloadDatabase(token, nwo, language);
@@ -21,7 +21,7 @@ async function run(): Promise<void> {
     await runQuery(codeql, language, "database", query, nwo);
 
     // 3. Upload the results as an artifact
-    const artifactClient = artifact.create();
+    const artifactClient = createArtifactClient();
     await artifactClient.uploadArtifact(
       nwo.replace("/", "#"), // name
       ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
@@ -29,7 +29,7 @@ async function run(): Promise<void> {
       { continueOnError: false, retentionDays: 1 }
     );
   } catch (error) {
-    core.setFailed(error.message);
+    setFailed(error.message);
   }
 }
 

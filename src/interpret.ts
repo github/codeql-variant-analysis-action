@@ -1,3 +1,4 @@
+import { once } from "events";
 import stream from "stream";
 import { promisify } from "util";
 
@@ -50,27 +51,31 @@ function toMd(tuple: any[], nwo?: string, src?: string, ref?: string): string {
 
 const finished = promisify(stream.finished);
 
-function interpret(
+async function write(output: stream.Writable, s: string) {
+  if (!output.write(s)) {
+    await once(output, "drain");
+  }
+}
+
+async function interpret(
   output: stream.Writable,
   results: any,
   nwo: string,
   src: string,
   ref?: string
 ): Promise<void> {
-  output.once("open", function () {
-    output.write(`## ${nwo}\n\n`);
+  await write(output, `## ${nwo}\n\n`);
 
-    const colNames = results["#select"]["columns"].map((column) => {
-      return column.name || "-";
-    });
-    output.write(toMd(colNames));
-    output.write(toMd(Array(colNames.length).fill("-")));
-
-    for (const tuple of results["#select"]["tuples"]) {
-      output.write(output, toMd(tuple, nwo, src, ref));
-    }
-    output.end();
+  const colNames = results["#select"]["columns"].map((column) => {
+    return column.name || "-";
   });
+  await write(output, toMd(colNames));
+  await write(output, toMd(Array(colNames.length).fill("-")));
+
+  for (const tuple of results["#select"]["tuples"]) {
+    await write(output, toMd(tuple, nwo, src, ref));
+  }
+  output.end();
 
   return finished(output);
 }

@@ -1,12 +1,12 @@
 import fs from "fs";
 import path from "path";
 
-import exec from "@actions/exec";
-import tc from "@actions/tool-cache";
-
-class DatabaseUnpackingError extends Error {}
+import { exec, getExecOutput } from "@actions/exec";
+import { extractZip, downloadTool } from "@actions/tool-cache";
 
 import { interpret } from "./interpret";
+
+class DatabaseUnpackingError extends Error {}
 
 export { downloadDatabase, unbundleDatabase, runQuery };
 
@@ -14,7 +14,7 @@ export { downloadDatabase, unbundleDatabase, runQuery };
 async function unbundleDatabase(dbZip: string): Promise<void> {
   const tmpDir = fs.mkdtempSync("tmp");
   // extractZip runs in `dest` (tmpDir) and so dbZip must be an absolute path
-  const db = await tc.extractZip(path.resolve(dbZip), tmpDir);
+  const db = await extractZip(path.resolve(dbZip), tmpDir);
 
   const dirs = fs.readdirSync(db);
   if (dirs.length !== 1 || !fs.statSync(path.join(db, dirs[0])).isDirectory()) {
@@ -51,7 +51,7 @@ libraryPathDependencies: codeql-${language}`
   );
   fs.writeFileSync(queryFile, query);
 
-  const execBqrs = exec.exec(codeql, [
+  await exec(codeql, [
     "query",
     "run",
     `--database=${database}`,
@@ -59,7 +59,7 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  const execCSV = exec.exec(codeql, [
+  await exec(codeql, [
     "bqrs",
     "decode",
     "--format=csv",
@@ -67,7 +67,7 @@ libraryPathDependencies: codeql-${language}`
     bqrs,
   ]);
 
-  const execJSON = exec.exec(codeql, [
+  await exec(codeql, [
     "bqrs",
     "decode",
     "--format=json",
@@ -76,10 +76,10 @@ libraryPathDependencies: codeql-${language}`
     bqrs,
   ]);
 
-  await Promise.all([execBqrs, execCSV, execJSON]);
+  // await Promise.all([execBqrs, execCSV, execJSON]);
 
   const sourceLocationPrefix = JSON.parse(
-    (await exec.getExecOutput(codeql, ["resolve", "database", database])).stdout
+    (await getExecOutput(codeql, ["resolve", "database", database])).stdout
   ).sourceLocationPrefix;
 
   // This will load the whole result set into memory. Given that we just ran a
@@ -100,7 +100,7 @@ async function downloadDatabase(
   nwo: string,
   language: string
 ): Promise<string> {
-  return tc.downloadTool(
+  return downloadTool(
     `https://api.github.com/repos/${nwo}/code-scanning/codeql/databases/${language}`,
     undefined,
     `token ${token}`

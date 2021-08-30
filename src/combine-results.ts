@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
 
-import artifact from "@actions/artifact";
-import core from "@actions/core";
-import exec from "@actions/exec";
-import github from "@actions/github";
-import io from "@actions/io";
+import { create as createArtifactClient } from "@actions/artifact";
+import { getInput, warning, setFailed } from "@actions/core";
+import { getExecOutput } from "@actions/exec";
+import { context, getOctokit } from "@actions/github";
+import { mkdirP, mv } from "@actions/io";
 
 const formatBody = (query: string): string => `# Query
 <details>
@@ -24,20 +24,19 @@ ${query}
 
 async function run(): Promise<void> {
   try {
-    const query = core.getInput("query", { required: true });
-    const language = core.getInput("language", { required: true });
-    const token = core.getInput("token", { required: true });
+    const query = getInput("query", { required: true });
+    const language = getInput("language", { required: true });
+    const token = getInput("token", { required: true });
 
-    await io.mkdirP("artifacts");
-    const artifactClient = artifact.create();
+    await mkdirP("artifacts");
+    const artifactClient = createArtifactClient();
     const downloadResponse = await artifactClient.downloadAllArtifacts(
       "artifacts"
     );
 
-    await io.mkdirP("results");
+    await mkdirP("results");
 
-    const context = github.context;
-    const octokit = github.getOctokit(token);
+    const octokit = getOctokit(token);
     const title = `Query run by ${context.actor} against ${downloadResponse.length} \`${language}\` repositories`;
     const issue = await octokit.rest.issues.create({
       owner: context.repo.owner,
@@ -51,7 +50,7 @@ async function run(): Promise<void> {
     for (const response of downloadResponse) {
       const csv = path.join(response.downloadPath, "results.csv");
       const csvDest = path.join("results", response.artifactName);
-      await io.mv(csv, csvDest);
+      await mv(csv, csvDest);
       csvs.push(csvDest);
 
       const md = path.join(response.downloadPath, "results.md");
@@ -63,7 +62,7 @@ async function run(): Promise<void> {
       });
 
       const repoName = response.artifactName.replace("#", "/");
-      const output = await exec.getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
+      const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
       const results = parseInt(output.stdout.trim()) - 2;
       if (results > 0) {
         body += `| ${repoName} | [${results} result(s)](${comment.data.html_url}) |\n`;
@@ -86,9 +85,9 @@ async function run(): Promise<void> {
       { continueOnError: false }
     );
 
-    core.warning(`Results now available at ${issue.data.html_url}`);
+    warning(`Results now available at ${issue.data.html_url}`);
   } catch (error) {
-    core.setFailed(error.message);
+    setFailed(error.message);
   }
 }
 
