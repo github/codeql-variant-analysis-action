@@ -76,8 +76,6 @@ libraryPathDependencies: codeql-${language}`
     bqrs,
   ]);
 
-  // await Promise.all([execBqrs, execCSV, execJSON]);
-
   const sourceLocationPrefix = JSON.parse(
     (await getExecOutput(codeql, ["resolve", "database", database])).stdout
   ).sourceLocationPrefix;
