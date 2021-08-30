@@ -56,7 +56,7 @@ function interpret(
   nwo: string,
   src: string,
   ref?: string
-) {
+): Promise<void> {
   output.once("open", function () {
     output.write(`## ${nwo}\n\n`);
 

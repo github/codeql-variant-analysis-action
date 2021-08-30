@@ -7,7 +7,7 @@ import exec from "@actions/exec";
 import github from "@actions/github";
 import io from "@actions/io";
 
-const formatBody = (query: string) => `# Query
+const formatBody = (query: string): string => `# Query
 <details>
   <summary>Click to expand</summary>
 
