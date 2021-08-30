@@ -7,7 +7,7 @@ import { getExecOutput } from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import { mkdirP, mv } from "@actions/io";
 
-const formatBody = (query: string): string => `# Query
+const formatBody = (query: string, results: string): string => `# Query
 <details>
   <summary>Click to expand</summary>
 
@@ -20,7 +20,7 @@ ${query}
 
 |Repository|Results|
 |---|---|
-`;
+${results}`;
 
 async function run(): Promise<void> {
   try {
@@ -44,46 +44,48 @@ async function run(): Promise<void> {
       title,
     });
 
-    let body = formatBody(query);
-
     const csvs: string[] = [];
-    for (const response of downloadResponse) {
-      const csv = path.join(response.downloadPath, "results.csv");
-      const csvDest = path.join("results", response.artifactName);
-      await mv(csv, csvDest);
-      csvs.push(csvDest);
+    const results = await Promise.all(
+      downloadResponse.map(async function (response) {
+        const csv = path.join(response.downloadPath, "results.csv");
+        const csvDest = path.join("results", response.artifactName);
+        await mv(csv, csvDest);
+        csvs.push(csvDest);
 
-      const md = path.join(response.downloadPath, "results.md");
-      const comment = await octokit.rest.issues.createComment({
+        const md = path.join(response.downloadPath, "results.md");
+        const comment = await octokit.rest.issues.createComment({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          issue_number: issue.data.number,
+          body: fs.readFileSync(md, "utf8"),
+        });
+
+        const repoName = response.artifactName.replace("#", "/");
+        const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
+        const results = parseInt(output.stdout.trim()) - 2;
+        if (results > 0) {
+          return `| ${repoName} | [${results} result(s)](${comment.data.html_url}) |`;
+        }
+        return `| ${repoName} | _No results_ |`;
+      })
+    );
+
+    let body = formatBody(query, results.join("\n"));
+
+    Promise.all([
+      octokit.rest.issues.update({
         owner: context.repo.owner,
         repo: context.repo.repo,
         issue_number: issue.data.number,
-        body: fs.readFileSync(md, "utf8"),
-      });
-
-      const repoName = response.artifactName.replace("#", "/");
-      const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
-      const results = parseInt(output.stdout.trim()) - 2;
-      if (results > 0) {
-        body += `| ${repoName} | [${results} result(s)](${comment.data.html_url}) |\n`;
-      } else {
-        body += `| ${repoName} | _No results_ |\n`;
-      }
-    }
-
-    await octokit.rest.issues.update({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: issue.data.number,
-      body,
-    });
-
-    await artifactClient.uploadArtifact(
-      "all-results", // name
-      csvs, // files
-      "results", // rootdirectory
-      { continueOnError: false }
-    );
+        body,
+      }),
+      artifactClient.uploadArtifact(
+        "all-results", // name
+        csvs, // files
+        "results", // rootdirectory
+        { continueOnError: false }
+      ),
+    ]);
 
     warning(`Results now available at ${issue.data.html_url}`);
   } catch (error) {

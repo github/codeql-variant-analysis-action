@@ -59,21 +59,22 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  await exec(codeql, [
-    "bqrs",
-    "decode",
-    "--format=csv",
-    `--output=${path.join("results", "results.csv")}`,
-    bqrs,
-  ]);
-
-  await exec(codeql, [
-    "bqrs",
-    "decode",
-    "--format=json",
-    `--output=${json}`,
-    "--entities=all",
-    bqrs,
+  Promise.all([
+    exec(codeql, [
+      "bqrs",
+      "decode",
+      "--format=csv",
+      `--output=${path.join("results", "results.csv")}`,
+      bqrs,
+    ]),
+    exec(codeql, [
+      "bqrs",
+      "decode",
+      "--format=json",
+      `--output=${json}`,
+      "--entities=all",
+      bqrs,
+    ]),
   ]);
 
   const sourceLocationPrefix = JSON.parse(
