@@ -5,6 +5,10 @@ import test from "ava";
 import { toS, toMd, interpret } from "./interpret";
 import { Convert } from "./json-result-generated";
 
+const badResults = `{
+  "#select": {}
+}`;
+
 const results = Convert.toJSONResult(`{
 
     "#select": {
@@ -35,6 +39,10 @@ const results = Convert.toJSONResult(`{
       ]
     }
   }`);
+
+test("malformed result JSON throws error", (t) => {
+  t.throws(() => Convert.toJSONResult(badResults));
+});
 
 test("relative URL conversion", (t) => {
   const select = results.select;
