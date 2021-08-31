@@ -2,6 +2,8 @@ import { once } from "events";
 import * as stream from "stream";
 import * as util from "util";
 
+import { JSONResult } from "./json-result-generated";
+
 export { toS, toMd, interpret };
 
 // If e is an object, then we assume it is a single entity result of the form
@@ -59,21 +61,20 @@ const finished = util.promisify(stream.finished);
 
 async function interpret(
   output: stream.Writable,
-  results: any,
+  results: JSONResult,
   nwo: string,
   src: string,
   ref?: string
 ) {
   await write(output, `## ${nwo}\n\n`);
-
-  const colNames = results["#select"]["columns"].map((column) => {
+  const colNames = results.select.columns.map((column) => {
     return column.name || "-";
   });
   await write(output, toMd(colNames));
 
   await write(output, toMd(Array(colNames.length).fill("-")));
 
-  for (const tuple of results["#select"]["tuples"]) {
+  for (const tuple of results.select.tuples) {
     await write(output, toMd(tuple, nwo, src, ref));
   }
 
