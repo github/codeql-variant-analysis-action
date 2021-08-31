@@ -6,6 +6,5 @@
 
     // transpiled JavaScript
     "lib": true,
-  },
-  "editor.formatOnSave": true,
+  }
 }
