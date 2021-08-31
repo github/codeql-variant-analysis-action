@@ -3,8 +3,10 @@ import { Stream } from "stream";
 import test from "ava";
 
 import { toS, toMd, interpret } from "./interpret";
+import { Convert } from "./json-result-generated";
 
-const results = JSON.parse(`{
+const results = Convert.toJSONResult(`{
+
     "#select": {
       "columns": [
         {
@@ -35,7 +37,7 @@ const results = JSON.parse(`{
   }`);
 
 test("relative URL conversion", (t) => {
-  const select = results["#select"];
+  const select = results.select;
   const input = select.tuples[0][0];
   const result = toS(
     input,
@@ -51,7 +53,7 @@ test("relative URL conversion", (t) => {
 });
 
 test("absolute URL left alone", (t) => {
-  const select = results["#select"];
+  const select = results.select;
   const input = select.tuples[0][0];
   const result = toS(input, "dsp-testing/qc-demo-github-certstore", "/tmp");
 
@@ -62,7 +64,7 @@ test("absolute URL left alone", (t) => {
 });
 
 test("entire row converted correctly", (t) => {
-  const select = results["#select"];
+  const select = results.select;
   const input = select.tuples[0];
   const result = toMd(
     input,

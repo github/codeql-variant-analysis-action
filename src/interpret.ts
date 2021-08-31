@@ -67,15 +67,14 @@ async function interpret(
   ref?: string
 ) {
   await write(output, `## ${nwo}\n\n`);
-
-  const colNames = results["#select"]["columns"].map((column) => {
+  const colNames = results.select.columns.map((column) => {
     return column.name || "-";
   });
   await write(output, toMd(colNames));
 
   await write(output, toMd(Array(colNames.length).fill("-")));
 
-  for (const tuple of results["#select"]["tuples"]) {
+  for (const tuple of results.select.tuples) {
     await write(output, toMd(tuple, nwo, src, ref));
   }
 
