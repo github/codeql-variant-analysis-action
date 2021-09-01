@@ -35,7 +35,7 @@ libraryPathDependencies: codeql-${language}`
   );
   fs.writeFileSync(queryFile, query);
 
-  await exec("codeql", ["database", "unbundle", database, "--name=db"]);
+  await exec(codeql, ["database", "unbundle", database, "--name=db"]);
 
   await exec(codeql, [
     "query",
