@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { exec } from "@actions/exec";
-import * as io from "@actions/io";
+import { rmRF } from "@actions/io";
 import archiver from "archiver";
 import test from "ava";
 
@@ -27,7 +27,7 @@ test("unbundle creates a stable directory name", async (t) => {
     t.is(fs.readFileSync(path.join("database", "file.txt"), "utf-8"), testText);
   } finally {
     process.chdir(cwd);
-    await io.rmRF(tmpDir);
+    await rmRF(tmpDir);
   }
 });
 
@@ -68,6 +68,6 @@ test("running a basic query", async (t) => {
     t.true(fs.existsSync(path.join("results", "results.csv")));
   } finally {
     process.chdir(cwd);
-    await io.rmRF(tmpDir);
+    await rmRF(tmpDir);
   }
 });
