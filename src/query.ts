@@ -1,7 +1,7 @@
 import * as artifact from "@actions/artifact";
 import * as core from "@actions/core";
 
-import { downloadDatabase, unbundleDatabase, runQuery } from "./codeql";
+import { downloadDatabase, runQuery } from "./codeql";
 
 async function run(): Promise<void> {
   try {
@@ -15,10 +15,9 @@ async function run(): Promise<void> {
 
     // 1. Use the GitHub API to download the database using token
     const dbZip = await downloadDatabase(token, nwo, language);
-    await unbundleDatabase(dbZip);
 
     // 2. Run the query
-    await runQuery(codeql, language, "database", query, nwo);
+    await runQuery(codeql, language, dbZip, query, nwo);
 
     // 3. Upload the results as an artifact
     const artifactClient = artifact.create();

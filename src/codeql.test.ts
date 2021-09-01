@@ -3,33 +3,9 @@ import path from "path";
 
 import { exec } from "@actions/exec";
 import * as io from "@actions/io";
-import archiver from "archiver";
 import test from "ava";
 
-import { runQuery, unbundleDatabase } from "./codeql";
-
-test("unbundle creates a stable directory name", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  const cwd = process.cwd();
-  process.chdir(tmpDir);
-  try {
-    const testText = "hello world";
-    const dbFile = "example.zip";
-
-    const output = fs.createWriteStream(dbFile);
-    const archive = archiver("zip");
-    archive.pipe(output);
-    archive.append(testText, { name: "original-database-name/file.txt" });
-    await archive.finalize();
-
-    await unbundleDatabase(dbFile);
-
-    t.is(fs.readFileSync(path.join("database", "file.txt"), "utf-8"), testText);
-  } finally {
-    process.chdir(cwd);
-    await io.rmRF(tmpDir);
-  }
-});
+import { runQuery } from "./codeql";
 
 test("running a basic query", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
@@ -51,10 +27,17 @@ test("running a basic query", async (t) => {
       dbDir,
     ]);
 
+    await exec("codeql", [
+      "database",
+      "bundle",
+      "--output=database.zip",
+      dbDir,
+    ]);
+
     await runQuery(
       "codeql",
       "javascript",
-      dbDir,
+      "database.zip",
       "import javascript\nfrom File f select f",
       "a/b"
     );
