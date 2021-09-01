@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { exec } from "@actions/exec";
-import * as io from "@actions/io";
+import { rmRF } from "@actions/io";
 import test from "ava";
 
 import { runQuery } from "./codeql";
@@ -51,6 +51,6 @@ test("running a basic query", async (t) => {
     t.true(fs.existsSync(path.join("results", "results.csv")));
   } finally {
     process.chdir(cwd);
-    await io.rmRF(tmpDir);
+    await rmRF(tmpDir);
   }
 });

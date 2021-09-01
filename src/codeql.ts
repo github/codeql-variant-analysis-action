@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-import * as exec from "@actions/exec";
-import * as tc from "@actions/tool-cache";
+import { exec, getExecOutput } from "@actions/exec";
+import { downloadTool } from "@actions/tool-cache";
 
 import { interpret } from "./interpret";
 import { Convert } from "./json-result-generated";
@@ -35,9 +35,9 @@ libraryPathDependencies: codeql-${language}`
   );
   fs.writeFileSync(queryFile, query);
 
-  await exec.exec("codeql", ["database", "unbundle", database, "--name=db"]);
+  await exec("codeql", ["database", "unbundle", database, "--name=db"]);
 
-  await exec.exec(codeql, [
+  await exec(codeql, [
     "query",
     "run",
     `--database=db`,
@@ -45,23 +45,26 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  await exec.exec(codeql, [
-    "bqrs",
-    "decode",
-    "--format=csv",
-    `--output=${path.join("results", "results.csv")}`,
-    bqrs,
+  void Promise.all([
+    exec(codeql, [
+      "bqrs",
+      "decode",
+      "--format=csv",
+      `--output=${path.join("results", "results.csv")}`,
+      bqrs,
+    ]),
+    exec(codeql, [
+      "bqrs",
+      "decode",
+      "--format=json",
+      `--output=${json}`,
+      "--entities=all",
+      bqrs,
+    ]),
   ]);
-  await exec.exec(codeql, [
-    "bqrs",
-    "decode",
-    "--format=json",
-    `--output=${json}`,
-    "--entities=all",
-    bqrs,
-  ]);
+
   const sourceLocationPrefix = JSON.parse(
-    (await exec.getExecOutput(codeql, ["resolve", "database", "db"])).stdout
+    (await getExecOutput(codeql, ["resolve", "database", "db"])).stdout
   ).sourceLocationPrefix;
 
   // This will load the whole result set into memory. Given that we just ran a
@@ -82,7 +85,7 @@ async function downloadDatabase(
   nwo: string,
   language: string
 ): Promise<string> {
-  return tc.downloadTool(
+  return downloadTool(
     `https://api.github.com/repos/${nwo}/code-scanning/codeql/databases/${language}`,
     undefined,
     `token ${token}`

@@ -1,6 +1,6 @@
 import { once } from "events";
-import * as stream from "stream";
-import * as util from "util";
+import stream from "stream";
+import { promisify } from "util";
 
 import { JSONResult } from "./json-result-generated";
 
@@ -51,13 +51,13 @@ function toMd(tuple: any[], nwo?: string, src?: string, ref?: string): string {
   return `| ${tuple.map((e) => toS(e, nwo, src, ref)).join(" | ")} |\n`;
 }
 
+const finished = promisify(stream.finished);
+
 async function write(output: stream.Writable, s: string) {
   if (!output.write(s)) {
     await once(output, "drain");
   }
 }
-
-const finished = util.promisify(stream.finished);
 
 async function interpret(
   output: stream.Writable,
@@ -65,19 +65,18 @@ async function interpret(
   nwo: string,
   src: string,
   ref?: string
-) {
+): Promise<void> {
   await write(output, `## ${nwo}\n\n`);
   const colNames = results.select.columns.map((column) => {
     return column.name || "-";
   });
   await write(output, toMd(colNames));
-
   await write(output, toMd(Array(colNames.length).fill("-")));
 
   for (const tuple of results.select.tuples) {
     await write(output, toMd(tuple, nwo, src, ref));
   }
-
   output.end();
-  await finished(output);
+
+  return finished(output);
 }
