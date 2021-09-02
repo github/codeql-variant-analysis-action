@@ -1,4 +1,4 @@
-import { mkdirSync } from "fs";
+import { mkdirSync, mkdtempSync } from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
@@ -22,8 +22,7 @@ async function run(): Promise<void> {
     const curDir = cwd();
     for (const nwo of nwos) {
       const safeNwo = nwo.replace("/", "#");
-      const workDir = path.join(curDir, safeNwo);
-      mkdirSync(workDir);
+      const workDir = mkdtempSync(path.join(curDir, safeNwo));
       chdir(workDir);
 
       // 1. Use the GitHub API to download the database using token
