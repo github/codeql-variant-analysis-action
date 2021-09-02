@@ -1,3 +1,7 @@
+import { mkdirSync } from "fs";
+import path from "path";
+import { chdir, cwd } from "process";
+
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
 
@@ -7,27 +11,37 @@ async function run(): Promise<void> {
   try {
     const query = getInput("query", { required: true });
     const language = getInput("language", { required: true });
-    const nwo = getInput("repository", { required: true });
+    const nwos: string[] = JSON.parse(
+      getInput("repositories", { required: true })
+    );
     const token = getInput("token", { required: true });
     const codeql = getInput("codeql", { required: true });
 
     setSecret(token);
 
-    // 1. Use the GitHub API to download the database using token
-    const dbZip = await downloadDatabase(token, nwo, language);
-    await unbundleDatabase(dbZip);
+    const curDir = cwd();
+    for (const nwo of nwos) {
+      const safeNwo = nwo.replace("/", "#");
+      const workDir = path.join(curDir, safeNwo);
+      mkdirSync(workDir);
+      chdir(workDir);
 
-    // 2. Run the query
-    await runQuery(codeql, language, "database", query, nwo);
+      // 1. Use the GitHub API to download the database using token
+      const dbZip = await downloadDatabase(token, nwo, language);
+      await unbundleDatabase(dbZip);
 
-    // 3. Upload the results as an artifact
-    const artifactClient = createArtifactClient();
-    await artifactClient.uploadArtifact(
-      nwo.replace("/", "#"), // name
-      ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
-      "results", // rootdirectory
-      { continueOnError: false, retentionDays: 1 }
-    );
+      // 2. Run the query
+      await runQuery(codeql, language, "database", query, nwo);
+
+      // 3. Upload the results as an artifact
+      const artifactClient = createArtifactClient();
+      await artifactClient.uploadArtifact(
+        safeNwo, // name
+        ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
+        "results", // rootdirectory
+        { continueOnError: false, retentionDays: 1 }
+      );
+    }
   } catch (error) {
     setFailed(error.message);
   }
