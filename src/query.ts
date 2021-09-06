@@ -1,9 +1,10 @@
-import { mkdirSync, mkdtempSync } from "fs";
+import { mkdtempSync } from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
+import filenamify from "filenamify";
 
 import { downloadDatabase, unbundleDatabase, runQuery } from "./codeql";
 
@@ -21,7 +22,7 @@ async function run(): Promise<void> {
 
     const curDir = cwd();
     for (const nwo of nwos) {
-      const safeNwo = nwo.replace("/", "#");
+      const safeNwo = filenamify(nwo);
       const workDir = mkdtempSync(path.join(curDir, safeNwo));
       chdir(workDir);
 
@@ -36,12 +37,17 @@ async function run(): Promise<void> {
       const artifactClient = createArtifactClient();
       await artifactClient.uploadArtifact(
         safeNwo, // name
-        ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
+        [
+          "results/results.bqrs",
+          "results/results.csv",
+          "results/results.md",
+          "results/nwo.txt",
+        ], // files
         "results", // rootdirectory
         { continueOnError: false, retentionDays: 1 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     setFailed(error.message);
   }
 }

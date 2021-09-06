@@ -66,6 +66,7 @@ test("running a basic query", async (t) => {
     );
     t.true(fs.existsSync(path.join("results", "results.bqrs")));
     t.true(fs.existsSync(path.join("results", "results.csv")));
+    t.is(fs.readFileSync(path.join("results", "nwo.txt"), "utf-8"), "a/b");
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);

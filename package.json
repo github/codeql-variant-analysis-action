@@ -25,7 +25,8 @@
     "@actions/exec": "^1.1.0",
     "@actions/github": "^5.0.0",
     "@actions/io": "^1.1.1",
-    "@actions/tool-cache": "^1.7.1"
+    "@actions/tool-cache": "^1.7.1",
+    "filenamify": "^5.0.1"
   },
   "//": [
     "micromatch is an unspecified dependency of ava"
