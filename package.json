@@ -11,6 +11,7 @@
     "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix",
     "removeNPMAbsolutePaths": "removeNPMAbsolutePaths . --force"
   },
+  "type": "module",
   "ava": {
     "typescript": {
       "rewritePaths": {
@@ -46,7 +47,7 @@
     "eslint-plugin-no-async-foreach": "^0.1.1",
     "micromatch": "^4.0.4",
     "removeNPMAbsolutePaths": "2.0.0",
-    "typescript": "^3.7.5"
+    "typescript": "^4.4.2"
   },
   "resolutions": {
     "glob-parent": ">=5.1.2",

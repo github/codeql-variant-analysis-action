@@ -4,9 +4,9 @@ import { chdir, cwd } from "process";
 
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
-import filenamify from "filenamify";
+import { filenamifyPath } from "filenamify";
 
-import { downloadDatabase, unbundleDatabase, runQuery } from "./codeql";
+import { downloadDatabase, unbundleDatabase, runQuery } from "./codeql.js";
 
 async function run(): Promise<void> {
   try {
@@ -22,7 +22,7 @@ async function run(): Promise<void> {
 
     const curDir = cwd();
     for (const nwo of nwos) {
-      const safeNwo = filenamify(nwo);
+      const safeNwo = filenamifyPath(nwo);
       const workDir = mkdtempSync(path.join(curDir, safeNwo));
       chdir(workDir);
 
@@ -47,7 +47,7 @@ async function run(): Promise<void> {
         { continueOnError: false, retentionDays: 1 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     setFailed(error.message);
   }
 }

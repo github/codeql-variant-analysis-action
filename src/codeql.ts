@@ -4,8 +4,8 @@ import path from "path";
 import { exec, getExecOutput } from "@actions/exec";
 import { extractZip, downloadTool } from "@actions/tool-cache";
 
-import { interpret } from "./interpret";
-import { Convert } from "./json-result-generated";
+import { interpret } from "./interpret.js";
+import { Convert } from "./json-result-generated.js";
 
 class DatabaseUnpackingError extends Error {}
 

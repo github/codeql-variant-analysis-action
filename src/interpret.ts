@@ -2,7 +2,7 @@ import { once } from "events";
 import stream from "stream";
 import { promisify } from "util";
 
-import { JSONResult } from "./json-result-generated";
+import { JSONResult } from "./json-result-generated.js";
 
 export { toS, toMd, interpret };
 
