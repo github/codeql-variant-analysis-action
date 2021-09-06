@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync } from "fs";
+import { mkdtempSync } from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
