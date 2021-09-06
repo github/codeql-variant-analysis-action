@@ -47,7 +47,7 @@ async function run(): Promise<void> {
         { continueOnError: false, retentionDays: 1 }
       );
     }
-  } catch (error: any) {
+  } catch (error) {
     setFailed(error.message);
   }
 }

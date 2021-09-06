@@ -91,7 +91,7 @@ async function run(): Promise<void> {
     ]);
 
     warning(`Results now available at ${issue.data.html_url}`);
-  } catch (error: any) {
+  } catch (error) {
     setFailed(error.message);
   }
 }
