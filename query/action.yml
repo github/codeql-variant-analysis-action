@@ -10,8 +10,8 @@ inputs:
     description: 'Language of CodeQL query'
     required: true
 
-  repository:
-    description: 'Repository to run the query against'
+  repositories:
+    description: 'Repositories to run the query against'
     required: true
 
   token:

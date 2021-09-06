@@ -60,7 +60,7 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  void Promise.all([
+  await Promise.all([
     exec(codeql, [
       "bqrs",
       "decode",
