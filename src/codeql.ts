@@ -97,12 +97,12 @@ libraryPathDependencies: codeql-${language}`
 
 async function downloadDatabase(
   token: string,
-  nwo: string,
+  repoId: number,
   language: string
 ): Promise<string> {
   return downloadTool(
-    `https://api.github.com/repos/${nwo}/code-scanning/codeql/databases/${language}`,
+    `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
     undefined,
-    `token ${token}`
+    `RemoteAuth ${token}`
   );
 }
