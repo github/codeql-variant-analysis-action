@@ -40,15 +40,24 @@ const results = Convert.toJSONResult(`{
     }
   }`);
 
+const windowsResults = Convert.toJSONResult(`{
+  "#select":{"columns":[
+    {"name":"f","kind":"Entity"}
+   ,{"kind":"String"}]
+  ,"tuples":[
+    [
+      {"id":1730354,"label":"D:/a/test-electron/test-electron/vsts-arm64v8.yml","url":{"uri":"file:/D:/a/test-electron/test-electron/vsts-arm64v8.yml","startLine":0,"startColumn":0,"endLine":0,"endColumn":0}},"D:/a/test-electron/test-electron/vsts-arm64v8.yml"]
+    ]
+    }
+}`);
+
 test("malformed result JSON throws error", (t) => {
   t.throws(() => Convert.toJSONResult(badResults));
 });
 
 test("relative URL conversion", (t) => {
-  const select = results.select;
-  const input = select.tuples[0][0];
   const result = toS(
-    input,
+    results.select.tuples[0][0],
     "dsp-testing/qc-demo-github-certstore",
     "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
     "mybranch"
@@ -112,6 +121,35 @@ test("entire result set converted correctly", async (t) => {
 | e | - |
 | - | - |
 | [CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8) | This expression has no effect. |
+`
+  );
+});
+
+test("windows results conversion", async (t) => {
+  let output = "";
+  const w = new Stream.Writable({
+    objectMode: true,
+    write: (chunk, _, cb) => {
+      output += chunk;
+      cb();
+    },
+  });
+
+  await interpret(
+    w,
+    windowsResults,
+    "dsp-testing/test-electron",
+    "D:\\a\\test-electron\\test-electron",
+    "mybranch"
+  );
+
+  t.is(
+    output,
+    `## dsp-testing/test-electron
+
+| f | - |
+| - | - |
+| [D:/a/test-electron/test-electron/vsts-arm64v8.yml](https://github.com/dsp-testing/test-electron/blob/mybranch/vsts-arm64v8.yml#L0) | D:/a/test-electron/test-electron/vsts-arm64v8.yml |
 `
   );
 });
