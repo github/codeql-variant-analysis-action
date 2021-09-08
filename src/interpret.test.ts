@@ -10,7 +10,6 @@ const badResults = `{
 }`;
 
 const results = Convert.toJSONResult(`{
-
     "#select": {
       "columns": [
         {
@@ -41,14 +40,33 @@ const results = Convert.toJSONResult(`{
   }`);
 
 const windowsResults = Convert.toJSONResult(`{
-  "#select":{"columns":[
-    {"name":"f","kind":"Entity"}
-   ,{"kind":"String"}]
-  ,"tuples":[
-    [
-      {"id":1730354,"label":"D:/a/test-electron/test-electron/vsts-arm64v8.yml","url":{"uri":"file:/D:/a/test-electron/test-electron/vsts-arm64v8.yml","startLine":0,"startColumn":0,"endLine":0,"endColumn":0}},"D:/a/test-electron/test-electron/vsts-arm64v8.yml"]
+  "#select": {
+    "columns": [
+      {
+        "name": "f",
+        "kind": "Entity"
+      },
+      {
+        "kind": "String"
+      }
+    ],
+    "tuples": [
+      [
+        {
+          "id": 1730354,
+          "label": "D:/a/test-electron/test-electron/vsts-arm64v8.yml",
+          "url": {
+            "uri": "file:/D:/a/test-electron/test-electron/vsts-arm64v8.yml",
+            "startLine": 0,
+            "startColumn": 0,
+            "endLine": 0,
+            "endColumn": 0
+          }
+        },
+        "D:/a/test-electron/test-electron/vsts-arm64v8.yml"
+      ]
     ]
-    }
+  }
 }`);
 
 test("malformed result JSON throws error", (t) => {
