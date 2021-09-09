@@ -29,7 +29,7 @@ async function unbundleDatabase(dbZip: string): Promise<void> {
 // Will operate on the current working directory and create the following
 // directories:
 // * query/    (query.ql and any other supporting files)
-// * results/  (results.{bqrs,csv,json,md})
+// * results/  (results.{bqrs,csv,json,md} and nwo.txt)
 async function runQuery(
   codeql: string,
   language: string,
@@ -40,6 +40,7 @@ async function runQuery(
   const bqrs = path.join("results", "results.bqrs");
   const json = path.join("results", "results.json");
   fs.mkdirSync("results");
+  fs.writeFileSync(path.join("results", "nwo.txt"), nwo);
 
   const queryDir = "query";
   fs.mkdirSync("query");

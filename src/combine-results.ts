@@ -60,7 +60,10 @@ async function run(): Promise<void> {
           body: fs.readFileSync(md, "utf8"),
         });
 
-        const repoName = response.artifactName.replace("#", "/");
+        const repoName = fs.readFileSync(
+          path.join(response.downloadPath, "nwo.txt"),
+          "utf-8"
+        );
         const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
         const results = parseInt(output.stdout.trim()) - 2;
         if (results > 0) {
