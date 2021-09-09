@@ -66,6 +66,12 @@ async function interpret(
   src: string,
   ref?: string
 ): Promise<void> {
+  // Convert a Windows-style srcLocation to Unix-style
+  src = src.replace(/\\/g, "/");
+  if (!src.startsWith("/")) {
+    src = `/${src}`;
+  }
+
   await write(output, `## ${nwo}\n\n`);
   const colNames = results.select.columns.map((column) => {
     return column.name || "-";

@@ -1,32 +1,53 @@
+import { mkdtempSync } from "fs";
+import path from "path";
+import { chdir, cwd } from "process";
+
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
 
 import { downloadDatabase, runQuery } from "./codeql";
 
+interface Repo {
+  id: number;
+  nwo: string;
+  token: string;
+}
+
 async function run(): Promise<void> {
   try {
     const query = getInput("query", { required: true });
     const language = getInput("language", { required: true });
-    const nwo = getInput("repository", { required: true });
-    const token = getInput("token", { required: true });
+    const repos: Repo[] = JSON.parse(
+      getInput("repositories", { required: true })
+    );
     const codeql = getInput("codeql", { required: true });
 
-    setSecret(token);
+    for (const repo of repos) {
+      setSecret(repo.token);
+    }
 
     // 1. Use the GitHub API to download the database using token
-    const dbZip = await downloadDatabase(token, nwo, language);
+    const curDir = cwd();
+    for (const repo of repos) {
+      const safeNwo = repo.nwo.replace("/", "#");
+      const workDir = mkdtempSync(path.join(curDir, safeNwo));
+      chdir(workDir);
 
-    // 2. Run the query
-    await runQuery(codeql, language, dbZip, query, nwo);
+      // 1. Use the GitHub API to download the database using token
+      const dbZip = await downloadDatabase(repo.token, repo.id, language);
 
-    // 3. Upload the results as an artifact
-    const artifactClient = createArtifactClient();
-    await artifactClient.uploadArtifact(
-      nwo.replace("/", "#"), // name
-      ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
-      "results", // rootdirectory
-      { continueOnError: false, retentionDays: 1 }
-    );
+      // 2. Run the query
+      await runQuery(codeql, language, dbZip, query, repo.nwo);
+
+      // 3. Upload the results as an artifact
+      const artifactClient = createArtifactClient();
+      await artifactClient.uploadArtifact(
+        safeNwo, // name
+        ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
+        "results", // rootdirectory
+        { continueOnError: false, retentionDays: 1 }
+      );
+    }
   } catch (error) {
     setFailed(error.message);
   }

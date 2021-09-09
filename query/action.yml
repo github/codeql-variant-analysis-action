@@ -10,12 +10,8 @@ inputs:
     description: 'Language of CodeQL query'
     required: true
 
-  repository:
-    description: 'Repository to run the query against'
-    required: true
-
-  token:
-    description: 'token to use to fetch the databases to query'
+  repositories:
+    description: 'Repositories to run the query against. A JSON encoded array of the form {id: number, nwo: string, token: string}[]'
     required: true
 
   codeql:
