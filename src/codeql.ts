@@ -87,7 +87,7 @@ async function downloadDatabase(
 ): Promise<string> {
   return downloadTool(
     `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
-    undefined,
+    `${repoId}.zip`,
     `RemoteAuth ${token}`
   );
 }
