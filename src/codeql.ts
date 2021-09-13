@@ -2,29 +2,12 @@ import fs from "fs";
 import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
-import { extractZip, downloadTool } from "@actions/tool-cache";
+import { downloadTool } from "@actions/tool-cache";
 
 import { interpret } from "./interpret";
 import { Convert } from "./json-result-generated";
 
-class DatabaseUnpackingError extends Error {}
-
-export { downloadDatabase, unbundleDatabase, runQuery };
-
-// Will create a directory 'database' in the current working directory
-async function unbundleDatabase(dbZip: string): Promise<void> {
-  const tmpDir = fs.mkdtempSync("tmp");
-  // extractZip runs in `dest` (tmpDir) and so dbZip must be an absolute path
-  const db = await extractZip(path.resolve(dbZip), tmpDir);
-
-  const dirs = fs.readdirSync(db);
-  if (dirs.length !== 1 || !fs.statSync(path.join(db, dirs[0])).isDirectory()) {
-    throw new DatabaseUnpackingError(
-      `Expected a single top-level folder in the database bundle ${db}, found ${dirs}`
-    );
-  }
-  fs.renameSync(path.join(db, dirs[0]), "database");
-}
+export { downloadDatabase, runQuery };
 
 // Will operate on the current working directory and create the following
 // directories:
@@ -53,10 +36,12 @@ libraryPathDependencies: codeql-${language}`
   );
   fs.writeFileSync(queryFile, query);
 
+  await exec(codeql, ["database", "unbundle", database, "--name=db"]);
+
   await exec(codeql, [
     "query",
     "run",
-    `--database=${database}`,
+    `--database=db`,
     `--output=${bqrs}`,
     queryFile,
   ]);
@@ -80,7 +65,7 @@ libraryPathDependencies: codeql-${language}`
   ]);
 
   const sourceLocationPrefix = JSON.parse(
-    (await getExecOutput(codeql, ["resolve", "database", database])).stdout
+    (await getExecOutput(codeql, ["resolve", "database", "db"])).stdout
   ).sourceLocationPrefix;
 
   // This will load the whole result set into memory. Given that we just ran a
@@ -103,7 +88,7 @@ async function downloadDatabase(
 ): Promise<string> {
   return downloadTool(
     `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
-    undefined,
+    `${repoId}.zip`,
     `RemoteAuth ${token}`
   );
 }
