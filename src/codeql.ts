@@ -5,7 +5,6 @@ import { exec, getExecOutput } from "@actions/exec";
 import { downloadTool } from "@actions/tool-cache";
 
 import { interpret } from "./interpret";
-import { Convert } from "./json-result-generated";
 
 export { downloadDatabase, runQuery };
 
@@ -71,7 +70,7 @@ libraryPathDependencies: codeql-${language}`
   // query, we probably have quite a lot of memory available. However, at some
   // point this is likely to break down. We could then look at using a streaming
   // parser such as http://oboejs.com/
-  const jsonResults = Convert.toJSONResult(fs.readFileSync(json, "utf8"));
+  const jsonResults = JSON.parse(fs.readFileSync(json, "utf8"));
 
   const s = fs.createWriteStream(path.join("results", "results.md"), {
     encoding: "utf8",

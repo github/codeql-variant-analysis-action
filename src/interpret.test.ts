@@ -3,13 +3,8 @@ import { Stream } from "stream";
 import test from "ava";
 
 import { toS, toMd, interpret } from "./interpret";
-import { Convert } from "./json-result-generated";
 
-const badResults = `{
-  "#select": {}
-}`;
-
-const results = Convert.toJSONResult(`{
+const results = JSON.parse(`{
     "#select": {
       "columns": [
         {
@@ -39,7 +34,7 @@ const results = Convert.toJSONResult(`{
     }
   }`);
 
-const windowsResults = Convert.toJSONResult(`{
+const windowsResults = JSON.parse(`{
   "#select": {
     "columns": [
       {
@@ -69,13 +64,9 @@ const windowsResults = Convert.toJSONResult(`{
   }
 }`);
 
-test("malformed result JSON throws error", (t) => {
-  t.throws(() => Convert.toJSONResult(badResults));
-});
-
 test("relative URL conversion", (t) => {
   const result = toS(
-    results.select.tuples[0][0],
+    results["#select"].tuples[0][0],
     "dsp-testing/qc-demo-github-certstore",
     "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
     "mybranch"
@@ -88,9 +79,11 @@ test("relative URL conversion", (t) => {
 });
 
 test("absolute URL left alone", (t) => {
-  const select = results.select;
-  const input = select.tuples[0][0];
-  const result = toS(input, "dsp-testing/qc-demo-github-certstore", "/tmp");
+  const result = toS(
+    results["#select"].tuples[0][0],
+    "dsp-testing/qc-demo-github-certstore",
+    "/tmp"
+  );
 
   t.is(
     "[CERTSTORE_DOESNT_WORK_ON_LINIX](file:/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore/certstore_linux.go#L8)",
@@ -99,10 +92,8 @@ test("absolute URL left alone", (t) => {
 });
 
 test("entire row converted correctly", (t) => {
-  const select = results.select;
-  const input = select.tuples[0];
   const result = toMd(
-    input,
+    results["#select"].tuples[0],
     "dsp-testing/qc-demo-github-certstore",
     "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
     "mybranch"
