@@ -52,18 +52,18 @@ async function run(): Promise<void> {
         await mv(csv, csvDest);
         csvs.push(csvDest);
 
-        const md = path.join(response.downloadPath, "results.md");
-        const comment = await octokit.rest.issues.createComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          issue_number: issue.data.number,
-          body: fs.readFileSync(md, "utf8"),
-        });
-
         const repoName = response.artifactName.replace("#", "/");
         const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
         const results = parseInt(output.stdout.trim()) - 2;
+
         if (results > 0) {
+          const md = path.join(response.downloadPath, "results.md");
+          const comment = await octokit.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issue.data.number,
+            body: fs.readFileSync(md, "utf8"),
+          });
           return `| ${repoName} | [${results} result(s)](${comment.data.html_url}) |`;
         }
         return `| ${repoName} | _No results_ |`;
