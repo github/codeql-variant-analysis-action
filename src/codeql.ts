@@ -81,13 +81,17 @@ libraryPathDependencies: codeql-${language}`
 }
 
 async function downloadDatabase(
-  token: string,
+  signedAuthToken: string,
   repoId: number,
-  language: string
+  language: string,
+  pat?: string
 ): Promise<string> {
+  const authHeader =
+    pat === undefined ? `RemoteAuth ${signedAuthToken}` : `token ${pat}`;
+
   return downloadTool(
     `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
     `${repoId}.zip`,
-    `RemoteAuth ${token}`
+    authHeader
   );
 }
