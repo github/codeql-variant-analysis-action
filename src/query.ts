@@ -10,8 +10,8 @@ import { downloadDatabase, runQuery } from "./codeql";
 interface Repo {
   id: number;
   nwo: string;
-  token: string;
-  pat: string;
+  token?: string; // SignedAuthToken
+  pat?: string;
 }
 
 async function run(): Promise<void> {
@@ -41,9 +41,9 @@ async function run(): Promise<void> {
 
       // 1. Use the GitHub API to download the database using token
       const dbZip = await downloadDatabase(
-        repo.token,
         repo.id,
         language,
+        repo.token,
         repo.pat
       );
 
