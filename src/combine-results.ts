@@ -57,7 +57,7 @@ async function run(): Promise<void> {
           "utf-8"
         );
         const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
-        const results = parseInt(output.stdout.trim()) - 2;
+        const results = parseInt(output.stdout.trim(), 10) - 1;
 
         if (results > 0) {
           const md = path.join(response.downloadPath, "results.md");
