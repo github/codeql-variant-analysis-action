@@ -35,8 +35,7 @@ async function run(): Promise<void> {
     // 1. Use the GitHub API to download the database using token
     const curDir = cwd();
     for (const repo of repos) {
-      const safeNwo = repo.nwo.replace("/", "#");
-      const workDir = mkdtempSync(path.join(curDir, safeNwo));
+      const workDir = mkdtempSync(path.join(curDir, repo.id.toString()));
       chdir(workDir);
 
       // 1. Use the GitHub API to download the database using token
@@ -53,8 +52,13 @@ async function run(): Promise<void> {
       // 3. Upload the results as an artifact
       const artifactClient = createArtifactClient();
       await artifactClient.uploadArtifact(
-        safeNwo, // name
-        ["results/results.bqrs", "results/results.csv", "results/results.md"], // files
+        repo.id.toString(), // name
+        [
+          "results/results.bqrs",
+          "results/results.csv",
+          "results/results.md",
+          "results/nwo.txt",
+        ], // files
         "results", // rootdirectory
         { continueOnError: false, retentionDays: 1 }
       );

@@ -52,7 +52,10 @@ async function run(): Promise<void> {
         await mv(csv, csvDest);
         csvs.push(csvDest);
 
-        const repoName = response.artifactName.replace("#", "/");
+        const repoName = fs.readFileSync(
+          path.join(response.downloadPath, "nwo.txt"),
+          "utf-8"
+        );
         const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
         const results = parseInt(output.stdout.trim()) - 2;
 
