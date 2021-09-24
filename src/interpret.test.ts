@@ -2,14 +2,22 @@ import { Stream } from "stream";
 
 import test from "ava";
 
-import { toS, toMd, interpret } from "./interpret";
+import {
+  entityToString,
+  toTableRow,
+  problemQueryMessage,
+  interpret,
+} from "./interpret";
 
-const results = JSON.parse(`{
+const rawResults = JSON.parse(`{
     "#select": {
       "columns": [
         {
           "name": "e",
           "kind": "Entity"
+        },
+        {
+          "kind": "String"
         },
         {
           "kind": "String"
@@ -28,18 +36,22 @@ const results = JSON.parse(`{
               "endColumn": 31
             }
           },
-          "This expression has no effect."
+          "This expression has no effect.",
+          "This is another string field."
         ]
       ]
     }
   }`);
 
-const windowsResults = JSON.parse(`{
+const rawWindowsResults = JSON.parse(`{
   "#select": {
     "columns": [
       {
         "name": "f",
         "kind": "Entity"
+      },
+      {
+        "kind": "String"
       },
       {
         "kind": "String"
@@ -58,15 +70,63 @@ const windowsResults = JSON.parse(`{
             "endColumn": 0
           }
         },
-        "D:/a/test-electron/test-electron/vsts-arm64v8.yml"
+        "D:/a/test-electron/test-electron/vsts-arm64v8.yml",
+        "This is another string field."
+      ]
+    ]
+  }
+}`);
+
+const problemResults = JSON.parse(`{
+  "#select": {
+    "columns": [
+      {
+        "kind": "Entity"
+      },
+      {
+        "kind": "String"
+      },
+      {
+        "kind": "Entity"
+      },
+      {
+        "kind": "String"
+      }
+    ],
+    "tuples": [
+      [
+        {
+          "id": 233013,
+          "label": "req.url!",
+          "url": {
+            "uri": "file:/home/runner/work/test-electron/test-electron/spec-main/api-session-spec.ts",
+            "startLine": 940,
+            "startColumn": 19,
+            "endLine": 940,
+            "endColumn": 26
+          }
+        },
+        "This path depends on $@.",
+        {
+          "id": 233014,
+          "label": "req.url",
+          "url": {
+            "uri": "file:/home/runner/work/test-electron/test-electron/spec-main/api-session-spec.ts",
+            "startLine": 940,
+            "startColumn": 19,
+            "endLine": 940,
+            "endColumn": 25
+          }
+        },
+        "a user-provided value"
       ]
     ]
   }
 }`);
 
 test("relative URL conversion", (t) => {
-  const result = toS(
-    results["#select"].tuples[0][0],
+  const result = entityToString(
+    rawResults["#select"].tuples[0][0],
     "dsp-testing/qc-demo-github-certstore",
     "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
     "mybranch"
@@ -79,10 +139,11 @@ test("relative URL conversion", (t) => {
 });
 
 test("absolute URL left alone", (t) => {
-  const result = toS(
-    results["#select"].tuples[0][0],
+  const result = entityToString(
+    rawResults["#select"].tuples[0][0],
     "dsp-testing/qc-demo-github-certstore",
-    "/tmp"
+    "/tmp",
+    "HEAD"
   );
 
   t.is(
@@ -91,13 +152,11 @@ test("absolute URL left alone", (t) => {
   );
 });
 
-test("entire row converted correctly", (t) => {
-  const result = toMd(
-    results["#select"].tuples[0],
-    "dsp-testing/qc-demo-github-certstore",
-    "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
-    "mybranch"
-  );
+test("table row formatted correctly", (t) => {
+  const result = toTableRow([
+    "[CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8)",
+    "This expression has no effect.",
+  ]);
 
   t.is(
     "| [CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8) | This expression has no effect. |\n",
@@ -105,7 +164,178 @@ test("entire row converted correctly", (t) => {
   );
 });
 
-test("entire result set converted correctly", async (t) => {
+test("problem query message with too few placeholder values", async (t) => {
+  const tuple = [
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/file.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "This depends on $@ and $@ and $@.",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/A.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "A",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/B.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "B",
+  ];
+
+  const message = problemQueryMessage(
+    tuple,
+    "foo/bar",
+    "/home/runner/work/bar/bar",
+    "mybranch"
+  );
+
+  t.is(
+    message,
+    "This depends on [A](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1) and $@."
+  );
+});
+
+test("problem query message with too many placeholder values", async (t) => {
+  const tuple = [
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/file.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "This depends on $@ and $@.",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/A.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "A",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/B.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "B",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/C.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "C",
+  ];
+
+  const message = problemQueryMessage(
+    tuple,
+    "foo/bar",
+    "/home/runner/work/bar/bar",
+    "mybranch"
+  );
+
+  t.is(
+    message,
+    "This depends on [A](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1)."
+  );
+});
+
+test("problem query message with placeholder messages containing $@", async (t) => {
+  const tuple = [
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/file.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "This depends on $@ and $@.",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/A.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "another $@ value",
+    {
+      id: 1234,
+      label: "woo",
+      url: {
+        uri: "file:/home/runner/work/bar/bar/B.js",
+        startLine: 1,
+        startColumn: 2,
+        endLine: 3,
+        endColumn: 4,
+      },
+    },
+    "B",
+  ];
+
+  const message = problemQueryMessage(
+    tuple,
+    "foo/bar",
+    "/home/runner/work/bar/bar",
+    "mybranch"
+  );
+
+  t.is(
+    message,
+    "This depends on [another $@ value](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1)."
+  );
+});
+
+test("entire raw result set converted correctly", async (t) => {
   let output = "";
   const w = new Stream.Writable({
     objectMode: true,
@@ -117,7 +347,7 @@ test("entire result set converted correctly", async (t) => {
 
   await interpret(
     w,
-    results,
+    rawResults,
     "dsp-testing/qc-demo-github-certstore",
     "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
     "mybranch"
@@ -127,9 +357,9 @@ test("entire result set converted correctly", async (t) => {
     output,
     `## dsp-testing/qc-demo-github-certstore
 
-| e | - |
-| - | - |
-| [CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8) | This expression has no effect. |
+| e | - | - |
+| - | - | - |
+| [CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8) | This expression has no effect. | This is another string field. |
 `
   );
 });
@@ -146,7 +376,7 @@ test("windows results conversion", async (t) => {
 
   await interpret(
     w,
-    windowsResults,
+    rawWindowsResults,
     "dsp-testing/test-electron",
     "D:\\a\\test-electron\\test-electron",
     "mybranch"
@@ -156,9 +386,38 @@ test("windows results conversion", async (t) => {
     output,
     `## dsp-testing/test-electron
 
-| f | - |
+| f | - | - |
+| - | - | - |
+| [D:/a/test-electron/test-electron/vsts-arm64v8.yml](https://github.com/dsp-testing/test-electron/blob/mybranch/vsts-arm64v8.yml#L0) | D:/a/test-electron/test-electron/vsts-arm64v8.yml | This is another string field. |
+`
+  );
+});
+
+test("problem result set converted correctly", async (t) => {
+  let output = "";
+  const w = new Stream.Writable({
+    objectMode: true,
+    write: (chunk, _, cb) => {
+      output += chunk;
+      cb();
+    },
+  });
+
+  await interpret(
+    w,
+    problemResults,
+    "dsp-testing/test-electron",
+    "/home/runner/work/test-electron/test-electron",
+    "mybranch"
+  );
+
+  t.is(
+    output,
+    `## dsp-testing/test-electron
+
+| - | Message |
 | - | - |
-| [D:/a/test-electron/test-electron/vsts-arm64v8.yml](https://github.com/dsp-testing/test-electron/blob/mybranch/vsts-arm64v8.yml#L0) | D:/a/test-electron/test-electron/vsts-arm64v8.yml |
+| [req.url!](https://github.com/dsp-testing/test-electron/blob/mybranch/spec-main/api-session-spec.ts#L940) | This path depends on [a user-provided value](https://github.com/dsp-testing/test-electron/blob/mybranch/spec-main/api-session-spec.ts#L940). |
 `
   );
 });
