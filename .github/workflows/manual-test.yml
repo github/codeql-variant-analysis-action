@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       query:
-        default: "import go\nfrom File f select f"
+        default: |
+          import go
+          from File f select f
 
 jobs:
   run-query:
