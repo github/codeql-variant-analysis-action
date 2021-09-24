@@ -1,5 +1,13 @@
 name: "Manual test"
 
+# Allows running a Go query against the dsp-testing/qc-demo-github-certstore
+# test repo. Only works for that repo as it relies on a repository secret.
+# Can be triggered on test branches to test changes.
+
+# The Actions UI doesn't handle newlines in the inputs at all, so this
+# cannot be reliably triggered from the UI. For best results use the API.
+# e.g. curl https://api.github.com/repos/dsp-testing/qc-run2/actions/workflows/manual-test.yml/dispatches -X POST -d '{"ref":"my-branch", "inputs": {"query": "my query"}}'
+
 on:
   workflow_dispatch:
     inputs:
