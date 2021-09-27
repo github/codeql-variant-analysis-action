@@ -2,10 +2,10 @@ import { once } from "events";
 import stream from "stream";
 import { promisify } from "util";
 
-export { toS, toMd, interpret };
+export { entityToString, toTableRow, problemQueryMessage, interpret };
 
-// If e is an object, then we assume it is a single entity result of the form
-// produced by `codeql bqrs decode --format=json`. For example:
+// Methods in this file consume the output from `codeql bqrs decode --format=json`.
+// For example:
 //
 // {
 //   "id": 7661,
@@ -18,25 +18,15 @@ export { toS, toMd, interpret };
 //     "endColumn": 31
 //   }
 // }
-//
-// In this case then if src is a prefix of url.uri, then we turn it into a link
-// to the github.com code viewer.
-function toS(e: any, nwo?: string, src?: string, ref?: string): string {
-  if (ref === undefined) {
-    ref = "HEAD";
-  }
 
+// If e is an object representing a single entity, turn it into a markdown representation.
+function entityToString(e: any, nwo: string, src: string, ref: string): string {
+  // Handle integers, strings, and anything else we haven't seen yet
   if (typeof e !== "object") {
-    // Convert integers, also catch-all for anything else we haven't seen yet
     return `${e}`;
   }
 
-  let url = `${e.url.uri}#L${e.url.startLine}`;
-  if (nwo !== undefined && src !== undefined && url.startsWith(`file:${src}`)) {
-    // Make path relative
-    const relative = url.substr(`file:${src}`.length);
-    url = `https://github.com/${nwo}/blob/${ref}${relative}`;
-  }
+  let url = getEntityURL(e, nwo, src, ref);
 
   // For now we produce a link even if the target is outside the source archive
   // so we don't just throw the location away.
@@ -45,8 +35,69 @@ function toS(e: any, nwo?: string, src?: string, ref?: string): string {
   return url;
 }
 
-function toMd(tuple: any[], nwo?: string, src?: string, ref?: string): string {
-  return `| ${tuple.map((e) => toS(e, nwo, src, ref)).join(" | ")} |\n`;
+// If e is an object representing a single entity, turn it into a link to
+// the github.com code viewer.
+function getEntityURL(e: any, nwo: string, src: string, ref: string): string {
+  let url = `${e.url.uri}#L${e.url.startLine}`;
+  if (nwo !== undefined && src !== undefined && url.startsWith(`file:${src}`)) {
+    // Make path relative
+    const relative = url.substr(`file:${src}`.length);
+    url = `https://github.com/${nwo}/blob/${ref}${relative}`;
+  }
+  return url;
+}
+
+// Returns the formatted message for a problem query, with any placeholders filled in.
+function problemQueryMessage(
+  tuple: any,
+  nwo: string,
+  src: string,
+  ref: string
+): string {
+  // Start with just the raw message, and then fill in any placeholders
+  let message = tuple[1] as string;
+
+  // The index in the message of the next "$@", or -1 if there are no more placeholders to fill
+  let nextMessageDollarAtIndex = message.indexOf("$@");
+  // The index in the tuple of the next placeholder to take
+  let nextPlaceholderTupleIndex = 2;
+  while (
+    nextMessageDollarAtIndex !== -1 &&
+    nextPlaceholderTupleIndex < tuple.length - 1
+  ) {
+    const linkUrl = getEntityURL(
+      tuple[nextPlaceholderTupleIndex],
+      nwo,
+      src,
+      ref
+    );
+    const linkText = tuple[nextPlaceholderTupleIndex + 1];
+    const link = `[${linkText}](${linkUrl})`;
+
+    message =
+      message.substring(0, nextMessageDollarAtIndex) +
+      link +
+      message.substring(nextMessageDollarAtIndex + 2);
+
+    // Search for the next $@ starting after the link we just inserted so as not to recurse
+    nextMessageDollarAtIndex = message.indexOf(
+      "$@",
+      nextMessageDollarAtIndex + link.length
+    );
+    nextPlaceholderTupleIndex += 2;
+  }
+
+  return message;
+}
+
+// Returns the given set of strings formatted as a row of a markdown table
+function toTableRow(data: string[]): string {
+  return `| ${data.join(" | ")} |\n`;
+}
+
+// Returns the second row of a markdown table, between the column names and the body
+function tableDashesRow(numColumns: number): string {
+  return toTableRow(Array(numColumns).fill("-"));
 }
 
 const finished = promisify(stream.finished);
@@ -62,7 +113,7 @@ async function interpret(
   results: any,
   nwo: string,
   src: string,
-  ref?: string
+  ref: string
 ): Promise<void> {
   // Convert a Windows-style srcLocation to Unix-style
   src = src.replace(/\\/g, "/");
@@ -72,16 +123,55 @@ async function interpret(
 
   await write(output, `## ${nwo}\n\n`);
 
-  const colNames = results["#select"]["columns"].map((column) => {
-    return column.name || "-";
-  });
-  await write(output, toMd(colNames));
-  await write(output, toMd(Array(colNames.length).fill("-")));
+  if (isProblemQuery(results)) {
+    // Output as problem with placeholders
+    const colNames = ["-", "Message"];
+    await write(output, toTableRow(colNames));
+    await write(output, tableDashesRow(colNames.length));
 
-  for (const tuple of results["#select"]["tuples"]) {
-    await write(output, toMd(tuple, nwo, src, ref));
+    for (const tuple of results["#select"]["tuples"]) {
+      const entityCol = entityToString(tuple[0], nwo, src, ref);
+      const messageCol = problemQueryMessage(tuple, nwo, src, ref);
+      await write(output, toTableRow([entityCol, messageCol]));
+    }
+  } else {
+    // Output raw table
+    const colNames = results["#select"]["columns"].map((c) => c.name || "-");
+    await write(output, toTableRow(colNames));
+    await write(output, tableDashesRow(colNames.length));
+
+    for (const tuple of results["#select"]["tuples"]) {
+      const row = tuple.map((e) => entityToString(e, nwo, src, ref));
+      await write(output, toTableRow(row));
+    }
   }
-  output.end();
 
+  output.end();
   return finished(output);
+}
+
+// Do the given set of results look like they are for a
+// problem query.
+function isProblemQuery(results: any): boolean {
+  const columns = results["#select"]["columns"];
+
+  // A problem query must have an even number of columns
+  // and have at least 2 columns.
+  if (columns.length < 2 || columns.length % 2 !== 0) {
+    return false;
+  }
+
+  // The first column must be an entity and the second column must be a string.
+  if (columns[0]["kind"] !== "Entity" || columns[1]["kind"] !== "String") {
+    return false;
+  }
+
+  // After that the second column in each pair must be a string.
+  for (let i = 3; i < columns.length; i += 2) {
+    if (columns[i]["kind"] !== "String") {
+      return false;
+    }
+  }
+
+  return true;
 }
