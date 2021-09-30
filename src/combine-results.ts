@@ -7,7 +7,11 @@ import { getExecOutput } from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import { mkdirP, mv } from "@actions/io";
 
-const formatBody = (query: string, results: string): string => `# Query
+const formatBody = (
+  query: string,
+  results: string,
+  errors: string
+): string => `# Query
 <details>
   <summary>Click to expand</summary>
 
@@ -20,7 +24,8 @@ ${query}
 
 |Repository|Results|
 |---|---|
-${results}`;
+${results}
+${errors}`;
 
 async function run(): Promise<void> {
   try {
@@ -34,10 +39,33 @@ async function run(): Promise<void> {
       "artifacts"
     );
 
+    // Stop if there are no artifacts
+    if (downloadResponse.length === 0) {
+      setFailed(
+        "Unable to run query on any repositories. For more details, see the individual `run-query` jobs."
+      );
+      return;
+    }
+
+    // See if there are any "error" artifacts and if so, let the user know in the issue
+    const errorArtifacts = downloadResponse.filter((artifact) =>
+      artifact.artifactName.includes("error")
+    );
+    let errorsMd = "";
+    if (errorArtifacts.length > 0) {
+      errorsMd =
+        "\n\nFailed to run query on some repositories. For more details, see the logs.";
+    }
+
+    // Result artifacts are the non-error artifacts
+    const resultArtifacts = downloadResponse.filter(
+      (artifact) => !errorArtifacts.includes(artifact)
+    );
+
     await mkdirP("results");
 
     const octokit = getOctokit(token);
-    const title = `Query run by ${context.actor} against ${downloadResponse.length} \`${language}\` repositories`;
+    const title = `Query run by ${context.actor} against ${resultArtifacts.length} \`${language}\` repositories`;
     const issue = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
@@ -46,7 +74,7 @@ async function run(): Promise<void> {
 
     const csvs: string[] = [];
     const resultsMd = await Promise.all(
-      downloadResponse.map(async function (response) {
+      resultArtifacts.map(async function (response) {
         const csv = path.join(response.downloadPath, "results.csv");
         const csvDest = path.join("results", response.artifactName);
         await mv(csv, csvDest);
@@ -73,7 +101,7 @@ async function run(): Promise<void> {
       })
     );
 
-    const body = formatBody(query, resultsMd.join("\n"));
+    const body = formatBody(query, resultsMd.join("\n"), errorsMd);
 
     void Promise.all([
       octokit.rest.issues.update({
