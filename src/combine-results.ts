@@ -39,28 +39,28 @@ async function run(): Promise<void> {
       "artifacts"
     );
 
-    // Stop if there are no artifacts
-    if (downloadResponse.length === 0) {
-      setFailed(
-        "Unable to run query on any repositories. For more details, see the individual `run-query` jobs."
-      );
-      return;
-    }
-
     // See if there are any "error" artifacts and if so, let the user know in the issue
     const errorArtifacts = downloadResponse.filter((artifact) =>
       artifact.artifactName.includes("error")
     );
     let errorsMd = "";
     if (errorArtifacts.length > 0) {
-      errorsMd =
-        "\n\nFailed to run query on some repositories. For more details, see the logs.";
+      const workflowRunUrl = `${process.env["GITHUB_SERVER_URL"]}/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}`;
+      errorsMd = `\n\nNote: The query failed to run on some repositories. For more details, see the [logs](${workflowRunUrl}).`;
     }
 
     // Result artifacts are the non-error artifacts
     const resultArtifacts = downloadResponse.filter(
       (artifact) => !errorArtifacts.includes(artifact)
     );
+
+    // Stop if there are no result artifacts
+    if (resultArtifacts.length === 0) {
+      setFailed(
+        "Unable to run query on any repositories. For more details, see the individual `run-query` jobs."
+      );
+      return;
+    }
 
     await mkdirP("results");
 

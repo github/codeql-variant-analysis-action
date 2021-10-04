@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "fs";
+import { appendFileSync, mkdirSync, mkdtempSync } from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
@@ -65,12 +65,13 @@ async function run(): Promise<void> {
     }
   } catch (err: any) {
     error(err.message);
-    // Also write error message to a file and upload it as an artifact
+    // Write error messages to a file and upload as an artifact, so that the
+    // combine-results job "knows" about the failures
+
     mkdirSync("errors");
     const errorFile = path.join(cwd(), "errors", "error.txt");
-    writeFileSync(errorFile, err.message);
+    appendFileSync(errorFile, err.message); // TODO: Include information about which repository produced the error
 
-    // Collect failures and upload as an artifact (so that combine-results has something to go on)
     await artifactClient.uploadArtifact(
       "error", // name
       ["errors/error.txt"], // files
