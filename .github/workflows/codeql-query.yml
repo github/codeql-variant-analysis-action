@@ -55,6 +55,7 @@ jobs:
 
   combine-results:
     runs-on: ubuntu-latest
+    if: always()
     needs:
       - run-query
 
