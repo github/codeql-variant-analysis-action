@@ -46,7 +46,7 @@ jobs:
           languages: ${{ github.event.inputs.language }}
 
       - name: Run query
-        uses: dsp-testing/qc-run2/query@main
+        uses: dsp-testing/qc-run2/query@handle-failure
         with:
           query: ${{ github.event.inputs.query }}
           language: ${{ github.event.inputs.language }}
@@ -61,7 +61,7 @@ jobs:
 
     steps:
       - name: Combine results
-        uses: dsp-testing/qc-run2/combine-results@main
+        uses: dsp-testing/qc-run2/combine-results@handle-failure
         with:
           query: ${{ github.event.inputs.query }}
           language: ${{ github.event.inputs.language }}
