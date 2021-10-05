@@ -3,7 +3,7 @@ import path from "path";
 import { chdir, cwd } from "process";
 
 import { create as createArtifactClient } from "@actions/artifact";
-import { getInput, setSecret, error } from "@actions/core";
+import { getInput, setSecret, setFailed } from "@actions/core";
 
 import { downloadDatabase, runQuery } from "./codeql";
 
@@ -64,10 +64,10 @@ async function run(): Promise<void> {
       );
     }
   } catch (err: any) {
-    error(err.message);
+    setFailed(err.message);
+
     // Write error messages to a file and upload as an artifact, so that the
     // combine-results job "knows" about the failures
-
     mkdirSync("errors");
     const errorFile = path.join(cwd(), "errors", "error.txt");
     appendFileSync(errorFile, err.message); // TODO: Include information about which repository produced the error
