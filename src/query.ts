@@ -63,14 +63,14 @@ async function run(): Promise<void> {
         { continueOnError: false, retentionDays: 1 }
       );
     }
-  } catch (err: any) {
-    setFailed(err.message);
+  } catch (error: any) {
+    setFailed(error.message);
 
     // Write error messages to a file and upload as an artifact, so that the
     // combine-results job "knows" about the failures
     mkdirSync("errors");
     const errorFile = path.join(cwd(), "errors", "error.txt");
-    appendFileSync(errorFile, err.message); // TODO: Include information about which repository produced the error
+    appendFileSync(errorFile, error.message); // TODO: Include information about which repository produced the error
 
     await artifactClient.uploadArtifact(
       "error", // name
