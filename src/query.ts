@@ -40,6 +40,7 @@ async function run(): Promise<void> {
       chdir(workDir);
 
       // 1. Use the GitHub API to download the database using token
+      console.log("Getting database");
       const dbZip = await downloadDatabase(
         repo.id,
         language,
@@ -48,9 +49,11 @@ async function run(): Promise<void> {
       );
 
       // 2. Run the query
+      console.log("Running query");
       await runQuery(codeql, language, dbZip, query, repo.nwo);
 
       // 3. Upload the results as an artifact
+      console.log("Uploading artifact");
       await artifactClient.uploadArtifact(
         repo.id.toString(), // name
         [

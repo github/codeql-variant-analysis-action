@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
-import { downloadTool } from "@actions/tool-cache";
 
+import { downloadDatabaseFile } from "./download-database";
 import { interpret } from "./interpret";
 
 export { downloadDatabase, runQuery };
@@ -93,9 +93,18 @@ async function downloadDatabase(
     authHeader = `token ${pat}`;
   }
 
-  return downloadTool(
-    `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
-    `${repoId}.zip`,
-    authHeader
-  );
+  try {
+    return await downloadDatabaseFile(
+      `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
+      `${repoId}.zip`,
+      authHeader
+    );
+  } catch (error: any) {
+    console.log("Error while downloading database");
+    if (error.httpStatusCode === 404) {
+      throw new Error("No database available.");
+    } else {
+      throw error;
+    }
+  }
 }
