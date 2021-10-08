@@ -1,4 +1,4 @@
-import { mkdtempSync } from "fs";
+import { appendFileSync, mkdirSync, mkdtempSync } from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
@@ -15,6 +15,7 @@ interface Repo {
 }
 
 async function run(): Promise<void> {
+  const artifactClient = createArtifactClient();
   try {
     const query = getInput("query", { required: true });
     const language = getInput("language", { required: true });
@@ -50,7 +51,6 @@ async function run(): Promise<void> {
       await runQuery(codeql, language, dbZip, query, repo.nwo);
 
       // 3. Upload the results as an artifact
-      const artifactClient = createArtifactClient();
       await artifactClient.uploadArtifact(
         repo.id.toString(), // name
         [
@@ -65,6 +65,19 @@ async function run(): Promise<void> {
     }
   } catch (error: any) {
     setFailed(error.message);
+
+    // Write error messages to a file and upload as an artifact, so that the
+    // combine-results job "knows" about the failures
+    mkdirSync("errors");
+    const errorFile = path.join(cwd(), "errors", "error.txt");
+    appendFileSync(errorFile, error.message); // TODO: Include information about which repository produced the error
+
+    await artifactClient.uploadArtifact(
+      "error", // name
+      ["errors/error.txt"], // files
+      "errors", // rootdirectory
+      { continueOnError: false, retentionDays: 1 }
+    );
   }
 }
 
