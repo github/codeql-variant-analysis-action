@@ -12,9 +12,13 @@ import { IHeaders } from "@actions/http-client/interfaces";
 import * as io from "@actions/io";
 
 export class HTTPError extends Error {
-  constructor(readonly httpStatusCode: number | undefined) {
-    super(`Unexpected HTTP response: ${httpStatusCode}`);
-    Object.setPrototypeOf(this, new.target.prototype);
+  httpStatusCode: number | undefined;
+  httpMessage: string;
+  constructor(httpStatusCode: number | undefined, httpMessage: string) {
+    super(`Unexpected HTTP response: ${httpStatusCode}. ${httpMessage}`);
+    // Set status code and error message to `this`
+    this.httpStatusCode = httpStatusCode;
+    this.httpMessage = httpMessage;
   }
 }
 const userAgent = "actions/tool-cache";
@@ -83,24 +87,24 @@ async function downloadDatabaseFileAttempt(
     headers.authorization = auth;
   }
 
-  core.debug(JSON.stringify(headers));
-
   const response: httpm.HttpClientResponse = await http.get(url, headers);
+
   if (response.message.statusCode !== 200) {
-    const err = new HTTPError(response.message.statusCode);
+    const err = new HTTPError(
+      response.message.statusCode,
+      await response.readBody()
+    );
     core.debug(
-      `Failed to download from "${url}". Code(${response.message.statusCode}) Message(${response.message.statusMessage})`
+      `Failed to download from "${url}". Code(${err.httpStatusCode}) Message(${err.httpMessage})`
     );
     throw err;
   }
 
   // Download the response body
   const pipeline = util.promisify(stream.pipeline);
-  const responseMessageFactory = () => response.message;
-  const readStream = responseMessageFactory();
   let succeeded = false;
   try {
-    await pipeline(readStream, fs.createWriteStream(dest));
+    await pipeline(response.message, fs.createWriteStream(dest));
     core.debug("download complete");
     succeeded = true;
     return dest;
