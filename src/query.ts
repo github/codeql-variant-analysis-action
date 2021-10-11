@@ -43,6 +43,7 @@ async function run(): Promise<void> {
       console.log("Getting database");
       const dbZip = await downloadDatabase(
         repo.id,
+        repo.nwo,
         language,
         repo.token,
         repo.pat

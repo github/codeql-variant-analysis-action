@@ -21,6 +21,7 @@ export class HTTPError extends Error {
     this.httpMessage = httpMessage;
   }
 }
+
 const userAgent = "actions/tool-cache";
 
 /**

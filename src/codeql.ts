@@ -82,6 +82,7 @@ libraryPathDependencies: codeql-${language}`
 
 async function downloadDatabase(
   repoId: number,
+  repoName: string,
   language: string,
   signedAuthToken?: string,
   pat?: string
@@ -101,8 +102,13 @@ async function downloadDatabase(
     );
   } catch (error: any) {
     console.log("Error while downloading database");
-    if (error.httpStatusCode === 404) {
-      throw new Error("No database available.");
+    if (
+      error.httpStatusCode === 404 &&
+      error.httpMessage.includes("No database available for")
+    ) {
+      throw new Error(
+        `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`
+      );
     } else {
       throw error;
     }
