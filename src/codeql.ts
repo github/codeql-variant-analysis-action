@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
-import { downloadTool } from "@actions/tool-cache";
 
+import { downloadDatabaseFile } from "./download-database";
 import { interpret } from "./interpret";
 
 export { downloadDatabase, runQuery };
@@ -82,6 +82,7 @@ libraryPathDependencies: codeql-${language}`
 
 async function downloadDatabase(
   repoId: number,
+  repoName: string,
   language: string,
   signedAuthToken?: string,
   pat?: string
@@ -93,9 +94,23 @@ async function downloadDatabase(
     authHeader = `token ${pat}`;
   }
 
-  return downloadTool(
-    `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
-    `${repoId}.zip`,
-    authHeader
-  );
+  try {
+    return await downloadDatabaseFile(
+      `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
+      `${repoId}.zip`,
+      authHeader
+    );
+  } catch (error: any) {
+    console.log("Error while downloading database");
+    if (
+      error.httpStatusCode === 404 &&
+      error.httpMessage.includes("No database available for")
+    ) {
+      throw new Error(
+        `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`
+      );
+    } else {
+      throw error;
+    }
+  }
 }
