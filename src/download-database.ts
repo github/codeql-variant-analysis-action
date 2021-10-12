@@ -1,5 +1,5 @@
 // This file borrows heavily from the actions "downloadTool" function:
-// https://github.com/actions/toolkit/blob/main/packages/tool-cache/src/tool-cache.ts#L38
+// https://github.com/actions/toolkit/blob/27f76dfe1afb2b7e5e679cd8e97192d34d8320e6/packages/tool-cache/src/tool-cache.ts
 
 import * as fs from "fs";
 import * as path from "path";
@@ -16,13 +16,12 @@ export class HTTPError extends Error {
   httpMessage: string;
   constructor(httpStatusCode: number | undefined, httpMessage: string) {
     super(`Unexpected HTTP response: ${httpStatusCode}. ${httpMessage}`);
-    // Set status code and error message to `this`
     this.httpStatusCode = httpStatusCode;
     this.httpMessage = httpMessage;
   }
 }
 
-const userAgent = "actions/tool-cache";
+const userAgent = "GitHub remote queries";
 
 /**
  * Download a database from an url and stream it into a file
@@ -30,7 +29,6 @@ const userAgent = "actions/tool-cache";
  * @param url       url of database to download
  * @param dest      path to download database
  * @param auth      authorization header
- * @param headers   other headers
  * @returns         path to downloaded database
  */
 export async function downloadDatabaseFile(
@@ -48,7 +46,7 @@ export async function downloadDatabaseFile(
   const retryHelper = new RetryHelper(maxAttempts, minSeconds, maxSeconds);
   return await retryHelper.execute(
     async () => {
-      return await downloadDatabaseFileAttempt(url, dest || "", auth);
+      return await downloadDatabaseFileAttempt(url, dest, auth);
     },
     (err: Error) => {
       if (err instanceof HTTPError && err.httpStatusCode) {
