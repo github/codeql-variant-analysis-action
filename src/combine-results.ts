@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { create as createArtifactClient } from "@actions/artifact";
-import { getInput, warning, setFailed } from "@actions/core";
+import { getInput, notice, setFailed } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import { mkdirP, mv } from "@actions/io";
@@ -118,7 +118,7 @@ async function run(): Promise<void> {
       ),
     ]);
 
-    warning(`Results now available at ${issue.data.html_url}`);
+    notice(`Results now available at ${issue.data.html_url}`);
   } catch (error: any) {
     setFailed(error.message);
   }
