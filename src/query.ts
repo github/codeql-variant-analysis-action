@@ -4,8 +4,10 @@ import { chdir, cwd } from "process";
 
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
+import { extractTar as extractTar } from "@actions/tool-cache";
 
 import { downloadDatabase, runQuery } from "./codeql";
+import { downloadDatabaseFile } from "./download-database";
 
 interface Repo {
   id: number;
@@ -17,7 +19,14 @@ interface Repo {
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
   try {
-    const query = getInput("query", { required: true });
+    const query = getInput("query");
+    const queryPackUrl = getInput("query_pack_url");
+
+    if ((query === "") === (queryPackUrl === "")) {
+      setFailed("Exactly one of 'query' and 'query_pack_url' is required");
+      return;
+    }
+
     const language = getInput("language", { required: true });
     const repos: Repo[] = JSON.parse(
       getInput("repositories", { required: true })
@@ -49,9 +58,19 @@ async function run(): Promise<void> {
         repo.pat
       );
 
+      let queryPack: string | undefined;
+      if (queryPackUrl !== "") {
+        console.log("Getting query pack");
+        const queryPackArchive = await downloadDatabaseFile(
+          queryPackUrl,
+          "query_pack.tar.gz"
+        );
+        queryPack = await extractTar(queryPackArchive);
+      }
+
       // 2. Run the query
       console.log("Running query");
-      await runQuery(codeql, language, dbZip, query, repo.nwo);
+      await runQuery(codeql, language, dbZip, repo.nwo, query, queryPack);
 
       // 3. Upload the results as an artifact
       console.log("Uploading artifact");

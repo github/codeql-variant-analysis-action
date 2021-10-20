@@ -1,22 +1,26 @@
-name: 'CodeQL: Query'
-description: 'Run a CodeQL query against a repository'
-author: 'GitHub'
+name: "CodeQL: Query"
+description: "Run a CodeQL query against a repository"
+author: "GitHub"
 inputs:
   query:
-    description: 'Text of CodeQL query to run'
+    description: "Text of CodeQL query to run. Exactly one of 'query' and 'query_pack_url' are required."
+    required: true
+
+  query_pack_url:
+    description: "URL for a base64 encoded tarball containing CodeQL query plus dependencies. Exactly one of 'query' and 'query_pack_url' are required."
     required: true
 
   language:
-    description: 'Language of CodeQL query'
+    description: "Language of CodeQL query"
     required: true
 
   repositories:
-    description: 'Repositories to run the query against. A JSON encoded array of the form {id: number, nwo: string, token: string}[]'
+    description: "Repositories to run the query against. A JSON encoded array of the form {id: number, nwo: string, token: string}[]"
     required: true
 
   codeql:
-    description: 'path to CodeQL binary to use'
+    description: "path to CodeQL binary to use"
     required: true
 runs:
-  using: 'node12'
-  main: '../lib/query.js'
+  using: "node12"
+  main: "../lib/query.js"

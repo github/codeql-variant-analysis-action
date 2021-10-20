@@ -16,24 +16,32 @@ async function runQuery(
   codeql: string,
   language: string,
   database: string,
-  query: string,
-  nwo: string
+  nwo: string,
+  query?: string,
+  queryPack?: string
 ): Promise<void> {
   const bqrs = path.join("results", "results.bqrs");
   const json = path.join("results", "results.json");
   fs.mkdirSync("results");
   fs.writeFileSync(path.join("results", "nwo.txt"), nwo);
 
-  const queryDir = "query";
-  fs.mkdirSync("query");
-  const queryFile = path.join(queryDir, "query.ql");
-  fs.writeFileSync(
-    path.join(queryDir, "qlpack.yml"),
-    `name: queries
+  let queryFile: string;
+  if (query !== undefined) {
+    const queryDir = "query";
+    fs.mkdirSync("query");
+    queryFile = path.join(queryDir, "query.ql");
+    fs.writeFileSync(
+      path.join(queryDir, "qlpack.yml"),
+      `name: queries
 version: 0.0.0
 libraryPathDependencies: codeql-${language}`
-  );
-  fs.writeFileSync(queryFile, query);
+    );
+    fs.writeFileSync(queryFile, query);
+  } else if (queryPack !== undefined) {
+    queryFile = path.join(queryPack, "query.ql");
+  } else {
+    throw new Error("Exactly one of 'query' and 'queryPack' must be set");
+  }
 
   await exec(codeql, ["database", "unbundle", database, "--name=db"]);
 

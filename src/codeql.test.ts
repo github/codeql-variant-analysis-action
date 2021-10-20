@@ -38,8 +38,8 @@ test("running a basic query", async (t) => {
       "codeql",
       "javascript",
       "database.zip",
-      "import javascript\nfrom File f select f",
-      "a/b"
+      "a/b",
+      "import javascript\nfrom File f select f"
     );
 
     t.true(
