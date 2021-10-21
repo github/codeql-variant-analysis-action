@@ -4,10 +4,10 @@ import { chdir, cwd } from "process";
 
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
-import { extractTar as extractTar } from "@actions/tool-cache";
+import { extractTar } from "@actions/tool-cache";
 
 import { downloadDatabase, runQuery } from "./codeql";
-import { downloadDatabaseFile } from "./download-database";
+import { download } from "./download";
 
 interface Repo {
   id: number;
@@ -61,7 +61,7 @@ async function run(): Promise<void> {
       let queryPack: string | undefined;
       if (queryPackUrl !== "") {
         console.log("Getting query pack");
-        const queryPackArchive = await downloadDatabaseFile(
+        const queryPackArchive = await download(
           queryPackUrl,
           "query_pack.tar.gz"
         );

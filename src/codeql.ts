@@ -3,7 +3,7 @@ import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
 
-import { downloadDatabaseFile } from "./download-database";
+import { download } from "./download";
 import { interpret } from "./interpret";
 
 export { downloadDatabase, runQuery };
@@ -103,7 +103,7 @@ async function downloadDatabase(
   }
 
   try {
-    return await downloadDatabaseFile(
+    return await download(
       `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
       authHeader
