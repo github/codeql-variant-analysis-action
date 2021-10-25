@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repoIds: ${{ fromJSON(github.event.inputs.repoIdChunks) }}
+        repoNwos: ${{ fromJSON(github.event.inputs.repoNwoChunks) }}
 
     steps:
       # Use ::add::mask for all tokens.
@@ -27,14 +27,14 @@ jobs:
             xargs -I {} echo "::add-mask::{}"
 
       # Extract the subset of the repositories input that we'll be analysing for this
-      # job, using the repoIds matrix input.
+      # job, using the repoNwos matrix input.
       - name: Compute subset of repos
         id: repos
         shell: node {0}
         run: |
           const allRepos = ${{ github.event.inputs.repositories }};
-          const repoIds = new Set(${{ toJSON(matrix.repoIds) }});
-          const repositories = allRepos.filter(r => repoIds.has(r.id));
+          const repoNwos = new Set(${{ toJSON(matrix.repoNwos) }});
+          const repositories = allRepos.filter(r => repoNwos.has(r.nwo));
           console.log(`::set-output name=repositories::${JSON.stringify(repositories)}`);
 
       # This might not be the cleanest way to get hold of CodeQL but it's reliable
