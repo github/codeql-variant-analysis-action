@@ -29,7 +29,7 @@ ${errors}`;
 
 async function run(): Promise<void> {
   try {
-    const query = getInput("query", { required: true });
+    const query = getInput("query") || "Query pack used";
     const language = getInput("language", { required: true });
     const token = getInput("token", { required: true });
 
