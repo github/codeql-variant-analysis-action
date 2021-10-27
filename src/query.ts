@@ -19,10 +19,10 @@ interface Repo {
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
   try {
-    const query = getInput("query");
-    const queryPackUrl = getInput("query_pack_url");
+    const query = getInput("query") || undefined;
+    const queryPackUrl = getInput("query_pack_url") || undefined;
 
-    if ((query === "") === (queryPackUrl === "")) {
+    if ((query === undefined) === (queryPackUrl === undefined)) {
       setFailed("Exactly one of 'query' and 'query_pack_url' is required");
       return;
     }
@@ -59,7 +59,7 @@ async function run(): Promise<void> {
 
       // 2. Download and extract the query pack, if there is one.
       let queryPack: string | undefined;
-      if (queryPackUrl !== "") {
+      if (queryPackUrl !== undefined) {
         console.log("Getting query pack");
         const queryPackArchive = await download(
           queryPackUrl,
