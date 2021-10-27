@@ -8,10 +8,19 @@ import { interpret } from "./interpret";
 
 export { downloadDatabase, runQuery };
 
-// Will operate on the current working directory and create the following
-// directories:
-// * query/    (query.ql and any other supporting files)
-// * results/  (results.{bqrs,csv,json,md} and nwo.txt)
+/**
+ * Run a query. Will operate on the current working directory and create the following directories:
+ * - query/    (query.ql and any other supporting files)
+ * - results/  (results.{bqrs,csv,json,md} and nwo.txt)
+ *
+ * @param     codeql          The path to the codeql binary
+ * @param     language        The language of the query (can be removed once we only use query packs)
+ * @param     database        The path to the bundled database zip file
+ * @param     nwo             The name of the repository
+ * @param     query?          The query to run (specify this XOR a query pack)
+ * @param     queryPack?      The path to the query pack (specify this XOR a query)
+ * @returns   Promise<void>   Resolves when the query has finished running.
+ */
 async function runQuery(
   codeql: string,
   language: string,

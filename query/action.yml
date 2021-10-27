@@ -7,7 +7,7 @@ inputs:
     required: true
 
   query_pack_url:
-    description: "URL for a base64 encoded tarball containing CodeQL query plus dependencies. Exactly one of 'query' and 'query_pack_url' are required."
+    description: "URL for a tarball containing CodeQL query plus dependencies. Exactly one of 'query' and 'query_pack_url' are required."
     required: true
 
   language:

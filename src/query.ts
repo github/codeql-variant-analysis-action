@@ -42,7 +42,6 @@ async function run(): Promise<void> {
       }
     }
 
-    // 1. Use the GitHub API to download the database using token
     const curDir = cwd();
     for (const repo of repos) {
       const workDir = mkdtempSync(path.join(curDir, repo.id.toString()));
@@ -58,6 +57,7 @@ async function run(): Promise<void> {
         repo.pat
       );
 
+      // 2. Download and extract the query pack, if there is one.
       let queryPack: string | undefined;
       if (queryPackUrl !== "") {
         console.log("Getting query pack");
