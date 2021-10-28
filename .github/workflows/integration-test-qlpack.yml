@@ -1,0 +1,46 @@
+name: "Integration test"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  run-query:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # This might not be the cleanest way to get hold of CodeQL but it's reliable
+      # and widely used. The ugly part is that is initialises a database of the
+      # given language that we just ignore.
+      - name: Initialize CodeQL
+        id: init
+        uses: github/codeql-action/init@v1
+        with:
+          languages: "go"
+
+      - name: Run query
+        uses: ./query
+        with:
+          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/untagged-d89f4aa45bbea493b132/test_pack.tar.gz"
+          language: "go"
+          repositories: '[{"id": 376068344, "nwo": "dsp-testing/qc-demo-github-certstore", "pat": "${{ secrets.BOT_TOKEN }}"}]'
+          codeql: ${{ steps.init.outputs.codeql-path }}
+
+  combine-results:
+    runs-on: ubuntu-latest
+    needs:
+      - run-query
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Combine results
+        uses: ./combine-results
+        with:
+          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/untagged-d89f4aa45bbea493b132/test_pack.tar.gz"
+          language: "go"
+          token: ${{ secrets.GITHUB_TOKEN }}

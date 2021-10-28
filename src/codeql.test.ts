@@ -31,7 +31,9 @@ test.before(async (t: any) => {
 });
 
 test.after(async (t: any) => {
-  await rmRF(t.context.tmpDir);
+  if (t.context?.tmpDir !== undefined) {
+    await rmRF(t.context.tmpDir);
+  }
 });
 
 test("running a basic query", async (t: any) => {
