@@ -25,7 +25,7 @@ jobs:
       - name: Run query
         uses: ./query
         with:
-          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/untagged-d89f4aa45bbea493b132/test_pack.tar.gz"
+          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack.tar.gz"
           language: "go"
           repositories: '[{"id": 376068344, "nwo": "dsp-testing/qc-demo-github-certstore", "pat": "${{ secrets.BOT_TOKEN }}"}]'
           codeql: ${{ steps.init.outputs.codeql-path }}
@@ -41,6 +41,6 @@ jobs:
       - name: Combine results
         uses: ./combine-results
         with:
-          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/untagged-d89f4aa45bbea493b132/test_pack.tar.gz"
+          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack.tar.gz"
           language: "go"
           token: ${{ secrets.GITHUB_TOKEN }}
