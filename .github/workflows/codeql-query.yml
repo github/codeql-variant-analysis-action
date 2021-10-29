@@ -45,6 +45,8 @@ jobs:
         uses: github/codeql-action/init@v1
         with:
           languages: ${{ github.event.inputs.language }}
+        env:
+          CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
 
       - name: Run query
         uses: dsp-testing/qc-run2/query@main
