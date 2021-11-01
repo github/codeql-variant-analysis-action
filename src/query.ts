@@ -4,8 +4,10 @@ import { chdir, cwd } from "process";
 
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
+import { extractTar } from "@actions/tool-cache";
 
 import { downloadDatabase, runQuery } from "./codeql";
+import { download } from "./download";
 
 interface Repo {
   id: number;
@@ -17,7 +19,14 @@ interface Repo {
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
   try {
-    const query = getInput("query", { required: true });
+    const query = getInput("query") || undefined;
+    const queryPackUrl = getInput("query_pack_url") || undefined;
+
+    if ((query === undefined) === (queryPackUrl === undefined)) {
+      setFailed("Exactly one of 'query' and 'query_pack_url' is required");
+      return;
+    }
+
     const language = getInput("language", { required: true });
     const repos: Repo[] = JSON.parse(
       getInput("repositories", { required: true })
@@ -33,7 +42,6 @@ async function run(): Promise<void> {
       }
     }
 
-    // 1. Use the GitHub API to download the database using token
     const curDir = cwd();
     for (const repo of repos) {
       const workDir = mkdtempSync(path.join(curDir, repo.id.toString()));
@@ -49,9 +57,20 @@ async function run(): Promise<void> {
         repo.pat
       );
 
+      // 2. Download and extract the query pack, if there is one.
+      let queryPack: string | undefined;
+      if (queryPackUrl !== undefined) {
+        console.log("Getting query pack");
+        const queryPackArchive = await download(
+          queryPackUrl,
+          "query_pack.tar.gz"
+        );
+        queryPack = await extractTar(queryPackArchive);
+      }
+
       // 2. Run the query
       console.log("Running query");
-      await runQuery(codeql, language, dbZip, query, repo.nwo);
+      await runQuery(codeql, language, dbZip, repo.nwo, query, queryPack);
 
       // 3. Upload the results as an artifact
       console.log("Uploading artifact");

@@ -24,14 +24,14 @@ export class HTTPError extends Error {
 const userAgent = "GitHub remote queries";
 
 /**
- * Download a database from an url and stream it into a file
+ * Download a file from an url and stream it into a local file
  *
- * @param url       url of database to download
- * @param dest      path to download database
+ * @param url       url of file to download
+ * @param dest      path to download file
  * @param auth      authorization header
- * @returns         path to downloaded database
+ * @returns         path to downloaded file
  */
-export async function downloadDatabaseFile(
+export async function download(
   url: string,
   dest: string,
   auth?: string
@@ -46,7 +46,7 @@ export async function downloadDatabaseFile(
   const retryHelper = new RetryHelper(maxAttempts, minSeconds, maxSeconds);
   return await retryHelper.execute(
     async () => {
-      return await downloadDatabaseFileAttempt(url, dest, auth);
+      return await downloadAttempt(url, dest, auth);
     },
     (err: Error) => {
       if (err instanceof HTTPError && err.httpStatusCode) {
@@ -66,7 +66,7 @@ export async function downloadDatabaseFile(
   );
 }
 
-async function downloadDatabaseFileAttempt(
+async function downloadAttempt(
   url: string,
   dest: string,
   auth?: string

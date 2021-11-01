@@ -6,6 +6,9 @@ import { getInput, notice, setFailed } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import { mkdirP, mv } from "@actions/io";
+import { extractTar } from "@actions/tool-cache";
+
+import { download } from "./download";
 
 const formatBody = (
   query: string,
@@ -29,9 +32,28 @@ ${errors}`;
 
 async function run(): Promise<void> {
   try {
-    const query = getInput("query", { required: true });
+    const query = getInput("query") || undefined;
+    const queryPackUrl = getInput("query_pack_url") || undefined;
+    if ((query === undefined) === (queryPackUrl === undefined)) {
+      setFailed("Exactly one of 'query' and 'query_pack_url' is required");
+      return;
+    }
+
     const language = getInput("language", { required: true });
     const token = getInput("token", { required: true });
+
+    let queryText: string;
+    if (queryPackUrl !== undefined) {
+      console.log("Getting query pack");
+      const queryPackArchive = await download(
+        queryPackUrl,
+        "query_pack.tar.gz"
+      );
+      const queryPack = await extractTar(queryPackArchive);
+      queryText = fs.readFileSync(path.join(queryPack, "query.ql"), "utf-8");
+    } else {
+      queryText = query!; // Must be defined if queryPackUrl isn't
+    }
 
     await mkdirP("artifacts");
     const artifactClient = createArtifactClient();
@@ -101,7 +123,7 @@ async function run(): Promise<void> {
       })
     );
 
-    const body = formatBody(query, resultsMd.join("\n"), errorsMd);
+    const body = formatBody(queryText, resultsMd.join("\n"), errorsMd);
 
     void Promise.all([
       octokit.rest.issues.update({

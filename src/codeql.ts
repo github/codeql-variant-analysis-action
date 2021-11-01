@@ -3,37 +3,54 @@ import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
 
-import { downloadDatabaseFile } from "./download-database";
+import { download } from "./download";
 import { interpret } from "./interpret";
 
 export { downloadDatabase, runQuery };
 
-// Will operate on the current working directory and create the following
-// directories:
-// * query/    (query.ql and any other supporting files)
-// * results/  (results.{bqrs,csv,json,md} and nwo.txt)
+/**
+ * Run a query. Will operate on the current working directory and create the following directories:
+ * - query/    (query.ql and any other supporting files)
+ * - results/  (results.{bqrs,csv,json,md} and nwo.txt)
+ *
+ * @param     codeql          The path to the codeql binary
+ * @param     language        The language of the query (can be removed once we only use query packs)
+ * @param     database        The path to the bundled database zip file
+ * @param     nwo             The name of the repository
+ * @param     query?          The query to run (specify this XOR a query pack)
+ * @param     queryPack?      The path to the query pack (specify this XOR a query)
+ * @returns   Promise<void>   Resolves when the query has finished running.
+ */
 async function runQuery(
   codeql: string,
   language: string,
   database: string,
-  query: string,
-  nwo: string
+  nwo: string,
+  query?: string,
+  queryPack?: string
 ): Promise<void> {
   const bqrs = path.join("results", "results.bqrs");
   const json = path.join("results", "results.json");
   fs.mkdirSync("results");
   fs.writeFileSync(path.join("results", "nwo.txt"), nwo);
 
-  const queryDir = "query";
-  fs.mkdirSync("query");
-  const queryFile = path.join(queryDir, "query.ql");
-  fs.writeFileSync(
-    path.join(queryDir, "qlpack.yml"),
-    `name: queries
+  let queryFile: string;
+  if (query !== undefined) {
+    const queryDir = "query";
+    fs.mkdirSync("query");
+    queryFile = path.join(queryDir, "query.ql");
+    fs.writeFileSync(
+      path.join(queryDir, "qlpack.yml"),
+      `name: queries
 version: 0.0.0
 libraryPathDependencies: codeql-${language}`
-  );
-  fs.writeFileSync(queryFile, query);
+    );
+    fs.writeFileSync(queryFile, query);
+  } else if (queryPack !== undefined) {
+    queryFile = path.join(queryPack, "query.ql");
+  } else {
+    throw new Error("Exactly one of 'query' and 'queryPack' must be set");
+  }
 
   await exec(codeql, ["database", "unbundle", database, "--name=db"]);
 
@@ -95,7 +112,7 @@ async function downloadDatabase(
   }
 
   try {
-    return await downloadDatabaseFile(
+    return await download(
       `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
       authHeader
