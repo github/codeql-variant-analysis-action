@@ -7,7 +7,7 @@ import * as yaml from "js-yaml";
 import { download } from "./download";
 import { interpret } from "./interpret";
 
-export { downloadDatabase, runQuery };
+export { downloadDatabase, runQuery, getDatabaseSHA };
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
