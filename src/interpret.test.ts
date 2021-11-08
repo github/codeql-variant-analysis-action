@@ -349,6 +349,7 @@ test("entire raw result set converted correctly", async (t) => {
     w,
     rawResults,
     "dsp-testing/qc-demo-github-certstore",
+    [],
     "/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore",
     "mybranch"
   );
@@ -378,6 +379,7 @@ test("windows results conversion", async (t) => {
     w,
     rawWindowsResults,
     "dsp-testing/test-electron",
+    [],
     "D:\\a\\test-electron\\test-electron",
     "mybranch"
   );
@@ -407,6 +409,7 @@ test("problem result set converted correctly", async (t) => {
     w,
     problemResults,
     "dsp-testing/test-electron",
+    ["Problem"],
     "/home/runner/work/test-electron/test-electron",
     "mybranch"
   );

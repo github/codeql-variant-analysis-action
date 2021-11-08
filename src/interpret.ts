@@ -112,6 +112,7 @@ async function interpret(
   output: stream.Writable,
   results: any,
   nwo: string,
+  compatibleQueryKinds: string[],
   src: string,
   ref: string
 ): Promise<void> {
@@ -123,7 +124,7 @@ async function interpret(
 
   await write(output, `## ${nwo}\n\n`);
 
-  if (isProblemQuery(results)) {
+  if (compatibleQueryKinds.includes("Problem")) {
     // Output as problem with placeholders
     const colNames = ["-", "Message"];
     await write(output, toTableRow(colNames));
@@ -148,30 +149,4 @@ async function interpret(
 
   output.end();
   return finished(output);
-}
-
-// Do the given set of results look like they are for a
-// problem query.
-function isProblemQuery(results: any): boolean {
-  const columns = results["#select"]["columns"];
-
-  // A problem query must have an even number of columns
-  // and have at least 2 columns.
-  if (columns.length < 2 || columns.length % 2 !== 0) {
-    return false;
-  }
-
-  // The first column must be an entity and the second column must be a string.
-  if (columns[0]["kind"] !== "Entity" || columns[1]["kind"] !== "String") {
-    return false;
-  }
-
-  // After that the second column in each pair must be a string.
-  for (let i = 3; i < columns.length; i += 2) {
-    if (columns[i]["kind"] !== "String") {
-      return false;
-    }
-  }
-
-  return true;
 }
