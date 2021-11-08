@@ -27,8 +27,7 @@
     "@actions/github": "^5.0.0",
     "@actions/http-client": "^1.0.11",
     "@actions/io": "^1.1.1",
-    "@actions/tool-cache": "^1.7.1",
-    "js-yaml": "^4.1.0"
+    "@actions/tool-cache": "^1.7.1"
   },
   "//": [
     "micromatch is an unspecified dependency of ava"
@@ -49,6 +48,7 @@
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-no-async-foreach": "^0.1.1",
     "eslint-plugin-prettier": "^4.0.0",
+    "js-yaml": "^4.1.0",
     "micromatch": "^4.0.4",
     "prettier": "^2.3.2",
     "removeNPMAbsolutePaths": "2.0.0",

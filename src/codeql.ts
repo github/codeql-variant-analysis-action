@@ -158,7 +158,7 @@ interface DatabaseMetadata {
  */
 function getDatabaseSHA(database: string): string {
   const metadata =
-    (yaml.safeLoad(
+    (yaml.load(
       fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
     ) as DatabaseMetadata) || undefined;
 
