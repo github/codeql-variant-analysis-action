@@ -35,6 +35,7 @@
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
     "@types/archiver": "^5.1.1",
+    "@types/js-yaml": "^4.0.4",
     "@types/node": "^12.0.4",
     "@typescript-eslint/eslint-plugin": "^4.29.0",
     "@typescript-eslint/parser": "^4.1.0",
@@ -47,6 +48,7 @@
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-no-async-foreach": "^0.1.1",
     "eslint-plugin-prettier": "^4.0.0",
+    "js-yaml": "^4.1.0",
     "micromatch": "^4.0.4",
     "prettier": "^2.3.2",
     "removeNPMAbsolutePaths": "2.0.0",
