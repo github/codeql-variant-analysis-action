@@ -144,8 +144,6 @@ async function downloadDatabase(
 interface DatabaseMetadata {
   creationMetadata?: {
     sha?: string;
-    cliVersion: string;
-    creationTime: string;
   };
 }
 
@@ -157,10 +155,15 @@ interface DatabaseMetadata {
  * @returns The commit SHA that the database was created from, or "HEAD" if we can't find the SHA.
  */
 function getDatabaseSHA(database: string): string {
-  const metadata =
-    (yaml.load(
+  let metadata: DatabaseMetadata | undefined;
+  try {
+    metadata = yaml.load(
       fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
-    ) as DatabaseMetadata) || undefined;
+    ) as DatabaseMetadata | undefined;
+  } catch (error) {
+    console.log(`Unable to read codeql-database.yml: ${error}`);
+    return "HEAD";
+  }
 
   const sha = metadata?.creationMetadata?.sha;
 
