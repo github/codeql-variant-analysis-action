@@ -70,18 +70,20 @@ async function run(): Promise<void> {
 
       // 2. Run the query
       console.log("Running query");
-      await runQuery(codeql, language, dbZip, repo.nwo, query, queryPack);
+      const filesToUpload = await runQuery(
+        codeql,
+        language,
+        dbZip,
+        repo.nwo,
+        query,
+        queryPack
+      );
 
       // 3. Upload the results as an artifact
       console.log("Uploading artifact");
       await artifactClient.uploadArtifact(
         repo.id.toString(), // name
-        [
-          "results/results.bqrs",
-          "results/results.csv",
-          "results/results.md",
-          "results/nwo.txt",
-        ], // files
+        filesToUpload, // files
         "results", // rootdirectory
         { continueOnError: false, retentionDays: 1 }
       );

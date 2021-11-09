@@ -14,13 +14,14 @@ export { downloadDatabase, runQuery, getDatabaseSHA };
  * - query/    (query.ql and any other supporting files)
  * - results/  (results.{bqrs,csv,json,md} and nwo.txt)
  *
- * @param     codeql          The path to the codeql binary
- * @param     language        The language of the query (can be removed once we only use query packs)
- * @param     database        The path to the bundled database zip file
- * @param     nwo             The name of the repository
- * @param     query?          The query to run (specify this XOR a query pack)
- * @param     queryPack?      The path to the query pack (specify this XOR a query)
- * @returns   Promise<void>   Resolves when the query has finished running.
+ * @param     codeql              The path to the codeql binary
+ * @param     language            The language of the query (can be removed once we only use query packs)
+ * @param     database            The path to the bundled database zip file
+ * @param     nwo                 The name of the repository
+ * @param     query?              The query to run (specify this XOR a query pack)
+ * @param     queryPack?          The path to the query pack (specify this XOR a query)
+ * @returns   Promise<string[]>   Resolves when the query has finished running.
+ *                                Returns a list of files that have been created.
  */
 async function runQuery(
   codeql: string,
@@ -29,11 +30,11 @@ async function runQuery(
   nwo: string,
   query?: string,
   queryPack?: string
-): Promise<void> {
+): Promise<string[]> {
   const bqrs = path.join("results", "results.bqrs");
-  const json = path.join("results", "results.json");
   fs.mkdirSync("results");
-  fs.writeFileSync(path.join("results", "nwo.txt"), nwo);
+  const nwoFile = path.join("results", "nwo.txt");
+  fs.writeFileSync(nwoFile, nwo);
 
   let queryFile: string;
   if (query !== undefined) {
@@ -71,39 +72,15 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  await Promise.all([
-    exec(codeql, [
-      "bqrs",
-      "decode",
-      "--format=csv",
-      `--output=${path.join("results", "results.csv")}`,
-      bqrs,
-    ]),
-    exec(codeql, [
-      "bqrs",
-      "decode",
-      "--format=json",
-      `--output=${json}`,
-      "--entities=all",
-      bqrs,
-    ]),
-  ]);
+  const compatibleQueryKinds = await getCompatibleQueryKinds(codeql, bqrs);
 
-  const sourceLocationPrefix = JSON.parse(
-    (await getExecOutput(codeql, ["resolve", "database", "db"])).stdout
-  ).sourceLocationPrefix;
+  const outputPromises: Array<Promise<string[]>> = [
+    outputCsv(codeql, bqrs),
+    outputMd(codeql, bqrs, nwo, databaseSHA, compatibleQueryKinds),
+    outputSarif(codeql, bqrs, compatibleQueryKinds),
+  ];
 
-  // This will load the whole result set into memory. Given that we just ran a
-  // query, we probably have quite a lot of memory available. However, at some
-  // point this is likely to break down. We could then look at using a streaming
-  // parser such as http://oboejs.com/
-  const jsonResults = JSON.parse(fs.readFileSync(json, "utf8"));
-
-  const s = fs.createWriteStream(path.join("results", "results.md"), {
-    encoding: "utf8",
-  });
-
-  await interpret(s, jsonResults, nwo, sourceLocationPrefix, databaseSHA);
+  return [bqrs, nwoFile].concat(...(await Promise.all(outputPromises)));
 }
 
 async function downloadDatabase(
@@ -139,6 +116,111 @@ async function downloadDatabase(
       throw error;
     }
   }
+}
+
+// Calls `bqrs info` and returns compatible query kinds for the given bqrs file
+async function getCompatibleQueryKinds(
+  codeql: string,
+  bqrs: string
+): Promise<string[]> {
+  const bqrsInfoOutput = await getExecOutput(codeql, [
+    "bqrs",
+    "info",
+    "--format=json",
+    bqrs,
+  ]);
+  if (bqrsInfoOutput.exitCode !== 0) {
+    throw new Error(
+      `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
+    );
+  }
+  return JSON.parse(bqrsInfoOutput.stdout)["compatible-query-kinds"];
+}
+
+// Generates results.csv from the given bqrs file
+async function outputCsv(codeql: string, bqrs: string): Promise<string[]> {
+  const csv = path.join("results", "results.csv");
+  await exec(codeql, [
+    "bqrs",
+    "decode",
+    "--format=csv",
+    `--output=${csv}`,
+    bqrs,
+  ]);
+  return [csv];
+}
+
+// Generates results.md from the given bqrs file
+async function outputMd(
+  codeql: string,
+  bqrs: string,
+  nwo: string,
+  databaseSHA: string,
+  compatibleQueryKinds: string[]
+): Promise<string[]> {
+  const json = path.join("results", "results.json");
+  await exec(codeql, [
+    "bqrs",
+    "decode",
+    "--format=json",
+    `--output=${json}`,
+    "--entities=all",
+    bqrs,
+  ]);
+
+  const sourceLocationPrefix = JSON.parse(
+    (await getExecOutput(codeql, ["resolve", "database", "db"])).stdout
+  ).sourceLocationPrefix;
+
+  // This will load the whole result set into memory. Given that we just ran a
+  // query, we probably have quite a lot of memory available. However, at some
+  // point this is likely to break down. We could then look at using a streaming
+  // parser such as http://oboejs.com/
+  const jsonResults = JSON.parse(fs.readFileSync(json, "utf8"));
+
+  const md = path.join("results", "results.md");
+  const s = fs.createWriteStream(md, {
+    encoding: "utf8",
+  });
+
+  await interpret(
+    s,
+    jsonResults,
+    nwo,
+    compatibleQueryKinds,
+    sourceLocationPrefix,
+    databaseSHA
+  );
+  return [md];
+}
+
+// Generates results.sarif from the given bqrs file, if query kind supports it
+async function outputSarif(
+  codeql: string,
+  bqrs: string,
+  compatibleQueryKinds: string[]
+): Promise<string[]> {
+  let kind: string;
+  if (compatibleQueryKinds.includes("Problem")) {
+    kind = "problem";
+  } else if (compatibleQueryKinds.includes("PathProblem")) {
+    kind = "path-problem";
+  } else {
+    // Cannot generate sarif for this query kind
+    return [];
+  }
+
+  const sarif = path.join("results", "results.sarif");
+  await exec(codeql, [
+    "bqrs",
+    "interpret",
+    "--format=sarif-latest",
+    `--output=${sarif}`,
+    `-t=kind=${kind}`,
+    "-t=id=remote-query",
+    bqrs,
+  ]);
+  return [sarif];
 }
 
 interface DatabaseMetadata {
