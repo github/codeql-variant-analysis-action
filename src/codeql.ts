@@ -65,15 +65,13 @@ libraryPathDependencies: codeql-${language}`
 
   const compatibleQueryKinds = await getCompatibleQueryKinds(codeql, bqrs);
 
-  const outputPromises: Array<Promise<string>> = [
+  const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
     outputMd(codeql, bqrs, nwo, compatibleQueryKinds),
+    outputSarif(codeql, bqrs, compatibleQueryKinds),
   ];
-  if (compatibleQueryKinds.includes("Problem")) {
-    outputPromises.push(outputSarif(codeql, bqrs));
-  }
 
-  return [bqrs, nwoFile].concat(await Promise.all(outputPromises));
+  return [bqrs, nwoFile].concat(...(await Promise.all(outputPromises)));
 }
 
 async function downloadDatabase(
@@ -131,7 +129,7 @@ async function getCompatibleQueryKinds(
 }
 
 // Generates results.csv from the given bqrs file
-async function outputCsv(codeql: string, bqrs: string): Promise<string> {
+async function outputCsv(codeql: string, bqrs: string): Promise<string[]> {
   const csv = path.join("results", "results.csv");
   await exec(codeql, [
     "bqrs",
@@ -140,7 +138,7 @@ async function outputCsv(codeql: string, bqrs: string): Promise<string> {
     `--output=${csv}`,
     bqrs,
   ]);
-  return csv;
+  return [csv];
 }
 
 // Generates results.md from the given bqrs file
@@ -149,7 +147,7 @@ async function outputMd(
   bqrs: string,
   nwo: string,
   compatibleQueryKinds: string[]
-): Promise<string> {
+): Promise<string[]> {
   const json = path.join("results", "results.json");
   await exec(codeql, [
     "bqrs",
@@ -183,20 +181,34 @@ async function outputMd(
     sourceLocationPrefix,
     "HEAD"
   );
-  return md;
+  return [md];
 }
 
-// Generates results.sarif from the given bqrs file
-async function outputSarif(codeql: string, bqrs: string): Promise<string> {
+// Generates results.sarif from the given bqrs file, if query kind supports it
+async function outputSarif(
+  codeql: string,
+  bqrs: string,
+  compatibleQueryKinds: string[]
+): Promise<string[]> {
+  let kind: string;
+  if (compatibleQueryKinds.includes("Problem")) {
+    kind = "problem";
+  } else if (compatibleQueryKinds.includes("PathProblem")) {
+    kind = "path-problem";
+  } else {
+    // Cannot generate sarif for this query kind
+    return [];
+  }
+
   const sarif = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
     "interpret",
     "--format=sarif-latest",
     `--output=${sarif}`,
-    "-t=kind=problem",
+    `-t=kind=${kind}`,
     "-t=id=remote-query",
     bqrs,
   ]);
-  return sarif;
+  return [sarif];
 }
