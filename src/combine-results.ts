@@ -3,7 +3,6 @@ import path from "path";
 
 import { create as createArtifactClient } from "@actions/artifact";
 import { getInput, notice, setFailed } from "@actions/core";
-import { getExecOutput } from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import { mkdirP, mv } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
@@ -94,22 +93,29 @@ async function run(): Promise<void> {
       title,
     });
 
-    const csvs: string[] = [];
-    const resultsMd = await Promise.all(
+    const csvs: string[] = await Promise.all(
       resultArtifacts.map(async function (response) {
         const csv = path.join(response.downloadPath, "results.csv");
         const csvDest = path.join("results", response.artifactName);
         await mv(csv, csvDest);
-        csvs.push(csvDest);
-
+        return csvDest;
+      })
+    );
+    const resultsMd = await Promise.all(
+      resultArtifacts.map(async function (response) {
         const repoName = fs.readFileSync(
           path.join(response.downloadPath, "nwo.txt"),
           "utf-8"
         );
-        const output = await getExecOutput("wc", ["-l", csvDest]); // TODO: preferably we would do this during results interpretation
-        const results = parseInt(output.stdout.trim(), 10) - 1;
+        const resultCount = parseInt(
+          fs.readFileSync(
+            path.join(response.downloadPath, "resultcount.txt"),
+            "utf-8"
+          ),
+          10
+        );
 
-        if (results > 0) {
+        if (resultCount > 0) {
           const md = path.join(response.downloadPath, "results.md");
           const comment = await octokit.rest.issues.createComment({
             owner: context.repo.owner,
@@ -117,11 +123,41 @@ async function run(): Promise<void> {
             issue_number: issue.data.number,
             body: fs.readFileSync(md, "utf8"),
           });
-          return `| ${repoName} | [${results} result(s)](${comment.data.html_url}) |`;
+          return `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`;
         }
         return `| ${repoName} | _No results_ |`;
       })
     );
+    const resultsIndex = await Promise.all(
+      resultArtifacts.map(async function (response) {
+        const resultIndexItem = {} as any;
+        resultIndexItem.nwo = fs.readFileSync(
+          path.join(response.downloadPath, "nwo.txt"),
+          "utf-8"
+        );
+        resultIndexItem.id = response.artifactName;
+        resultIndexItem.results_count = parseInt(
+          fs.readFileSync(
+            path.join(response.downloadPath, "resultcount.txt"),
+            "utf-8"
+          ),
+          10
+        );
+        resultIndexItem.bqrs_file_size = fs.statSync(
+          path.join(response.downloadPath, "results.bqrs")
+        ).size;
+        if (fs.existsSync(path.join(response.downloadPath, "results.sarif"))) {
+          resultIndexItem.sarif_file_size = fs.statSync(
+            path.join(response.downloadPath, "results.sarif")
+          ).size;
+        }
+        return resultIndexItem;
+      })
+    );
+
+    // Create the index.json file
+    const resultIndexFile = path.join("results", "index.json");
+    fs.writeFileSync(resultIndexFile, JSON.stringify(resultsIndex, null, 2));
 
     const body = formatBody(queryText, resultsMd.join("\n"), errorsMd);
 
@@ -135,6 +171,12 @@ async function run(): Promise<void> {
       artifactClient.uploadArtifact(
         "all-results", // name
         csvs, // files
+        "results", // rootdirectory
+        { continueOnError: false }
+      ),
+      artifactClient.uploadArtifact(
+        "result-index", // name
+        [resultIndexFile], // files
         "results", // rootdirectory
         { continueOnError: false }
       ),
