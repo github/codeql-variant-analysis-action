@@ -2,11 +2,12 @@ import fs from "fs";
 import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
+import * as yaml from "js-yaml";
 
 import { download } from "./download";
 import { interpret } from "./interpret";
 
-export { downloadDatabase, runQuery };
+export { downloadDatabase, runQuery, getDatabaseSHA };
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
@@ -53,7 +54,15 @@ libraryPathDependencies: codeql-${language}`
     throw new Error("Exactly one of 'query' and 'queryPack' must be set");
   }
 
-  await exec(codeql, ["database", "unbundle", database, "--name=db"]);
+  const databaseName = "db";
+  await exec(codeql, [
+    "database",
+    "unbundle",
+    database,
+    `--name=${databaseName}`,
+  ]);
+
+  const databaseSHA = getDatabaseSHA(databaseName);
 
   await exec(codeql, [
     "query",
@@ -67,7 +76,7 @@ libraryPathDependencies: codeql-${language}`
 
   const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
-    outputMd(codeql, bqrs, nwo, compatibleQueryKinds),
+    outputMd(codeql, bqrs, nwo, databaseSHA, compatibleQueryKinds),
     outputSarif(codeql, bqrs, compatibleQueryKinds),
   ];
 
@@ -146,6 +155,7 @@ async function outputMd(
   codeql: string,
   bqrs: string,
   nwo: string,
+  databaseSHA: string,
   compatibleQueryKinds: string[]
 ): Promise<string[]> {
   const json = path.join("results", "results.json");
@@ -179,7 +189,7 @@ async function outputMd(
     nwo,
     compatibleQueryKinds,
     sourceLocationPrefix,
-    "HEAD"
+    databaseSHA
   );
   return [md];
 }
@@ -211,4 +221,40 @@ async function outputSarif(
     bqrs,
   ]);
   return [sarif];
+}
+
+interface DatabaseMetadata {
+  creationMetadata?: {
+    sha?: string;
+  };
+}
+
+/**
+ * Gets the commit SHA that a database was created from (if the database was created from a git repo).
+ * This information is available from CodeQL CLI version 2.7.2 onwards.
+ *
+ * @param database The name of the database.
+ * @returns The commit SHA that the database was created from, or "HEAD" if we can't find the SHA.
+ */
+function getDatabaseSHA(database: string): string {
+  let metadata: DatabaseMetadata | undefined;
+  try {
+    metadata = yaml.load(
+      fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
+    ) as DatabaseMetadata | undefined;
+  } catch (error) {
+    console.log(`Unable to read codeql-database.yml: ${error}`);
+    return "HEAD";
+  }
+
+  const sha = metadata?.creationMetadata?.sha;
+
+  if (sha) {
+    return sha;
+  } else {
+    console.log(
+      "Unable to get exact commit SHA for the database. Linking to HEAD commit instead."
+    );
+    return "HEAD";
+  }
 }
