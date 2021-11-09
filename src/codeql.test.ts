@@ -90,19 +90,77 @@ test("running a query in a pack", async (t: any) => {
   }
 });
 
-test("getting the commit SHA for a database", async (t: any) => {
-  // Note: db-metadata-only.zip is not a real database.
-  // It doesn't contain source code, only a codeql-database.yml file.
-  const testDbZip = path.resolve("testdata/db-metadata-only.zip");
+test("getting the commit SHA from a database", async (t: any) => {
+  const tmpDir = fs.mkdtempSync("tmp");
+  try {
+    fs.writeFileSync(
+      path.join(tmpDir, "codeql-database.yml"),
+      `---
+sourceLocationPrefix: "hello-world"
+baselineLinesOfCode: 1
+unicodeNewlines: true
+columnKind: "utf16"
+primaryLanguage: "javascript"
+creationMetadata:
+  sha: "ccf1e13626d97b009b4da78f719f028d9f7cdf80"
+  cliVersion: "2.7.2"
+  creationTime: "2021-11-08T12:58:40.345998Z"
+`
+    );
+    t.is(getDatabaseSHA(tmpDir), "ccf1e13626d97b009b4da78f719f028d9f7cdf80");
+  } finally {
+    await rmRF(tmpDir);
+  }
+});
+
+test("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", async (t: any) => {
+  const tmpDir = fs.mkdtempSync("tmp");
+  try {
+    fs.writeFileSync(
+      path.join(tmpDir, "codeql-database.yml"),
+      `---
+sourceLocationPrefix: "hello-world"
+baselineLinesOfCode: 17442
+unicodeNewlines: true
+columnKind: "utf16"
+primaryLanguage: "javascript"
+`
+    );
+    t.is(getDatabaseSHA(tmpDir), "HEAD");
+  } finally {
+    await rmRF(tmpDir);
+  }
+});
+
+test("getting the commit SHA when codeql-database.yml exists, but is invalid", async (t: any) => {
+  const tmpDir = fs.mkdtempSync("tmp");
+  try {
+    fs.writeFileSync(
+      path.join(tmpDir, "codeql-database.yml"),
+      `    foo:"
+bar
+`
+    );
+    t.is(getDatabaseSHA(tmpDir), "HEAD");
+  } finally {
+    await rmRF(tmpDir);
+  }
+});
+
+test("getting the commit SHA when the codeql-database.yml does not exist", async (t: any) => {
+  const tmpDir = fs.mkdtempSync("tmp");
+  try {
+    t.is(getDatabaseSHA(tmpDir), "HEAD");
+  } finally {
+    await rmRF(tmpDir);
+  }
+});
+
+test("reading the metadata for a real database", async (t: any) => {
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
   try {
-    // Test our fake database. This "database" has a commit SHA in its metadata.
-    await exec("codeql", ["database", "unbundle", testDbZip, "--name=fakeDb"]);
-    const sha1 = getDatabaseSHA("fakeDb");
-    t.is(sha1, "ccf1e13626d97b009b4da78f719f028d9f7cdf80");
-
     // Test the real database, which has no commit SHA (until CodeQL CLI 2.7.2 is released).
     // TODO: update this test once CodeQL CLI 2.7.2 is released.
     await exec("codeql", [
