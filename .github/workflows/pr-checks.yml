@@ -7,49 +7,58 @@ on:
   workflow_dispatch:
 
 jobs:
+  workflow-references-main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check workflow references only main
+        run: |
+          ! grep 'uses: dsp-testing/qc-run2/' .github/workflows/codeql-query.yml | grep -q -v @main
+
   lint-js:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Run Lint
-      run: npm run-script lint
+      - uses: actions/checkout@v2
+      - name: Run Lint
+        run: npm run-script lint
 
   check-js:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Check generated JavaScript
-      run: .github/workflows/script/check-js.sh
+      - uses: actions/checkout@v2
+      - name: Check generated JavaScript
+        run: .github/workflows/script/check-js.sh
 
   check-node-modules:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Check node modules up to date
-      run: .github/workflows/script/check-node-modules.sh
+      - uses: actions/checkout@v2
+      - name: Check node modules up to date
+        run: .github/workflows/script/check-node-modules.sh
 
   npm-test:
     needs: [check-js, check-node-modules]
     strategy:
       matrix:
-        os: [ubuntu-latest,macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Initialize CodeQL
-      id: init
-      uses: github/codeql-action/init@v1
-      with:
-        languages: javascript
+      - name: Initialize CodeQL
+        id: init
+        uses: github/codeql-action/init@v1
+        with:
+          languages: javascript
 
-    - name: Put CODEQL on PATH
-      run: |
-        echo "$(dirname "${{ steps.init.outputs.codeql-path }}")" >> $GITHUB_PATH
+      - name: Put CODEQL on PATH
+        run: |
+          echo "$(dirname "${{ steps.init.outputs.codeql-path }}")" >> $GITHUB_PATH
 
-    - name: npm run-script test
-      run: npm run-script test
+      - name: npm run-script test
+        run: npm run-script test
