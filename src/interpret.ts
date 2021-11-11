@@ -12,6 +12,7 @@ export {
   problemQueryMessage,
   interpret,
   createResultIndex,
+  ResultIndexItem,
 };
 
 // Methods in this file consume the output from `codeql bqrs decode --format=json`.

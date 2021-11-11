@@ -8,7 +8,7 @@ import { mkdirP, mv } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
 
 import { download } from "./download";
-import { createResultIndex } from "./interpret";
+import { createResultIndex, ResultIndexItem } from "./interpret";
 
 const formatBody = (
   query: string,
@@ -129,7 +129,9 @@ async function run(): Promise<void> {
         return `| ${repoName} | _No results_ |`;
       })
     );
-    const resultsIndex = createResultIndex(resultArtifacts);
+    const resultsIndex: ResultIndexItem[] = await createResultIndex(
+      resultArtifacts
+    );
 
     // Create the index.json file
     const resultIndexFile = path.join("results", "index.json");
