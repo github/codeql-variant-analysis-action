@@ -6,6 +6,7 @@ import { rmRF } from "@actions/io";
 import test from "ava";
 
 import { runQuery, getDatabaseSHA } from "./codeql";
+import { createResultIndex } from "./interpret";
 
 test.before(async (t: any) => {
   const tmpDir = path.resolve(fs.mkdtempSync("tmp"));
@@ -171,6 +172,36 @@ test("reading the metadata for a real database", async (t: any) => {
     ]);
     const sha2 = getDatabaseSHA("realDb");
     t.is(sha2, "HEAD");
+  } finally {
+    process.chdir(cwd);
+    await rmRF(tmpDir);
+  }
+});
+
+test("creating a result index", async (t: any) => {
+  const tmpDir = fs.mkdtempSync("tmp");
+  const cwd = process.cwd();
+  process.chdir(tmpDir);
+  try {
+    const output = await runQuery(
+      "codeql",
+      "javascript",
+      t.context.db,
+      "a/b",
+      "import javascript\nfrom File f\nwhere exists(f.getRelativePath())\nselect f"
+    );
+    const outputDir = path.dirname(output[0]); // We know that all output files are in the same directory.
+    const downloadResponse = {
+      artifactName: "results",
+      downloadPath: outputDir,
+    };
+    const result = await createResultIndex([downloadResponse]);
+
+    t.is(result.length, 1);
+    t.is(result[0].nwo, "a/b");
+    t.is(result[0].id, "results");
+    t.is(result[0].results_count, 1);
+    t.true(result[0].bqrs_file_size > 0);
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);

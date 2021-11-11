@@ -72,12 +72,14 @@ libraryPathDependencies: codeql-${language}`
     queryFile,
   ]);
 
-  const compatibleQueryKinds = await getCompatibleQueryKinds(codeql, bqrs);
+  const bqrsInfo = await getBqrsInfo(codeql, bqrs);
+  const compatibleQueryKinds = bqrsInfo["compatible-query-kinds"];
 
   const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
     outputMd(codeql, bqrs, nwo, databaseSHA, compatibleQueryKinds),
     outputSarif(codeql, bqrs, compatibleQueryKinds),
+    outputResultCount(bqrsInfo),
   ];
 
   return [bqrs, nwoFile].concat(...(await Promise.all(outputPromises)));
@@ -118,11 +120,16 @@ async function downloadDatabase(
   }
 }
 
-// Calls `bqrs info` and returns compatible query kinds for the given bqrs file
-async function getCompatibleQueryKinds(
-  codeql: string,
-  bqrs: string
-): Promise<string[]> {
+interface BQRSInfo {
+  "result-sets": Array<{
+    name: string;
+    rows: number;
+  }>;
+  "compatible-query-kinds": string[];
+}
+
+// Calls `bqrs info` for the given bqrs file and returns JSON output
+async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
   const bqrsInfoOutput = await getExecOutput(codeql, [
     "bqrs",
     "info",
@@ -134,7 +141,7 @@ async function getCompatibleQueryKinds(
       `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
     );
   }
-  return JSON.parse(bqrsInfoOutput.stdout)["compatible-query-kinds"];
+  return JSON.parse(bqrsInfoOutput.stdout);
 }
 
 // Generates results.csv from the given bqrs file
@@ -221,6 +228,20 @@ async function outputSarif(
     bqrs,
   ]);
   return [sarif];
+}
+
+// Generates results count
+async function outputResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
+  const count = path.join("results", "resultcount.txt");
+  // find the rows for the result set with name "#select"
+  const selectResultSet = bqrsInfo["result-sets"].find(
+    (resultSet) => resultSet.name === "#select"
+  );
+  if (!selectResultSet) {
+    throw new Error("No result set named #select");
+  }
+  fs.writeFileSync(count, selectResultSet.rows.toString(), "utf8");
+  return [count];
 }
 
 interface DatabaseMetadata {

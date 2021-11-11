@@ -1,8 +1,19 @@
 import { once } from "events";
+import fs from "fs";
+import path from "path";
 import stream from "stream";
 import { promisify } from "util";
 
-export { entityToString, toTableRow, problemQueryMessage, interpret };
+import { DownloadResponse } from "@actions/artifact";
+
+export {
+  entityToString,
+  toTableRow,
+  problemQueryMessage,
+  interpret,
+  createResultIndex,
+  ResultIndexItem,
+};
 
 // Methods in this file consume the output from `codeql bqrs decode --format=json`.
 // For example:
@@ -149,4 +160,49 @@ async function interpret(
 
   output.end();
   return finished(output);
+}
+
+interface ResultIndexItem {
+  nwo: string;
+  id: string;
+  results_count: number;
+  bqrs_file_size: number;
+  sarif_file_size?: number;
+}
+async function createResultIndex(
+  resultArtifacts: DownloadResponse[]
+): Promise<ResultIndexItem[]> {
+  return await Promise.all(
+    resultArtifacts.map(async function (response) {
+      const nwo = fs.readFileSync(
+        path.join(response.downloadPath, "nwo.txt"),
+        "utf-8"
+      );
+      const id = response.artifactName;
+      const results_count = parseInt(
+        fs.readFileSync(
+          path.join(response.downloadPath, "resultcount.txt"),
+          "utf-8"
+        ),
+        10
+      );
+      const bqrs_file_size = fs.statSync(
+        path.join(response.downloadPath, "results.bqrs")
+      ).size;
+      let sarif_file_size: undefined | number = undefined;
+      if (fs.existsSync(path.join(response.downloadPath, "results.sarif"))) {
+        sarif_file_size = fs.statSync(
+          path.join(response.downloadPath, "results.sarif")
+        ).size;
+      }
+      const resultIndexItem: ResultIndexItem = {
+        nwo,
+        id,
+        results_count,
+        bqrs_file_size,
+        sarif_file_size,
+      };
+      return resultIndexItem;
+    })
+  );
 }
