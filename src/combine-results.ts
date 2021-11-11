@@ -8,6 +8,7 @@ import { mkdirP, mv } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
 
 import { download } from "./download";
+import { createResultIndex } from "./interpret";
 
 const formatBody = (
   query: string,
@@ -128,32 +129,7 @@ async function run(): Promise<void> {
         return `| ${repoName} | _No results_ |`;
       })
     );
-    const resultsIndex = await Promise.all(
-      resultArtifacts.map(async function (response) {
-        const resultIndexItem = {} as any;
-        resultIndexItem.nwo = fs.readFileSync(
-          path.join(response.downloadPath, "nwo.txt"),
-          "utf-8"
-        );
-        resultIndexItem.id = response.artifactName;
-        resultIndexItem.results_count = parseInt(
-          fs.readFileSync(
-            path.join(response.downloadPath, "resultcount.txt"),
-            "utf-8"
-          ),
-          10
-        );
-        resultIndexItem.bqrs_file_size = fs.statSync(
-          path.join(response.downloadPath, "results.bqrs")
-        ).size;
-        if (fs.existsSync(path.join(response.downloadPath, "results.sarif"))) {
-          resultIndexItem.sarif_file_size = fs.statSync(
-            path.join(response.downloadPath, "results.sarif")
-          ).size;
-        }
-        return resultIndexItem;
-      })
-    );
+    const resultsIndex = createResultIndex(resultArtifacts);
 
     // Create the index.json file
     const resultIndexFile = path.join("results", "index.json");
