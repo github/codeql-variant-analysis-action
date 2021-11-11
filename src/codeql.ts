@@ -3,11 +3,11 @@ import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
+import { Serialize, SerializeProperty, Serializable } from "ts-serializer";
 
 import { download } from "./download";
 import { interpret } from "./interpret";
-
-export { downloadDatabase, runQuery, getDatabaseSHA };
+export { downloadDatabase, runQuery, getDatabaseSHA, BQRSInfo2 };
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
@@ -118,6 +118,22 @@ async function downloadDatabase(
       throw error;
     }
   }
+}
+
+@Serialize({})
+class BQRSInfo2 extends Serializable {
+  @SerializeProperty({
+    map: "result-sets",
+  })
+  resultSets: Array<{
+    name: string;
+    rows: number;
+  }> = [];
+
+  @SerializeProperty({
+    map: "compatible-query-kinds",
+  })
+  compatibleQueryKinds: string[] = [];
 }
 
 interface BQRSInfo {

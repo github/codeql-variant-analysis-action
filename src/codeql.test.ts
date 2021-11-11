@@ -5,7 +5,7 @@ import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
 import test from "ava";
 
-import { runQuery, getDatabaseSHA } from "./codeql";
+import { runQuery, getDatabaseSHA, BQRSInfo2 } from "./codeql";
 import { createResultIndex } from "./interpret";
 
 test.before(async (t: any) => {
@@ -206,4 +206,38 @@ test("creating a result index", async (t: any) => {
     process.chdir(cwd);
     await rmRF(tmpDir);
   }
+});
+
+const bqrsInfoOutput = `{
+  "result-sets" : [
+    {
+      "name" : "#select",
+      "rows" : 3,
+      "columns" : [
+        {
+          "name" : "i",
+          "kind" : "i"
+        },
+        {
+          "kind" : "i"
+        }
+      ]
+    }
+  ],
+  "compatible-query-kinds" : [
+    "Table",
+    "Tree",
+    "Chart",
+    "Graph"
+  ]
+}
+`;
+
+test("deserialize bqrs output", async (_) => {
+  const instance: BQRSInfo2 = new BQRSInfo2();
+
+  console.log(instance);
+
+  instance.deserialize(JSON.parse(bqrsInfoOutput));
+  console.log(instance);
 });
