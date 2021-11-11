@@ -190,18 +190,23 @@ test("creating a result index", async (t: any) => {
       "a/b",
       "import javascript\nfrom File f select f"
     );
+    const outputDir = path.dirname(output[0]); // We know that all output files are in the same directory.
     const downloadResponse = {
       artifactName: "results",
-      downloadPath: path.basename(output[0]),
+      downloadPath: outputDir,
     };
+
+    // createResultIndex expects an `nwo.txt` file to exist.
+    const nwoFile = path.join(outputDir, "nwo.txt");
+    fs.writeFileSync(nwoFile, "a/b");
+
     const result = await createResultIndex([downloadResponse]);
 
     t.is(result.length, 1);
     t.is(result[0].nwo, "a/b");
     t.is(result[0].id, "results");
     t.is(result[0].results_count, 1);
-    // Not sure how to find the bqrs file size
-    t.is(result[0].bqrs_file_size);
+    t.is(result[0].bqrs_file_size, 111);
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);
