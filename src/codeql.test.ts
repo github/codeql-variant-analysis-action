@@ -188,7 +188,7 @@ test("creating a result index", async (t: any) => {
       "javascript",
       t.context.db,
       "a/b",
-      "import javascript\nfrom File f select f"
+      "import javascript\nfrom File f\nwhere exists(f.getRelativePath())\nselect f"
     );
     const outputDir = path.dirname(output[0]); // We know that all output files are in the same directory.
     const downloadResponse = {
