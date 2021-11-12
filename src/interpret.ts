@@ -174,12 +174,12 @@ async function createResultsMd(
   return (
     await Promise.all(
       resultArtifacts.map(async function (response) {
-        const repoName = fs.readFileSync(
+        const repoName = await fs.promises.readFile(
           path.join(response.downloadPath, "nwo.txt"),
           "utf-8"
         );
         const resultCount = parseInt(
-          fs.readFileSync(
+          await fs.promises.readFile(
             path.join(response.downloadPath, "resultcount.txt"),
             "utf-8"
           ),
@@ -192,7 +192,7 @@ async function createResultsMd(
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number,
-            body: fs.readFileSync(md, "utf8"),
+            body: await fs.promises.readFile(md, "utf8"),
           });
           return `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`;
         }
