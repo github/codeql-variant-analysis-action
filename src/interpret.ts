@@ -218,6 +218,8 @@ async function createResultsMd(
   issue_number: number,
   resultArtifacts: DownloadResponse[]
 ): Promise<string> {
+  // Read all of the nwo.txt and resultcount.txt files and collect the data
+  // into an array for easy access.
   const results: Array<{
     nwo: string;
     resultCount: number;
@@ -250,6 +252,7 @@ async function createResultsMd(
   const maxNumComments = 50;
   let numComments = 0;
 
+  // Post issue comments and construct the main issue body
   const resultsMdLines: string[] = [];
   for (const result of results) {
     if (result.resultCount > 0) {
@@ -277,6 +280,7 @@ async function createResultsMd(
   }
   let resultsMd = resultsMdLines.join("\n");
 
+  // If we couldn't post some comments then add a warning to the top of the body
   if (numComments > maxNumComments) {
     resultsMd = `Due to the number of repositories with results, not all results are included as issue comments. For full results please refer to workflow artifacts.\n\n${resultsMd}`;
   }
