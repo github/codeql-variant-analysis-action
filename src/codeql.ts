@@ -4,6 +4,7 @@ import path from "path";
 import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
+import { deserialize } from "./deserialize";
 import { download } from "./download";
 import { interpret } from "./interpret";
 
@@ -141,18 +142,7 @@ async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
       `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
     );
   }
-  return JSON.parse(bqrsInfoOutput.stdout, (_, value) => {
-    if (value && typeof value === "object") {
-      for (const k in value) {
-        if (k.match(/-./)) {
-          const l = k.replace(/-./g, (x) => x[1].toUpperCase());
-          value[l] = value[k];
-          delete value[k];
-        }
-      }
-    }
-    return value;
-  });
+  return deserialize(bqrsInfoOutput.stdout);
 }
 
 // Generates results.csv from the given bqrs file
