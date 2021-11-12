@@ -171,35 +171,35 @@ async function createResultsMd(
   issue_number: number,
   resultArtifacts: DownloadResponse[]
 ): Promise<string> {
-  return (
-    await Promise.all(
-      resultArtifacts.map(async function (response) {
-        const repoName = await fs.promises.readFile(
-          path.join(response.downloadPath, "nwo.txt"),
-          "utf-8"
-        );
-        const resultCount = parseInt(
-          await fs.promises.readFile(
-            path.join(response.downloadPath, "resultcount.txt"),
-            "utf-8"
-          ),
-          10
-        );
+  const resultsMd: string[] = [];
+  for (const response of resultArtifacts) {
+    const repoName = await fs.promises.readFile(
+      path.join(response.downloadPath, "nwo.txt"),
+      "utf-8"
+    );
+    const resultCount = parseInt(
+      await fs.promises.readFile(
+        path.join(response.downloadPath, "resultcount.txt"),
+        "utf-8"
+      ),
+      10
+    );
 
-        if (resultCount > 0) {
-          const md = path.join(response.downloadPath, "results.md");
-          const comment = await octokit.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number,
-            body: await fs.promises.readFile(md, "utf8"),
-          });
-          return `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`;
-        }
-        return `| ${repoName} | _No results_ |`;
-      })
-    )
-  ).join("\n");
+    if (resultCount > 0) {
+      const md = path.join(response.downloadPath, "results.md");
+      const comment = await octokit.rest.issues.createComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number,
+        body: await fs.promises.readFile(md, "utf8"),
+      });
+      resultsMd.push(
+        `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`
+      );
+    }
+    resultsMd.push(`| ${repoName} | _No results_ |`);
+  }
+  return resultsMd.join("\n");
 }
 
 interface ResultIndexItem {
