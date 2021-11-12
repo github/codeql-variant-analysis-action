@@ -196,10 +196,17 @@ async function createResultsMd(
       resultsMd.push(
         `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`
       );
+
+      // Wait very slightly after posting each comment to avoid hitting rate limits
+      await timeout(1000);
     }
     resultsMd.push(`| ${repoName} | _No results_ |`);
   }
   return resultsMd.join("\n");
+}
+
+function timeout(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 interface ResultIndexItem {
