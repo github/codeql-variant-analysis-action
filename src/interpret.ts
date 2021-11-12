@@ -171,38 +171,70 @@ async function createResultsMd(
   issue_number: number,
   resultArtifacts: DownloadResponse[]
 ): Promise<string> {
-  const resultsMd: string[] = [];
-  for (const response of resultArtifacts) {
-    const repoName = await fs.promises.readFile(
-      path.join(response.downloadPath, "nwo.txt"),
-      "utf-8"
-    );
-    const resultCount = parseInt(
-      await fs.promises.readFile(
-        path.join(response.downloadPath, "resultcount.txt"),
+  const results: Array<{
+    nwo: string;
+    resultCount: number;
+    downloadPath: string;
+  }> = await Promise.all(
+    resultArtifacts.map(async (response) => {
+      const nwo = await fs.promises.readFile(
+        path.join(response.downloadPath, "nwo.txt"),
         "utf-8"
-      ),
-      10
-    );
-
-    if (resultCount > 0) {
-      const md = path.join(response.downloadPath, "results.md");
-      const comment = await octokit.rest.issues.createComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        issue_number,
-        body: await fs.promises.readFile(md, "utf8"),
-      });
-      resultsMd.push(
-        `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`
       );
+      const resultCount = parseInt(
+        await fs.promises.readFile(
+          path.join(response.downloadPath, "resultcount.txt"),
+          "utf-8"
+        ),
+        10
+      );
+      return {
+        nwo,
+        resultCount,
+        downloadPath: response.downloadPath,
+      };
+    })
+  );
 
-      // Wait very slightly after posting each comment to avoid hitting rate limits
-      await timeout(1000);
+  // Place repositories with high numbers of results at the top
+  results.sort((a, b) => a.resultCount - b.resultCount);
+
+  // Only post up to a fixed number of comments
+  const maxNumComments = 50;
+  let numComments = 0;
+
+  const resultsMdLines: string[] = [];
+  for (const result of results) {
+    if (result.resultCount > 0) {
+      if (numComments < maxNumComments) {
+        const md = path.join(result.downloadPath, "results.md");
+        const comment = await octokit.rest.issues.createComment({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          issue_number,
+          body: await fs.promises.readFile(md, "utf8"),
+        });
+        numComments += 1;
+        resultsMdLines.push(
+          `| ${result.nwo} | [${result.resultCount} result(s)](${comment.data.html_url}) |`
+        );
+        // Wait very slightly after posting each comment to avoid hitting rate limits
+        await timeout(1000);
+      } else {
+        resultsMdLines.push(
+          `| ${result.nwo} | ${result.resultCount} result(s) |`
+        );
+      }
     }
-    resultsMd.push(`| ${repoName} | _No results_ |`);
+    resultsMdLines.push(`| ${result.nwo} | _No results_ |`);
   }
-  return resultsMd.join("\n");
+  let resultsMd = resultsMdLines.join("\n");
+
+  if (numComments > maxNumComments) {
+    resultsMd = `Due to the number of repositories with results, not all results are included as issue comments. For full results please refer to workflow artifacts.\n\n${resultsMd}`;
+  }
+
+  return resultsMd;
 }
 
 function timeout(ms: number): Promise<void> {
