@@ -5,6 +5,9 @@ import stream from "stream";
 import { promisify } from "util";
 
 import { DownloadResponse } from "@actions/artifact";
+import { context } from "@actions/github";
+import { GitHub } from "@actions/github/lib/utils";
+type Octokit = InstanceType<typeof GitHub>;
 
 export {
   entityToString,
@@ -12,6 +15,7 @@ export {
   problemQueryMessage,
   interpret,
   createResultIndex,
+  createResultsMd,
   ResultIndexItem,
 };
 
@@ -160,6 +164,42 @@ async function interpret(
 
   output.end();
   return finished(output);
+}
+
+async function createResultsMd(
+  octokit: Octokit,
+  issue_number: number,
+  resultArtifacts: DownloadResponse[]
+): Promise<string> {
+  return (
+    await Promise.all(
+      resultArtifacts.map(async function (response) {
+        const repoName = fs.readFileSync(
+          path.join(response.downloadPath, "nwo.txt"),
+          "utf-8"
+        );
+        const resultCount = parseInt(
+          fs.readFileSync(
+            path.join(response.downloadPath, "resultcount.txt"),
+            "utf-8"
+          ),
+          10
+        );
+
+        if (resultCount > 0) {
+          const md = path.join(response.downloadPath, "results.md");
+          const comment = await octokit.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number,
+            body: fs.readFileSync(md, "utf8"),
+          });
+          return `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`;
+        }
+        return `| ${repoName} | _No results_ |`;
+      })
+    )
+  ).join("\n");
 }
 
 interface ResultIndexItem {

@@ -8,7 +8,11 @@ import { mkdirP, mv } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
 
 import { download } from "./download";
-import { createResultIndex, ResultIndexItem } from "./interpret";
+import {
+  createResultIndex,
+  createResultsMd,
+  ResultIndexItem,
+} from "./interpret";
 
 const formatBody = (
   query: string,
@@ -102,33 +106,13 @@ async function run(): Promise<void> {
         return csvDest;
       })
     );
-    const resultsMd = await Promise.all(
-      resultArtifacts.map(async function (response) {
-        const repoName = fs.readFileSync(
-          path.join(response.downloadPath, "nwo.txt"),
-          "utf-8"
-        );
-        const resultCount = parseInt(
-          fs.readFileSync(
-            path.join(response.downloadPath, "resultcount.txt"),
-            "utf-8"
-          ),
-          10
-        );
 
-        if (resultCount > 0) {
-          const md = path.join(response.downloadPath, "results.md");
-          const comment = await octokit.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: issue.data.number,
-            body: fs.readFileSync(md, "utf8"),
-          });
-          return `| ${repoName} | [${resultCount} result(s)](${comment.data.html_url}) |`;
-        }
-        return `| ${repoName} | _No results_ |`;
-      })
+    const resultsMd = await createResultsMd(
+      octokit,
+      issue.data.number,
+      resultArtifacts
     );
+
     const resultsIndex: ResultIndexItem[] = await createResultIndex(
       resultArtifacts
     );
@@ -137,7 +121,7 @@ async function run(): Promise<void> {
     const resultIndexFile = path.join("results", "index.json");
     fs.writeFileSync(resultIndexFile, JSON.stringify(resultsIndex, null, 2));
 
-    const body = formatBody(queryText, resultsMd.join("\n"), errorsMd);
+    const body = formatBody(queryText, resultsMd, errorsMd);
 
     void Promise.all([
       octokit.rest.issues.update({
