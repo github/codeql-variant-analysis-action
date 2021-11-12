@@ -141,29 +141,76 @@ async function interpret(
 
   if (compatibleQueryKinds.includes("Problem")) {
     // Output as problem with placeholders
-    const colNames = ["-", "Message"];
-    await write(output, toTableRow(colNames));
-    await write(output, tableDashesRow(colNames.length));
-
-    for (const tuple of results["#select"]["tuples"]) {
-      const entityCol = entityToString(tuple[0], nwo, src, ref);
-      const messageCol = problemQueryMessage(tuple, nwo, src, ref);
-      await write(output, toTableRow([entityCol, messageCol]));
-    }
+    const generateNextRow = function* generateNextRow() {
+      for (const tuple of results["#select"]["tuples"]) {
+        const entityCol = entityToString(tuple[0], nwo, src, ref);
+        const messageCol = problemQueryMessage(tuple, nwo, src, ref);
+        yield toTableRow([entityCol, messageCol]);
+      }
+      return undefined;
+    };
+    await writeTableContents(output, ["-", "Message"], generateNextRow());
   } else {
     // Output raw table
     const colNames = results["#select"]["columns"].map((c) => c.name || "-");
-    await write(output, toTableRow(colNames));
-    await write(output, tableDashesRow(colNames.length));
-
-    for (const tuple of results["#select"]["tuples"]) {
-      const row = tuple.map((e) => entityToString(e, nwo, src, ref));
-      await write(output, toTableRow(row));
-    }
+    const generateNextRow = function* generateNextRow() {
+      for (const tuple of results["#select"]["tuples"]) {
+        const row = tuple.map((e) => entityToString(e, nwo, src, ref));
+        yield toTableRow(row);
+      }
+      return undefined;
+    };
+    await writeTableContents(output, colNames, generateNextRow());
   }
 
   output.end();
   return finished(output);
+}
+
+// Outputs a table to the writable stream.
+// Avoids going over the issue comment length limit and will truncate results if necessary.
+async function writeTableContents(
+  output: stream.Writable,
+  colNames: string[],
+  nextRow: Generator<string, undefined, unknown>
+) {
+  // Issue comment limit is 262144 bytes, or 65536 4-byte characters.
+  // To avoid any danger in case the text in encoded using 4 bytes per character, we
+  // will go with the character limit.
+  // Also leave a bit of buffer to account for comment title and truncation warning text.
+  const maxCharactersInComment = 65000;
+
+  let charactersWritten = 0;
+
+  const headerRow = toTableRow(colNames);
+  const dashesRow = tableDashesRow(colNames.length);
+
+  // Check we're not already going over the character limit due to an excessive number of columns
+  if (headerRow.length + dashesRow.length > maxCharactersInComment) {
+    await write(
+      output,
+      "Unable to display results. Table would be too large to fit in issue comment body."
+    );
+    return;
+  }
+
+  await write(output, headerRow);
+  await write(output, dashesRow);
+  charactersWritten += headerRow.length + dashesRow.length;
+
+  for (let curr = nextRow.next(); !curr.done; curr = nextRow.next()) {
+    const row = curr.value;
+    if (charactersWritten + row.length < maxCharactersInComment) {
+      await write(output, row);
+      charactersWritten += row.length;
+    } else {
+      await write(
+        output,
+        "\nResults truncated due to issue comment length limit."
+      );
+      return;
+    }
+  }
 }
 
 async function createResultsMd(
