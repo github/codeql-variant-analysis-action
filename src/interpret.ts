@@ -204,7 +204,7 @@ async function writeTableContents(
     } else {
       await write(
         output,
-        "\nResults truncated due to issue comment length limit."
+        "\nResults truncated due to issue comment size limits."
       );
       return;
     }
