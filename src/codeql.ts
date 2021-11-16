@@ -8,7 +8,7 @@ import { deserialize } from "./deserialize";
 import { download } from "./download";
 import { interpret } from "./interpret";
 
-export { downloadDatabase, runQuery, getDatabaseSHA };
+export { BQRSInfo, downloadDatabase, runQuery, getBqrsInfo, getDatabaseSHA };
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
