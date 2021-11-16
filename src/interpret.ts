@@ -244,7 +244,7 @@ async function createResultsMd(
   );
 
   // Place repositories with high numbers of results at the top
-  results.sort((a, b) => a.resultCount - b.resultCount);
+  results.sort((a, b) => b.resultCount - a.resultCount);
 
   // Only post up to a fixed number of comments
   const maxNumComments = 50;
