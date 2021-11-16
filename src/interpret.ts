@@ -139,6 +139,9 @@ async function interpret(
 
   await write(output, `## ${nwo}\n\n`);
 
+  let numResults: number;
+  let numResultsOutput: number;
+
   if (compatibleQueryKinds.includes("Problem")) {
     // Output as problem with placeholders
     const generateNextRow = function* generateNextRow() {
@@ -149,7 +152,12 @@ async function interpret(
       }
       return undefined;
     };
-    await writeTableContents(output, ["-", "Message"], generateNextRow());
+    numResults = results["#select"]["tuples"].length;
+    numResultsOutput = await writeTableContents(
+      output,
+      ["-", "Message"],
+      generateNextRow()
+    );
   } else {
     // Output raw table
     const colNames = results["#select"]["columns"].map((c) => c.name || "-");
@@ -160,7 +168,19 @@ async function interpret(
       }
       return undefined;
     };
-    await writeTableContents(output, colNames, generateNextRow());
+    numResults = results["#select"]["tuples"].length;
+    numResultsOutput = await writeTableContents(
+      output,
+      colNames,
+      generateNextRow()
+    );
+  }
+
+  if (numResultsOutput < numResults) {
+    await write(
+      output,
+      `\n\nResults were truncated due to issue comment size limits. Showing ${numResultsOutput} out of ${numResults} results.`
+    );
   }
 
   output.end();
@@ -169,11 +189,12 @@ async function interpret(
 
 // Outputs a table to the writable stream.
 // Avoids going over the issue comment length limit and will truncate results if necessary.
+// Returns the number of rows written to the output, excluding any header rows.
 async function writeTableContents(
   output: stream.Writable,
   colNames: string[],
   nextRow: Generator<string, undefined, unknown>
-) {
+): Promise<number> {
   // Issue comment limit is 65536 characters.
   // But eave a bit of buffer to account for the comment title and truncation warning text.
   const maxCharactersInComment = 64000;
@@ -185,30 +206,31 @@ async function writeTableContents(
 
   // Check we're not already going over the character limit due to an excessive number of columns
   if (headerRow.length + dashesRow.length > maxCharactersInComment) {
+    // Output as much as we can, just so the user can see what they were missing / why it went wrong
     await write(
       output,
-      "Unable to display results. Table would be too large to fit in issue comment body."
+      (headerRow + dashesRow).substr(0, maxCharactersInComment)
     );
-    return;
+    return 0;
   }
 
   await write(output, headerRow);
   await write(output, dashesRow);
   charactersWritten += headerRow.length + dashesRow.length;
 
+  let rowsOutput = 0;
   for (let curr = nextRow.next(); !curr.done; curr = nextRow.next()) {
     const row = curr.value;
     if (charactersWritten + row.length < maxCharactersInComment) {
       await write(output, row);
       charactersWritten += row.length;
+      rowsOutput += 1;
     } else {
-      await write(
-        output,
-        "\nResults truncated due to issue comment size limits."
-      );
-      return;
+      break;
     }
   }
+
+  return rowsOutput;
 }
 
 async function createResultsMd(
