@@ -4,4 +4,4 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-sed -i -e "s#\(uses: dsp-testing/qc-run2/.*@\).*#\1main#g" .github/workflows/codeql-query.yml
+sed -i "" -e "s#\(uses: dsp-testing/qc-run2/.*@\).*#\1main#g" .github/workflows/codeql-query.yml
