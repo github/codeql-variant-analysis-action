@@ -301,14 +301,15 @@ async function createResultsMd(
       resultsMdLines.push(`| ${result.nwo} | _No results_ |`);
     }
   }
-  let resultsMd = resultsMdLines.join("\n");
+  const resultsMd = resultsMdLines.join("\n");
 
   // If we couldn't post some comments then add a warning to the top of the body
+  let numCommentsWarning = "";
   if (numComments === maxNumComments) {
-    resultsMd = `Due to the number of repositories with results, not all results are included as issue comments. Showing results in comments for ${numComments} out of ${reposWithResults} repositories with results. For full results please refer to workflow artifacts.\n\n${resultsMd}`;
+    numCommentsWarning = `Due to the number of repositories with results, not all results are included as issue comments. Showing results in comments for ${numComments} out of ${reposWithResults} repositories with results. For full results please refer to workflow artifacts.\n\n`;
   }
 
-  return resultsMd;
+  return `# Results\n\n${numCommentsWarning}|Repository|Results|\n|---|---|\n${resultsMd}`;
 }
 
 function timeout(ms: number): Promise<void> {

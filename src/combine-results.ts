@@ -27,10 +27,6 @@ ${query}
 \`\`\`
 </details>
 
-# Results
-
-|Repository|Results|
-|---|---|
 ${results}
 ${errors}`;
 
