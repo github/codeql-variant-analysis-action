@@ -273,8 +273,9 @@ async function createResultsMd(
           `| ${result.nwo} | ${result.resultCount} result(s) |`
         );
       }
+    } else {
+      resultsMdLines.push(`| ${result.nwo} | _No results_ |`);
     }
-    resultsMdLines.push(`| ${result.nwo} | _No results_ |`);
   }
   let resultsMd = resultsMdLines.join("\n");
 
