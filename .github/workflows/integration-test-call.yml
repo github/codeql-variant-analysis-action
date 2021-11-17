@@ -9,6 +9,6 @@ on:
 
 jobs:
   run-query:
-    uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@rneatherway/smaller-inputs
+    uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@main
     secrets:
       TEST_PAT: ${{ secrets.BOT_TOKEN }}

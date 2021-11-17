@@ -77,7 +77,7 @@ jobs:
           CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
 
       - name: Run query
-        uses: dsp-testing/qc-run2/query@rneatherway/smaller-inputs
+        uses: dsp-testing/qc-run2/query@main
         with:
           query: ${{ github.event.inputs.query }}
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
@@ -93,7 +93,7 @@ jobs:
 
     steps:
       - name: Combine results
-        uses: dsp-testing/qc-run2/combine-results@rneatherway/smaller-inputs
+        uses: dsp-testing/qc-run2/combine-results@main
         with:
           query: ${{ github.event.inputs.query }}
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
