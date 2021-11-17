@@ -5,7 +5,7 @@ import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
 import test from "ava";
 
-import { runQuery, getDatabaseSHA } from "./codeql";
+import { runQuery, getBqrsInfo, getDatabaseSHA, BQRSInfo } from "./codeql";
 import { createResultIndex } from "./interpret";
 
 test.before(async (t: any) => {
@@ -85,6 +85,14 @@ test("running a query in a pack", async (t: any) => {
     );
     t.true(fs.existsSync(path.join("results", "results.bqrs")));
     t.true(fs.existsSync(path.join("results", "results.csv")));
+
+    const bqrsInfo: BQRSInfo = await getBqrsInfo(
+      "codeql",
+      path.join("results", "results.bqrs")
+    );
+    t.is(1, bqrsInfo.resultSets.length);
+    t.is("#select", bqrsInfo.resultSets[0].name);
+    t.true(bqrsInfo.compatibleQueryKinds.includes("Table"));
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);

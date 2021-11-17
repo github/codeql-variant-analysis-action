@@ -4,10 +4,11 @@ import path from "path";
 import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
+import { deserialize } from "./deserialize";
 import { download } from "./download";
 import { interpret } from "./interpret";
 
-export { downloadDatabase, runQuery, getDatabaseSHA };
+export { BQRSInfo, downloadDatabase, runQuery, getBqrsInfo, getDatabaseSHA };
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
@@ -73,7 +74,7 @@ libraryPathDependencies: codeql-${language}`
   ]);
 
   const bqrsInfo = await getBqrsInfo(codeql, bqrs);
-  const compatibleQueryKinds = bqrsInfo["compatible-query-kinds"];
+  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
   const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
@@ -121,11 +122,11 @@ async function downloadDatabase(
 }
 
 interface BQRSInfo {
-  "result-sets": Array<{
+  resultSets: Array<{
     name: string;
     rows: number;
   }>;
-  "compatible-query-kinds": string[];
+  compatibleQueryKinds: string[];
 }
 
 // Calls `bqrs info` for the given bqrs file and returns JSON output
@@ -141,7 +142,7 @@ async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
       `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
     );
   }
-  return JSON.parse(bqrsInfoOutput.stdout);
+  return deserialize(bqrsInfoOutput.stdout);
 }
 
 // Generates results.csv from the given bqrs file
@@ -234,7 +235,7 @@ async function outputSarif(
 async function outputResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
   const count = path.join("results", "resultcount.txt");
   // find the rows for the result set with name "#select"
-  const selectResultSet = bqrsInfo["result-sets"].find(
+  const selectResultSet = bqrsInfo.resultSets.find(
     (resultSet) => resultSet.name === "#select"
   );
   if (!selectResultSet) {
