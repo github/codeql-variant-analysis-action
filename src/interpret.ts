@@ -5,6 +5,9 @@ import stream from "stream";
 import { promisify } from "util";
 
 import { DownloadResponse } from "@actions/artifact";
+import { context } from "@actions/github";
+import { GitHub } from "@actions/github/lib/utils";
+type Octokit = InstanceType<typeof GitHub>;
 
 export {
   entityToString,
@@ -12,6 +15,7 @@ export {
   problemQueryMessage,
   interpret,
   createResultIndex,
+  createResultsMd,
   ResultIndexItem,
 };
 
@@ -135,31 +139,181 @@ async function interpret(
 
   await write(output, `## ${nwo}\n\n`);
 
+  let numResults: number;
+  let numResultsOutput: number;
+
   if (compatibleQueryKinds.includes("Problem")) {
     // Output as problem with placeholders
-    const colNames = ["-", "Message"];
-    await write(output, toTableRow(colNames));
-    await write(output, tableDashesRow(colNames.length));
-
-    for (const tuple of results["#select"]["tuples"]) {
-      const entityCol = entityToString(tuple[0], nwo, src, ref);
-      const messageCol = problemQueryMessage(tuple, nwo, src, ref);
-      await write(output, toTableRow([entityCol, messageCol]));
-    }
+    const generateNextRow = function* generateNextRow() {
+      for (const tuple of results["#select"]["tuples"]) {
+        const entityCol = entityToString(tuple[0], nwo, src, ref);
+        const messageCol = problemQueryMessage(tuple, nwo, src, ref);
+        yield toTableRow([entityCol, messageCol]);
+      }
+      return undefined;
+    };
+    numResults = results["#select"]["tuples"].length;
+    numResultsOutput = await writeTableContents(
+      output,
+      ["-", "Message"],
+      generateNextRow()
+    );
   } else {
     // Output raw table
     const colNames = results["#select"]["columns"].map((c) => c.name || "-");
-    await write(output, toTableRow(colNames));
-    await write(output, tableDashesRow(colNames.length));
+    const generateNextRow = function* generateNextRow() {
+      for (const tuple of results["#select"]["tuples"]) {
+        const row = tuple.map((e) => entityToString(e, nwo, src, ref));
+        yield toTableRow(row);
+      }
+      return undefined;
+    };
+    numResults = results["#select"]["tuples"].length;
+    numResultsOutput = await writeTableContents(
+      output,
+      colNames,
+      generateNextRow()
+    );
+  }
 
-    for (const tuple of results["#select"]["tuples"]) {
-      const row = tuple.map((e) => entityToString(e, nwo, src, ref));
-      await write(output, toTableRow(row));
-    }
+  if (numResultsOutput < numResults) {
+    await write(
+      output,
+      `\n\nResults were truncated due to issue comment size limits. Showing ${numResultsOutput} out of ${numResults} results.`
+    );
   }
 
   output.end();
   return finished(output);
+}
+
+// Outputs a table to the writable stream.
+// Avoids going over the issue comment length limit and will truncate results if necessary.
+// Returns the number of rows written to the output, excluding any header rows.
+async function writeTableContents(
+  output: stream.Writable,
+  colNames: string[],
+  nextRow: Generator<string, undefined, unknown>
+): Promise<number> {
+  // Issue comment limit is 65536 characters.
+  // But leave a bit of buffer to account for the comment title and truncation warning text.
+  const maxCharactersInComment = 64000;
+
+  let charactersWritten = 0;
+
+  const headerRow = toTableRow(colNames);
+  const dashesRow = tableDashesRow(colNames.length);
+
+  // Check we're not already going over the character limit due to an excessive number of columns
+  if (headerRow.length + dashesRow.length > maxCharactersInComment) {
+    // Output as much as we can, just so the user can see what they were missing / why it went wrong
+    await write(
+      output,
+      (headerRow + dashesRow).substr(0, maxCharactersInComment)
+    );
+    return 0;
+  }
+
+  await write(output, headerRow);
+  await write(output, dashesRow);
+  charactersWritten += headerRow.length + dashesRow.length;
+
+  let rowsOutput = 0;
+  for (let curr = nextRow.next(); !curr.done; curr = nextRow.next()) {
+    const row = curr.value;
+    if (charactersWritten + row.length < maxCharactersInComment) {
+      await write(output, row);
+      charactersWritten += row.length;
+      rowsOutput += 1;
+    } else {
+      break;
+    }
+  }
+
+  return rowsOutput;
+}
+
+async function createResultsMd(
+  octokit: Octokit,
+  issue_number: number,
+  resultArtifacts: DownloadResponse[]
+): Promise<string> {
+  // Read all of the nwo.txt and resultcount.txt files and collect the data
+  // into an array for easy access.
+  const results: Array<{
+    nwo: string;
+    resultCount: number;
+    downloadPath: string;
+  }> = await Promise.all(
+    resultArtifacts.map(async (response) => {
+      const nwo = await fs.promises.readFile(
+        path.join(response.downloadPath, "nwo.txt"),
+        "utf-8"
+      );
+      const resultCount = parseInt(
+        await fs.promises.readFile(
+          path.join(response.downloadPath, "resultcount.txt"),
+          "utf-8"
+        ),
+        10
+      );
+      return {
+        nwo,
+        resultCount,
+        downloadPath: response.downloadPath,
+      };
+    })
+  );
+
+  // Place repositories with high numbers of results at the top
+  results.sort((a, b) => b.resultCount - a.resultCount);
+
+  // Only post up to a fixed number of comments
+  const maxNumComments = 50;
+  let numComments = 0;
+  let reposWithResults = 0;
+
+  // Post issue comments and construct the main issue body
+  const resultsMdLines: string[] = [];
+  for (const result of results) {
+    if (result.resultCount > 0) {
+      reposWithResults += 1;
+      if (numComments < maxNumComments) {
+        const md = path.join(result.downloadPath, "results.md");
+        const comment = await octokit.rest.issues.createComment({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          issue_number,
+          body: await fs.promises.readFile(md, "utf8"),
+        });
+        numComments += 1;
+        resultsMdLines.push(
+          `| ${result.nwo} | [${result.resultCount} result(s)](${comment.data.html_url}) |`
+        );
+        // Wait very slightly after posting each comment to avoid hitting rate limits
+        await timeout(1000);
+      } else {
+        resultsMdLines.push(
+          `| ${result.nwo} | ${result.resultCount} result(s) |`
+        );
+      }
+    } else {
+      resultsMdLines.push(`| ${result.nwo} | _No results_ |`);
+    }
+  }
+  const resultsMd = resultsMdLines.join("\n");
+
+  // If we couldn't post some comments then add a warning to the top of the body
+  let numCommentsWarning = "";
+  if (numComments === maxNumComments) {
+    numCommentsWarning = `Due to the number of repositories with results, not all results are included as issue comments. Showing results in comments for ${numComments} out of ${reposWithResults} repositories with results. For full results please refer to workflow artifacts.\n\n`;
+  }
+
+  return `# Results\n\n${numCommentsWarning}|Repository|Results|\n|---|---|\n${resultsMd}`;
+}
+
+function timeout(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 interface ResultIndexItem {
