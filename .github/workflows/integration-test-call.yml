@@ -1,0 +1,14 @@
+name: "Integration test (using workflow call)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      query_pack_url:
+      language:
+      instructions_url:
+
+jobs:
+  run-query:
+    uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@main
+    secrets:
+      TEST_PAT: ${{ secrets.BOT_TOKEN }}
