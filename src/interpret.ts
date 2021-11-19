@@ -196,7 +196,7 @@ async function writeTableContents(
   nextRow: Generator<string, undefined, unknown>
 ): Promise<number> {
   // Issue comment limit is 65536 characters.
-  // But eave a bit of buffer to account for the comment title and truncation warning text.
+  // But leave a bit of buffer to account for the comment title and truncation warning text.
   const maxCharactersInComment = 64000;
 
   let charactersWritten = 0;
