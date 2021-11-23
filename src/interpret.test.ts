@@ -4,6 +4,7 @@ import test from "ava";
 
 import {
   entityToString,
+  escapeMarkdown,
   toTableRow,
   problemQueryMessage,
   interpret,
@@ -133,7 +134,7 @@ test("relative URL conversion", (t) => {
   );
 
   t.is(
-    "[CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8)",
+    "[CERTSTORE&#95;DOESNT&#95;WORK&#95;ON&#95;LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8)",
     result
   );
 });
@@ -147,7 +148,7 @@ test("absolute URL left alone", (t) => {
   );
 
   t.is(
-    "[CERTSTORE_DOESNT_WORK_ON_LINIX](file:/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore/certstore_linux.go#L8)",
+    "[CERTSTORE&#95;DOESNT&#95;WORK&#95;ON&#95;LINIX](file:/home/runner/work/qc-demo-github-certstore/qc-demo-github-certstore/certstore_linux.go#L8)",
     result
   );
 });
@@ -213,7 +214,7 @@ test("problem query message with too few placeholder values", async (t) => {
 
   t.is(
     message,
-    "This depends on [A](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1) and $@."
+    "This depends on [A](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1) and $@&#46;"
   );
 });
 
@@ -278,7 +279,7 @@ test("problem query message with too many placeholder values", async (t) => {
 
   t.is(
     message,
-    "This depends on [A](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1)."
+    "This depends on [A](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1)&#46;"
   );
 });
 
@@ -331,7 +332,7 @@ test("problem query message with placeholder messages containing $@", async (t) 
 
   t.is(
     message,
-    "This depends on [another $@ value](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1)."
+    "This depends on [another $@ value](https://github.com/foo/bar/blob/mybranch/A.js#L1) and [B](https://github.com/foo/bar/blob/mybranch/B.js#L1)&#46;"
   );
 });
 
@@ -360,7 +361,7 @@ test("entire raw result set converted correctly", async (t) => {
 
 | e | - | - |
 | - | - | - |
-| [CERTSTORE_DOESNT_WORK_ON_LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8) | This expression has no effect. | This is another string field. |
+| [CERTSTORE&#95;DOESNT&#95;WORK&#95;ON&#95;LINIX](https://github.com/dsp-testing/qc-demo-github-certstore/blob/mybranch/certstore_linux.go#L8) | This expression has no effect&#46; | This is another string field&#46; |
 `
   );
 });
@@ -390,7 +391,7 @@ test("windows results conversion", async (t) => {
 
 | f | - | - |
 | - | - | - |
-| [D:/a/test-electron/test-electron/vsts-arm64v8.yml](https://github.com/dsp-testing/test-electron/blob/mybranch/vsts-arm64v8.yml#L0) | D:/a/test-electron/test-electron/vsts-arm64v8.yml | This is another string field. |
+| [D:/a/test&#45;electron/test&#45;electron/vsts&#45;arm64v8&#46;yml](https://github.com/dsp-testing/test-electron/blob/mybranch/vsts-arm64v8.yml#L0) | D:/a/test&#45;electron/test&#45;electron/vsts&#45;arm64v8&#46;yml | This is another string field&#46; |
 `
   );
 });
@@ -420,7 +421,20 @@ test("problem result set converted correctly", async (t) => {
 
 | - | Message |
 | - | - |
-| [req.url!](https://github.com/dsp-testing/test-electron/blob/mybranch/spec-main/api-session-spec.ts#L940) | This path depends on [a user-provided value](https://github.com/dsp-testing/test-electron/blob/mybranch/spec-main/api-session-spec.ts#L940). |
+| [req&#46;url&#33;](https://github.com/dsp-testing/test-electron/blob/mybranch/spec-main/api-session-spec.ts#L940) | This path depends on [a user&#45;provided value](https://github.com/dsp-testing/test-electron/blob/mybranch/spec-main/api-session-spec.ts#L940)&#46; |
 `
+  );
+});
+
+test("escaping markdown works", (t) => {
+  const output = escapeMarkdown("This is a **bold** string.");
+  t.is(output, "This is a &#42;&#42;bold&#42;&#42; string&#46;");
+
+  t.is(escapeMarkdown("[sS]*?"), "&#91;sS&#93;&#42;?");
+  t.is(
+    escapeMarkdown(
+      "This part of the regular expression may cause exponential backtracking on strings starting with '<table=id=\"szamlat\">a<table' and containing many repetitions of '</table>a<table'."
+    ),
+    "This part of the regular expression may cause exponential backtracking on strings starting with '&#60;table=id=\"szamlat\"&#62;a&#60;table' and containing many repetitions of '&#60;/table&#62;a&#60;table'&#46;"
   );
 });
