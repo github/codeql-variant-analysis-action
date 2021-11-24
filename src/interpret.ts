@@ -11,6 +11,7 @@ type Octokit = InstanceType<typeof GitHub>;
 
 export {
   entityToString,
+  escapeMarkdown,
   toTableRow,
   problemQueryMessage,
   interpret,
@@ -38,14 +39,14 @@ export {
 function entityToString(e: any, nwo: string, src: string, ref: string): string {
   // Handle integers, strings, and anything else we haven't seen yet
   if (typeof e !== "object") {
-    return `${e}`;
+    return escapeMarkdown(`${e}`);
   }
 
   let url = getEntityURL(e, nwo, src, ref);
 
   // For now we produce a link even if the target is outside the source archive
   // so we don't just throw the location away.
-  url = `[${e.label}](${url})`;
+  url = `[${escapeMarkdown(e.label)}](${url})`;
 
   return url;
 }
@@ -62,6 +63,20 @@ function getEntityURL(e: any, nwo: string, src: string, ref: string): string {
   return url;
 }
 
+// Replace markdown special characters with the corresponding HTML entities
+// This is the set \`*_{}[]()#+-.! plus <> for inline HTML
+function escapeMarkdown(s: string): string {
+  let result = "";
+  for (const c of s) {
+    if (c.match(/[\\`*_{}[\]()#+.!<>-]/)) {
+      result += `&#${c.charCodeAt(0)};`;
+    } else {
+      result += c;
+    }
+  }
+  return result;
+}
+
 // Returns the formatted message for a problem query, with any placeholders filled in.
 function problemQueryMessage(
   tuple: any,
@@ -69,8 +84,12 @@ function problemQueryMessage(
   src: string,
   ref: string
 ): string {
-  // Start with just the raw message, and then fill in any placeholders
-  let message = tuple[1] as string;
+  // Start with just the raw message, and then fill in any placeholders. We
+  // escape the full message here and then the placeholder replacement text
+  // later before inserting it. This works because '$@' doesn't contain a
+  // special markdown character. We don't want to wait until the end because
+  // then we would break the replacement link targets.
+  let message = escapeMarkdown(tuple[1] as string);
 
   // The index in the message of the next "$@", or -1 if there are no more placeholders to fill
   let nextMessageDollarAtIndex = message.indexOf("$@");
@@ -86,7 +105,7 @@ function problemQueryMessage(
       src,
       ref
     );
-    const linkText = tuple[nextPlaceholderTupleIndex + 1];
+    const linkText = escapeMarkdown(tuple[nextPlaceholderTupleIndex + 1]);
     const link = `[${linkText}](${linkUrl})`;
 
     message =
@@ -160,7 +179,9 @@ async function interpret(
     );
   } else {
     // Output raw table
-    const colNames = results["#select"]["columns"].map((c) => c.name || "-");
+    const colNames = results["#select"]["columns"].map((c) =>
+      c.name ? escapeMarkdown(c.name) : "-"
+    );
     const generateNextRow = function* generateNextRow() {
       for (const tuple of results["#select"]["tuples"]) {
         const row = tuple.map((e) => entityToString(e, nwo, src, ref));
