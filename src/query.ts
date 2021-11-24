@@ -85,7 +85,7 @@ async function run(): Promise<void> {
         repo.id.toString(), // name
         filesToUpload, // files
         "results", // rootdirectory
-        { continueOnError: false, retentionDays: 1 }
+        { continueOnError: false }
       );
     }
   } catch (error: any) {
