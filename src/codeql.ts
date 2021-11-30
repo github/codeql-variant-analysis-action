@@ -65,13 +65,46 @@ libraryPathDependencies: codeql-${language}`
 
   const databaseSHA = getDatabaseSHA(databaseName);
 
-  await exec(codeql, [
-    "query",
-    "run",
-    `--database=db`,
-    `--output=${bqrs}`,
-    queryFile,
-  ]);
+  if (query !== undefined) {
+    await exec(codeql, [
+      "query",
+      "run",
+      `--database=db`,
+      `--output=${bqrs}`,
+      queryFile,
+    ]);
+  } else if (queryPack !== undefined) {
+    await exec(codeql, [
+      "database",
+      "run-queries",
+      "--additional-packs",
+      queryPack,
+      "--",
+      "db",
+      "codeql-remote/query",
+    ]);
+
+    let cur = "db/results";
+    let entries: fs.Dirent[];
+    while (
+      (entries = fs.readdirSync(cur, { withFileTypes: true })) &&
+      entries.length === 1 &&
+      entries[0].isDirectory()
+    ) {
+      cur = path.join(cur, entries[0].name);
+    }
+
+    if (entries.length !== 1) {
+      throw new Error(`Expected a single file in ${cur}, found: ${entries}`);
+    }
+
+    const entry = entries[0];
+    if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
+      throw new Error(`Unexpected file in ${cur}: ${entry.name}`);
+    }
+
+    fs.renameSync(path.join(cur, entry.name), bqrs);
+  }
 
   const bqrsInfo = await getBqrsInfo(codeql, bqrs);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
