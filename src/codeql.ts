@@ -184,7 +184,7 @@ async function outputMd(
   // query, we probably have quite a lot of memory available. However, at some
   // point this is likely to break down. We could then look at using a streaming
   // parser such as http://oboejs.com/
-  const jsonResults = JSON.parse(fs.readFileSync(json, "utf8"));
+  const jsonResults = JSON.parse(await fs.promises.readFile(json, "utf8"));
 
   const md = path.join("results", "results.md");
   const s = fs.createWriteStream(md, {
@@ -241,7 +241,7 @@ async function outputResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
   if (!selectResultSet) {
     throw new Error("No result set named #select");
   }
-  fs.writeFileSync(count, selectResultSet.rows.toString(), "utf8");
+  await fs.promises.writeFile(count, selectResultSet.rows.toString(), "utf8");
   return [count];
 }
 
