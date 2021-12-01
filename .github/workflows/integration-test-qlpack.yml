@@ -25,7 +25,7 @@ jobs:
       - name: Run query
         uses: ./query
         with:
-          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack.tar.gz"
+          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack2.tar.gz"
           language: "go"
           repositories: '[{"id": 376068344, "nwo": "dsp-testing/qc-demo-github-certstore", "pat": "${{ secrets.BOT_TOKEN }}"}]'
           codeql: ${{ steps.init.outputs.codeql-path }}
@@ -38,9 +38,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Initialize CodeQL
+        id: init
+        uses: github/codeql-action/init@v1
+        with:
+          languages: "go"
+
       - name: Combine results
         uses: ./combine-results
         with:
-          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack.tar.gz"
+          query_pack_url: "https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack2.tar.gz"
           language: "go"
           token: ${{ secrets.GITHUB_TOKEN }}
+          codeql: ${{ steps.init.outputs.codeql-path }}

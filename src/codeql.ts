@@ -8,7 +8,14 @@ import { deserialize } from "./deserialize";
 import { download } from "./download";
 import { interpret } from "./interpret";
 
-export { BQRSInfo, downloadDatabase, runQuery, getBqrsInfo, getDatabaseSHA };
+export {
+  BQRSInfo,
+  downloadDatabase,
+  runQuery,
+  getBqrsInfo,
+  getDatabaseSHA,
+  getRemoteQueryPackDefaultQuery,
+};
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
@@ -65,13 +72,46 @@ libraryPathDependencies: codeql-${language}`
 
   const databaseSHA = getDatabaseSHA(databaseName);
 
-  await exec(codeql, [
-    "query",
-    "run",
-    `--database=db`,
-    `--output=${bqrs}`,
-    queryFile,
-  ]);
+  if (query !== undefined) {
+    await exec(codeql, [
+      "query",
+      "run",
+      `--database=db`,
+      `--output=${bqrs}`,
+      queryFile,
+    ]);
+  } else if (queryPack !== undefined) {
+    await exec(codeql, [
+      "database",
+      "run-queries",
+      "--additional-packs",
+      queryPack,
+      "--",
+      "db",
+      "codeql-remote/query",
+    ]);
+
+    let cur = "db/results";
+    let entries: fs.Dirent[];
+    while (
+      (entries = fs.readdirSync(cur, { withFileTypes: true })) &&
+      entries.length === 1 &&
+      entries[0].isDirectory()
+    ) {
+      cur = path.join(cur, entries[0].name);
+    }
+
+    if (entries.length !== 1) {
+      throw new Error(`Expected a single file in ${cur}, found: ${entries}`);
+    }
+
+    const entry = entries[0];
+    if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
+      throw new Error(`Unexpected file in ${cur}: ${entry.name}`);
+    }
+
+    fs.renameSync(path.join(cur, entry.name), bqrs);
+  }
 
   const bqrsInfo = await getBqrsInfo(codeql, bqrs);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
@@ -279,4 +319,36 @@ function getDatabaseSHA(database: string): string {
     );
     return "HEAD";
   }
+}
+
+/**
+ * Gets the query for a pack, assuming there is a single query in that pack's default suite.
+ *
+ * @param codeql The path to the codeql CLI
+ * @param queryPack The path to the query pack on disk.
+ * @returns The path to a query file.
+ */
+async function getRemoteQueryPackDefaultQuery(
+  codeql: string,
+  queryPack: string
+): Promise<string> {
+  const output = await getExecOutput(codeql, [
+    "resolve",
+    "queries",
+    "--format=json",
+    "--additional-packs",
+    queryPack,
+    "codeql-remote/query",
+  ]);
+
+  const queries = JSON.parse(output.stdout) as string[];
+  if (
+    !Array.isArray(queries) ||
+    queries.length !== 1 ||
+    typeof queries[0] !== "string"
+  ) {
+    throw new Error("Unexpected output from codeql resolve queries");
+  }
+
+  return queries[0];
 }

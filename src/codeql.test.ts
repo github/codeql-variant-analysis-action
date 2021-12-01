@@ -5,7 +5,13 @@ import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
 import test from "ava";
 
-import { runQuery, getBqrsInfo, getDatabaseSHA, BQRSInfo } from "./codeql";
+import {
+  runQuery,
+  getBqrsInfo,
+  getDatabaseSHA,
+  BQRSInfo,
+  getRemoteQueryPackDefaultQuery,
+} from "./codeql";
 import { createResultIndex } from "./interpret";
 
 test.before(async (t: any) => {
@@ -214,4 +220,11 @@ test("creating a result index", async (t: any) => {
     process.chdir(cwd);
     await rmRF(tmpDir);
   }
+});
+
+test("getting the default query from a pack", async (t: any) => {
+  t.is(
+    await getRemoteQueryPackDefaultQuery("codeql", "testdata/test_pack"),
+    path.resolve("testdata/test_pack/x/query.ql")
+  );
 });

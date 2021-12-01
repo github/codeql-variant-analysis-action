@@ -38,9 +38,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Initialize CodeQL
+        id: init
+        uses: github/codeql-action/init@v1
+        with:
+          languages: "go"
+
       - name: Combine results
         uses: ./combine-results
         with:
           query: "import go\nfrom File f select f"
           language: "go"
           token: ${{ secrets.GITHUB_TOKEN }}
+          codeql: ${{ steps.init.outputs.codeql-path }}

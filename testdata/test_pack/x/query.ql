@@ -1,4 +1,4 @@
-import MyLib
+import y.MyLib
 
 from int i
 where i in [0 .. 2]
