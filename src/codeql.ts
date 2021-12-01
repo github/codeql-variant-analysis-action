@@ -346,7 +346,7 @@ function getQueryPackDefaultQuery(queryPack: string): string | undefined {
 
   if (metadata?.defaultSuite) {
     const entry = metadata.defaultSuite.find((elem) => elem.query);
-    if (entry && entry.query) {
+    if (entry?.query) {
       return entry.query;
     }
   }
