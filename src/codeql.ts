@@ -14,7 +14,7 @@ export {
   runQuery,
   getBqrsInfo,
   getDatabaseSHA,
-  getQueryPackDefaultQuery,
+  getRemoteQueryPackDefaultQuery,
 };
 
 /**
@@ -321,38 +321,30 @@ function getDatabaseSHA(database: string): string {
   }
 }
 
-interface QLPack {
-  defaultSuite?: Array<{
-    query?: string;
-  }>;
-}
-
 /**
  * Gets the query for a pack, assuming there is a single query in that pack's default suite.
  *
+ * @param codeql The path to the codeql CLI
  * @param queryPack The path to the query pack on disk.
  * @returns The path to a query file.
  */
-function getQueryPackDefaultQuery(queryPack: string): string | undefined {
-  let metadata: QLPack | undefined;
-  try {
-    metadata = yaml.load(
-      fs.readFileSync(path.join(queryPack, "qlpack.yml"), "utf8")
-    ) as QLPack | undefined;
-  } catch (error) {
-    console.log(`Unable to read qlpack.yml: ${error}`);
-    return;
+async function getRemoteQueryPackDefaultQuery(
+  codeql: string,
+  queryPack: string
+): Promise<string> {
+  const output = (
+    await getExecOutput(codeql, [
+      "resolve",
+      "queries",
+      "--additional-packs",
+      queryPack,
+      "codeql-remote/query",
+    ])
+  ).stdout.trimEnd();
+
+  if (output.includes("\n")) {
+    throw new Error("Multiple queries found in default suite");
   }
 
-  if (metadata?.defaultSuite) {
-    const entry = metadata.defaultSuite.find((elem) => elem.query);
-    if (entry?.query) {
-      return entry.query;
-    }
-  }
-
-  console.log(
-    "Query pack does not contain a default query suite with a query."
-  );
-  return;
+  return output;
 }

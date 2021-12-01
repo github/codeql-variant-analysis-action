@@ -12,7 +12,7 @@ import { GitHub } from "@actions/github/lib/utils";
 import { mkdirP, mv } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
 
-import { getQueryPackDefaultQuery } from "./codeql";
+import { getRemoteQueryPackDefaultQuery } from "./codeql";
 import { download } from "./download";
 import {
   createResultIndex,
@@ -40,9 +40,10 @@ ${errors}`;
 
 async function run(): Promise<void> {
   try {
-    const queryText = await getQueryText();
     const language = getInput("language", { required: true });
     const token = getInput("token", { required: true });
+    const codeql = getInput("codeql", { required: true });
+    const queryText = await getQueryText(codeql);
 
     const artifactClient = createArtifactClient();
     const [resultArtifacts, errorArtifacts] = await downloadArtifacts(
@@ -77,7 +78,7 @@ async function run(): Promise<void> {
   }
 }
 
-async function getQueryText(): Promise<string> {
+async function getQueryText(codeql: string): Promise<string> {
   const query = getInput("query") || undefined;
   const queryPackUrl = getInput("query_pack_url") || undefined;
   if ((query === undefined) === (queryPackUrl === undefined)) {
@@ -90,14 +91,11 @@ async function getQueryText(): Promise<string> {
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     const queryPack = await extractTar(queryPackArchive);
-    const queryFile = getQueryPackDefaultQuery(queryPack);
+    const queryFile = await getRemoteQueryPackDefaultQuery(codeql, queryPack);
     if (queryFile === undefined) {
       return "Unable to display executed query";
     } else {
-      return await fs.promises.readFile(
-        path.join(queryPack, queryFile),
-        "utf-8"
-      );
+      return await fs.promises.readFile(queryFile, "utf8");
     }
   } else {
     return query!; // Must be defined if queryPackUrl isn't

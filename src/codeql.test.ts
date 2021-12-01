@@ -10,32 +10,32 @@ import {
   getBqrsInfo,
   getDatabaseSHA,
   BQRSInfo,
-  getQueryPackDefaultQuery,
+  getRemoteQueryPackDefaultQuery,
 } from "./codeql";
 import { createResultIndex } from "./interpret";
 
-// test.before(async (t: any) => {
-//   const tmpDir = path.resolve(fs.mkdtempSync("tmp"));
-//   t.context.tmpDir = tmpDir;
+test.before(async (t: any) => {
+  const tmpDir = path.resolve(fs.mkdtempSync("tmp"));
+  t.context.tmpDir = tmpDir;
 
-//   const projectDir = path.join(tmpDir, "project");
-//   const dbDir = path.join(tmpDir, "db");
-//   fs.mkdirSync(projectDir);
-//   const testFile = path.join(projectDir, "test.js");
-//   fs.writeFileSync(testFile, "const x = 1;");
+  const projectDir = path.join(tmpDir, "project");
+  const dbDir = path.join(tmpDir, "db");
+  fs.mkdirSync(projectDir);
+  const testFile = path.join(projectDir, "test.js");
+  fs.writeFileSync(testFile, "const x = 1;");
 
-//   await exec("codeql", [
-//     "database",
-//     "create",
-//     "--language=javascript",
-//     `--source-root=${projectDir}`,
-//     dbDir,
-//   ]);
+  await exec("codeql", [
+    "database",
+    "create",
+    "--language=javascript",
+    `--source-root=${projectDir}`,
+    dbDir,
+  ]);
 
-//   const dbZip = path.join(tmpDir, "database.zip");
-//   await exec("codeql", ["database", "bundle", `--output=${dbZip}`, dbDir]);
-//   t.context.db = dbZip;
-// });
+  const dbZip = path.join(tmpDir, "database.zip");
+  await exec("codeql", ["database", "bundle", `--output=${dbZip}`, dbDir]);
+  t.context.db = dbZip;
+});
 
 test.after(async (t: any) => {
   if (t.context?.tmpDir !== undefined) {
@@ -223,46 +223,8 @@ test("creating a result index", async (t: any) => {
 });
 
 test("getting the default query from a pack", async (t: any) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    fs.writeFileSync(
-      path.join(tmpDir, "qlpack.yml"),
-      `---
-library: false
-name: codeql-remote/query
-version: 1.0.0
-buildMetadata:
-  creationTime: 2021-11-23T16:09:11.452312400Z
-  cliVersion: 2.7.2
-defaultSuite:
-  - description: Query suite for remote query
-  - query: x/query.ql      
-`
-    );
-    t.is(getQueryPackDefaultQuery(tmpDir), "x/query.ql");
-  } finally {
-    await rmRF(tmpDir);
-  }
-});
-
-test("getting the default query fails gracefully ", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    fs.writeFileSync(
-      path.join(tmpDir, "qlpack.yml"),
-      `---
-library: false
-name: codeql-remote/query
-version: 1.0.0
-buildMetadata:
-  creationTime: 2021-11-23T16:09:11.452312400Z
-  cliVersion: 2.7.2
-defaultSuite:
-  - description: Query suite for remote query
-`
-    );
-    t.is(getQueryPackDefaultQuery(tmpDir), undefined);
-  } finally {
-    await rmRF(tmpDir);
-  }
+  t.is(
+    await getRemoteQueryPackDefaultQuery("codeql", "testdata/test_pack"),
+    path.resolve("testdata/test_pack/x/query.ql")
+  );
 });

@@ -92,6 +92,14 @@ jobs:
       - run-query
 
     steps:
+      - name: Initialize CodeQL
+        id: init
+        uses: github/codeql-action/init@v1
+        with:
+          languages: ${{ github.event.inputs.language }}
+        env:
+          CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
+
       - name: Combine results
         uses: dsp-testing/qc-run2/combine-results@main
         with:
@@ -99,3 +107,4 @@ jobs:
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
           token: ${{ github.token }}
+          codeql: ${{ steps.init.outputs.codeql-path }}
