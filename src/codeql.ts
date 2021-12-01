@@ -332,19 +332,23 @@ async function getRemoteQueryPackDefaultQuery(
   codeql: string,
   queryPack: string
 ): Promise<string> {
-  const output = (
-    await getExecOutput(codeql, [
-      "resolve",
-      "queries",
-      "--additional-packs",
-      queryPack,
-      "codeql-remote/query",
-    ])
-  ).stdout.trimEnd();
+  const output = await getExecOutput(codeql, [
+    "resolve",
+    "queries",
+    "--format=json",
+    "--additional-packs",
+    queryPack,
+    "codeql-remote/query",
+  ]);
 
-  if (output.includes("\n")) {
-    throw new Error("Multiple queries found in default suite");
+  const queries = JSON.parse(output.stdout) as string[];
+  if (
+    !Array.isArray(queries) ||
+    queries.length !== 1 ||
+    typeof queries[0] !== "string"
+  ) {
+    throw new Error("Unexpected output from codeql resolve queries");
   }
 
-  return output;
+  return queries[0];
 }
