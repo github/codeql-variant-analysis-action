@@ -8,7 +8,14 @@ import { deserialize } from "./deserialize";
 import { download } from "./download";
 import { interpret } from "./interpret";
 
-export { BQRSInfo, downloadDatabase, runQuery, getBqrsInfo, getDatabaseSHA };
+export {
+  BQRSInfo,
+  downloadDatabase,
+  runQuery,
+  getBqrsInfo,
+  getDatabaseSHA,
+  getQueryPackDefaultQuery,
+};
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
@@ -312,4 +319,40 @@ function getDatabaseSHA(database: string): string {
     );
     return "HEAD";
   }
+}
+
+interface QLPack {
+  defaultSuite?: Array<{
+    query?: string;
+  }>;
+}
+
+/**
+ * Gets the query for a pack, assuming there is a single query in that pack's default suite.
+ *
+ * @param queryPack The path to the query pack on disk.
+ * @returns The path to a query file.
+ */
+function getQueryPackDefaultQuery(queryPack: string): string | undefined {
+  let metadata: QLPack | undefined;
+  try {
+    metadata = yaml.load(
+      fs.readFileSync(path.join(queryPack, "qlpack.yml"), "utf8")
+    ) as QLPack | undefined;
+  } catch (error) {
+    console.log(`Unable to read qlpack.yml: ${error}`);
+    return;
+  }
+
+  if (metadata?.defaultSuite) {
+    const entry = metadata.defaultSuite.find((elem) => elem.query);
+    if (entry && entry.query) {
+      return entry.query;
+    }
+  }
+
+  console.log(
+    "Query pack does not contain a default query suite with a query."
+  );
+  return;
 }

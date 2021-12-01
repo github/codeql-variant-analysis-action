@@ -12,6 +12,7 @@ import { GitHub } from "@actions/github/lib/utils";
 import { mkdirP, mv } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
 
+import { getQueryPackDefaultQuery } from "./codeql";
 import { download } from "./download";
 import {
   createResultIndex,
@@ -89,10 +90,15 @@ async function getQueryText(): Promise<string> {
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     const queryPack = await extractTar(queryPackArchive);
-    return await fs.promises.readFile(
-      path.join(queryPack, "query.ql"),
-      "utf-8"
-    );
+    const queryFile = getQueryPackDefaultQuery(queryPack);
+    if (queryFile === undefined) {
+      return "Unable to display executed query";
+    } else {
+      return await fs.promises.readFile(
+        path.join(queryPack, queryFile),
+        "utf-8"
+      );
+    }
   } else {
     return query!; // Must be defined if queryPackUrl isn't
   }
