@@ -43,46 +43,13 @@ test.after(async (t: any) => {
   }
 });
 
-test("running a basic query", async (t: any) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  const cwd = process.cwd();
-  process.chdir(tmpDir);
-  try {
-    await runQuery(
-      "codeql",
-      "javascript",
-      t.context.db,
-      "a/b",
-      "import javascript\nfrom File f select f"
-    );
-
-    t.true(
-      fs
-        .readFileSync(path.join("results", "results.md"), "utf-8")
-        .includes("test.js")
-    );
-    t.true(fs.existsSync(path.join("results", "results.bqrs")));
-    t.true(fs.existsSync(path.join("results", "results.csv")));
-  } finally {
-    process.chdir(cwd);
-    await rmRF(tmpDir);
-  }
-});
-
 test("running a query in a pack", async (t: any) => {
-  const testPack = path.resolve("testdata/test_pack");
+  const queryPack = path.resolve("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
   try {
-    await runQuery(
-      "codeql",
-      "javascript",
-      t.context.db,
-      "a/b",
-      undefined,
-      testPack
-    );
+    await runQuery("codeql", t.context.db, "a/b", queryPack);
 
     t.true(
       fs
@@ -193,17 +160,12 @@ test("reading the metadata for a real database", async (t: any) => {
 });
 
 test("creating a result index", async (t: any) => {
+  const queryPack = path.resolve("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
   try {
-    const output = await runQuery(
-      "codeql",
-      "javascript",
-      t.context.db,
-      "a/b",
-      "import javascript\nfrom File f\nwhere exists(f.getRelativePath())\nselect f"
-    );
+    const output = await runQuery("codeql", t.context.db, "a/b", queryPack);
     const outputDir = path.dirname(output[0]); // We know that all output files are in the same directory.
     const downloadResponse = {
       artifactName: "results",
@@ -214,7 +176,7 @@ test("creating a result index", async (t: any) => {
     t.is(result.length, 1);
     t.is(result[0].nwo, "a/b");
     t.is(result[0].id, "results");
-    t.is(result[0].results_count, 1);
+    t.is(result[0].results_count, 3);
     t.true(result[0].bqrs_file_size > 0);
   } finally {
     process.chdir(cwd);
@@ -222,7 +184,7 @@ test("creating a result index", async (t: any) => {
   }
 });
 
-test("getting the default query from a pack", async (t: any) => {
+test("getting the default query from a pack", async (t) => {
   t.is(
     await getRemoteQueryPackDefaultQuery("codeql", "testdata/test_pack"),
     path.resolve("testdata/test_pack/x/query.ql")

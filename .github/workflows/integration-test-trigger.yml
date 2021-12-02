@@ -17,7 +17,7 @@ jobs:
             -R "$GITHUB_REPOSITORY" \
             -r "$GITHUB_HEAD_REF" \
             -f language=go \
-            -f query_pack_url="https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack.tar.gz" \
+            -f query_pack_url="https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack2.tar.gz" \
             -f instructions_url="https://github.com/dsp-testing/qc-run2/releases/download/test/instructions.json"
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
