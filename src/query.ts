@@ -19,14 +19,7 @@ interface Repo {
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
   try {
-    const query = getInput("query") || undefined;
-    const queryPackUrl = getInput("query_pack_url") || undefined;
-
-    if ((query === undefined) === (queryPackUrl === undefined)) {
-      setFailed("Exactly one of 'query' and 'query_pack_url' is required");
-      return;
-    }
-
+    const queryPackUrl = getInput("query_pack_url", { required: true });
     const language = getInput("language", { required: true });
     const repos: Repo[] = JSON.parse(
       getInput("repositories", { required: true })
@@ -57,27 +50,17 @@ async function run(): Promise<void> {
         repo.pat
       );
 
-      // 2. Download and extract the query pack, if there is one.
-      let queryPack: string | undefined;
-      if (queryPackUrl !== undefined) {
-        console.log("Getting query pack");
-        const queryPackArchive = await download(
-          queryPackUrl,
-          "query_pack.tar.gz"
-        );
-        queryPack = await extractTar(queryPackArchive);
-      }
+      // 2. Download and extract the query pack.
+      console.log("Getting query pack");
+      const queryPackArchive = await download(
+        queryPackUrl,
+        "query_pack.tar.gz"
+      );
+      const queryPack = await extractTar(queryPackArchive);
 
       // 2. Run the query
       console.log("Running query");
-      const filesToUpload = await runQuery(
-        codeql,
-        language,
-        dbZip,
-        repo.nwo,
-        query,
-        queryPack
-      );
+      const filesToUpload = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
       // 3. Upload the results as an artifact
       console.log("Uploading artifact");

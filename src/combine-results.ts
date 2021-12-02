@@ -79,26 +79,15 @@ async function run(): Promise<void> {
 }
 
 async function getQueryText(codeql: string): Promise<string> {
-  const query = getInput("query") || undefined;
-  const queryPackUrl = getInput("query_pack_url") || undefined;
-  if ((query === undefined) === (queryPackUrl === undefined)) {
-    const error = "Exactly one of 'query' and 'query_pack_url' is required";
-    setFailed(error);
-    throw new Error();
-  }
-
-  if (queryPackUrl !== undefined) {
-    console.log("Getting query pack");
-    const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
-    const queryPack = await extractTar(queryPackArchive);
-    const queryFile = await getRemoteQueryPackDefaultQuery(codeql, queryPack);
-    if (queryFile === undefined) {
-      return "Unable to display executed query";
-    } else {
-      return await fs.promises.readFile(queryFile, "utf8");
-    }
+  const queryPackUrl = getInput("query_pack_url", { required: true });
+  console.log("Getting query pack");
+  const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
+  const queryPack = await extractTar(queryPackArchive);
+  const queryFile = await getRemoteQueryPackDefaultQuery(codeql, queryPack);
+  if (queryFile === undefined) {
+    return "Unable to display executed query";
   } else {
-    return query!; // Must be defined if queryPackUrl isn't
+    return await fs.promises.readFile(queryFile, "utf8");
   }
 }
 
