@@ -8,7 +8,7 @@ on:
       instructions_url:
 
 jobs:
-  run-query:
+  query:
     uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@main
     secrets:
       TEST_PAT: ${{ secrets.BOT_TOKEN }}
