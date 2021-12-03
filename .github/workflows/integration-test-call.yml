@@ -8,7 +8,50 @@ on:
       instructions_url:
 
 jobs:
+  init:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add status check target URL
+        run: |
+          gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f context=integration-test \
+            -f description="integration-test-call.yml" \
+            -f state=pending \
+            -f target_url=https://github.com/dsp-testing/qc-run2/actions/runs/$GITHUB_RUN_ID
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+
   query:
+    needs:
+      - init
     uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@main
     secrets:
       TEST_PAT: ${{ secrets.BOT_TOKEN }}
+
+  fin:
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - query
+    steps:
+      - name: Update status check to state 'success'
+        if: ${{ needs.query.result == 'success' }}
+        run: |
+          gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f context=integration-test \
+            -f state=success \
+            -f description="integration-test-call.yml" \
+            -f target_url=https://github.com/dsp-testing/qc-run2/actions/runs/$GITHUB_RUN_ID
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+      - name: Update status check to state 'success'
+        if: ${{ needs.query.result != 'success' }}
+        run: |
+          gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f context=integration-test \
+            -f state=failure \
+            -f description="integration-test-call.yml" \
+            -f target_url=https://github.com/dsp-testing/qc-run2/actions/runs/$GITHUB_RUN_ID
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}

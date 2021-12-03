@@ -2,20 +2,28 @@ name: "Integration test (trigger only)"
 
 on:
   push:
-    branches: [main]
-  pull_request:
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
+      - name: Create a status check in state 'pending'
+        run: |
+          gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f context=integration-test \
+            -f description="integration-test-call.yml" \
+            -f state=pending \
+            -f target_url=https://github.com/dsp-testing/qc-run2/actions/workflows/integration-test-call.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+
       # We do this so that the inputs are accessible in github.event.inputs once we get to codeql-query.yml
       # The owner of the provided token must have write access to trigger this workflow run.
       - name: Trigger the real workflow
         run: |
           gh workflow run integration-test-call.yml \
             -R "$GITHUB_REPOSITORY" \
-            -r "$GITHUB_HEAD_REF" \
+            -r "$GITHUB_REF" \
             -f language=go \
             -f query_pack_url="https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack2.tar.gz" \
             -f instructions_url="https://github.com/dsp-testing/qc-run2/releases/download/test/instructions.json"
