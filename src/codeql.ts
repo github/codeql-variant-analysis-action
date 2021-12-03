@@ -33,34 +33,14 @@ export {
  */
 async function runQuery(
   codeql: string,
-  language: string,
   database: string,
   nwo: string,
-  query?: string,
-  queryPack?: string
+  queryPack: string
 ): Promise<string[]> {
   const bqrs = path.join("results", "results.bqrs");
   fs.mkdirSync("results");
   const nwoFile = path.join("results", "nwo.txt");
   fs.writeFileSync(nwoFile, nwo);
-
-  let queryFile: string;
-  if (query !== undefined) {
-    const queryDir = "query";
-    fs.mkdirSync("query");
-    queryFile = path.join(queryDir, "query.ql");
-    fs.writeFileSync(
-      path.join(queryDir, "qlpack.yml"),
-      `name: queries
-version: 0.0.0
-libraryPathDependencies: codeql-${language}`
-    );
-    fs.writeFileSync(queryFile, query);
-  } else if (queryPack !== undefined) {
-    queryFile = path.join(queryPack, "query.ql");
-  } else {
-    throw new Error("Exactly one of 'query' and 'queryPack' must be set");
-  }
 
   const databaseName = "db";
   await exec(codeql, [
@@ -72,46 +52,36 @@ libraryPathDependencies: codeql-${language}`
 
   const databaseSHA = getDatabaseSHA(databaseName);
 
-  if (query !== undefined) {
-    await exec(codeql, [
-      "query",
-      "run",
-      `--database=db`,
-      `--output=${bqrs}`,
-      queryFile,
-    ]);
-  } else if (queryPack !== undefined) {
-    await exec(codeql, [
-      "database",
-      "run-queries",
-      "--additional-packs",
-      queryPack,
-      "--",
-      "db",
-      "codeql-remote/query",
-    ]);
+  await exec(codeql, [
+    "database",
+    "run-queries",
+    "--additional-packs",
+    queryPack,
+    "--",
+    databaseName,
+    "codeql-remote/query",
+  ]);
 
-    let cur = "db/results";
-    let entries: fs.Dirent[];
-    while (
-      (entries = fs.readdirSync(cur, { withFileTypes: true })) &&
-      entries.length === 1 &&
-      entries[0].isDirectory()
-    ) {
-      cur = path.join(cur, entries[0].name);
-    }
-
-    if (entries.length !== 1) {
-      throw new Error(`Expected a single file in ${cur}, found: ${entries}`);
-    }
-
-    const entry = entries[0];
-    if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
-      throw new Error(`Unexpected file in ${cur}: ${entry.name}`);
-    }
-
-    fs.renameSync(path.join(cur, entry.name), bqrs);
+  let cur = `${databaseName}/results`;
+  let entries: fs.Dirent[];
+  while (
+    (entries = fs.readdirSync(cur, { withFileTypes: true })) &&
+    entries.length === 1 &&
+    entries[0].isDirectory()
+  ) {
+    cur = path.join(cur, entries[0].name);
   }
+
+  if (entries.length !== 1) {
+    throw new Error(`Expected a single file in ${cur}, found: ${entries}`);
+  }
+
+  const entry = entries[0];
+  if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
+    throw new Error(`Unexpected file in ${cur}: ${entry.name}`);
+  }
+
+  fs.renameSync(path.join(cur, entry.name), bqrs);
 
   const bqrsInfo = await getBqrsInfo(codeql, bqrs);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
