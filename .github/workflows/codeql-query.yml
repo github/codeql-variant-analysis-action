@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs:
-      - run-query
+      - run
 
     steps:
       - name: Initialize CodeQL
