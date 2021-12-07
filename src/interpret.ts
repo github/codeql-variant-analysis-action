@@ -42,13 +42,15 @@ function entityToString(e: any, nwo: string, src: string, ref: string): string {
     return escapeMarkdown(`${e}`);
   }
 
-  let url = getEntityURL(e, nwo, src, ref);
+  const text = escapeMarkdown(e.label);
 
-  // For now we produce a link even if the target is outside the source archive
-  // so we don't just throw the location away.
-  url = `[${escapeMarkdown(e.label)}](${url})`;
+  if (e["url"] !== undefined) {
+    // For now we produce a link even if the target is outside the source archive
+    // so we don't just throw the location away.
+    return `[${text}](${getEntityURL(e, nwo, src, ref)})`;
+  }
 
-  return url;
+  return text;
 }
 
 // If e is an object representing a single entity, turn it into a link to

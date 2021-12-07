@@ -10,6 +10,16 @@ import {
   interpret,
 } from "./interpret";
 
+const frenoExternalAPIsUsedWithUntrustedDataResults =
+  JSON.parse(`{"#select":{"columns":[
+  {"name":"externalAPI","kind":"Entity"}
+ ,{"name":"numberOfUses","kind":"Integer"}
+ ,{"name":"numberOfUntrustedSources","kind":"Integer"}]
+,"tuples":[
+  [{"id":0,"label":"github.com/patrickmn/go-cache.Cache.Set [param 0]"},1,1]
+ ,[{"id":0,"label":"github.com/patrickmn/go-cache.cache.Set [param 0]"},1,1]]
+}}`);
+
 const rawResults = JSON.parse(`{
     "#select": {
       "columns": [
@@ -436,5 +446,36 @@ test("escaping markdown works", (t) => {
       "This part of the regular expression may cause exponential backtracking on strings starting with '<table=id=\"szamlat\">a<table' and containing many repetitions of '</table>a<table'."
     ),
     "This part of the regular expression may cause exponential backtracking on strings starting with '&#60;table=id=\"szamlat\"&#62;a&#60;table' and containing many repetitions of '&#60;/table&#62;a&#60;table'&#46;"
+  );
+});
+
+test("external api results converted correctly", async (t) => {
+  let output = "";
+  const w = new Stream.Writable({
+    objectMode: true,
+    write: (chunk, _, cb) => {
+      output += chunk;
+      cb();
+    },
+  });
+
+  await interpret(
+    w,
+    frenoExternalAPIsUsedWithUntrustedDataResults,
+    "a/b",
+    ["Table"],
+    "/tmp", // No file paths in the results so doesn't matter
+    "mybranch"
+  );
+
+  t.is(
+    output,
+    `## a/b
+
+| externalAPI | numberOfUses | numberOfUntrustedSources |
+| - | - | - |
+| github&#46;com/patrickmn/go&#45;cache&#46;Cache&#46;Set &#91;param 0&#93; | 1 | 1 |
+| github&#46;com/patrickmn/go&#45;cache&#46;cache&#46;Set &#91;param 0&#93; | 1 | 1 |
+`
   );
 });
