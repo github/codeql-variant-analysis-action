@@ -17,6 +17,9 @@ export {
   getRemoteQueryPackDefaultQuery,
 };
 
+// This name must match that used by the vscode extension when creating the pack.
+const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
+
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
  * - query/    (query.ql and any other supporting files)
@@ -59,7 +62,7 @@ async function runQuery(
     queryPack,
     "--",
     databaseName,
-    "codeql-remote/query",
+    REMOTE_QUERY_PACK_NAME,
   ]);
 
   let cur = `${databaseName}/results`;
@@ -308,7 +311,7 @@ async function getRemoteQueryPackDefaultQuery(
     "--format=json",
     "--additional-packs",
     queryPack,
-    "codeql-remote/query",
+    REMOTE_QUERY_PACK_NAME,
   ]);
 
   const queries = JSON.parse(output.stdout) as string[];
