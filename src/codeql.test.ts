@@ -3,7 +3,7 @@ import path from "path";
 
 import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
-import test from "ava";
+import anyTest, { TestInterface } from "ava";
 
 import {
   runQuery,
@@ -14,7 +14,9 @@ import {
 } from "./codeql";
 import { createResultIndex } from "./interpret";
 
-test.before(async (t: any) => {
+const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
+
+test.before(async (t) => {
   const tmpDir = path.resolve(fs.mkdtempSync("tmp"));
   t.context.tmpDir = tmpDir;
 
@@ -37,13 +39,13 @@ test.before(async (t: any) => {
   t.context.db = dbZip;
 });
 
-test.after(async (t: any) => {
+test.after(async (t) => {
   if (t.context?.tmpDir !== undefined) {
     await rmRF(t.context.tmpDir);
   }
 });
 
-test("running a query in a pack", async (t: any) => {
+test("running a query in a pack", async (t) => {
   const queryPack = path.resolve("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
@@ -72,7 +74,7 @@ test("running a query in a pack", async (t: any) => {
   }
 });
 
-test("getting the commit SHA from a database", async (t: any) => {
+test("getting the commit SHA from a database", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   try {
     fs.writeFileSync(
@@ -95,7 +97,7 @@ creationMetadata:
   }
 });
 
-test("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", async (t: any) => {
+test("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   try {
     fs.writeFileSync(
@@ -114,7 +116,7 @@ primaryLanguage: "javascript"
   }
 });
 
-test("getting the commit SHA when codeql-database.yml exists, but is invalid", async (t: any) => {
+test("getting the commit SHA when codeql-database.yml exists, but is invalid", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   try {
     fs.writeFileSync(
@@ -129,7 +131,7 @@ bar
   }
 });
 
-test("getting the commit SHA when the codeql-database.yml does not exist", async (t: any) => {
+test("getting the commit SHA when the codeql-database.yml does not exist", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   try {
     t.is(getDatabaseSHA(tmpDir), "HEAD");
@@ -138,7 +140,7 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
   }
 });
 
-test("reading the metadata for a real database", async (t: any) => {
+test("reading the metadata for a real database", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -159,7 +161,7 @@ test("reading the metadata for a real database", async (t: any) => {
   }
 });
 
-test("creating a result index", async (t: any) => {
+test("creating a result index", async (t) => {
   const queryPack = path.resolve("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
