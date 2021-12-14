@@ -5,8 +5,6 @@ on:
     secrets:
       TEST_PAT:
         description: insert a pat, to be used for testing in lieu of other tokens
-      ACTIONS_STEP_DEBUG:
-        description: step debug
 
 jobs:
   setup:
