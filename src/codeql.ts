@@ -13,7 +13,7 @@ export {
   downloadDatabase,
   runQuery,
   getBqrsInfo,
-  getDatabaseSHA,
+  getDatabaseMetadata,
   getRemoteQueryPackDefaultQuery,
 };
 
@@ -53,7 +53,10 @@ async function runQuery(
     `--name=${databaseName}`,
   ]);
 
-  const databaseSHA = getDatabaseSHA(databaseName);
+  const dbMetadata = getDatabaseMetadata(databaseName);
+  console.log(
+    `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
+  );
 
   await exec(codeql, [
     "database",
@@ -91,7 +94,13 @@ async function runQuery(
 
   const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
-    outputMd(codeql, bqrs, nwo, databaseSHA, compatibleQueryKinds),
+    outputMd(
+      codeql,
+      bqrs,
+      nwo,
+      dbMetadata.creationMetadata?.sha || "HEAD",
+      compatibleQueryKinds
+    ),
     outputSarif(codeql, bqrs, compatibleQueryKinds),
     outputResultCount(bqrsInfo),
   ];
@@ -261,36 +270,28 @@ async function outputResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
 interface DatabaseMetadata {
   creationMetadata?: {
     sha?: string;
+    cliVersion?: string;
   };
 }
 
 /**
- * Gets the commit SHA that a database was created from (if the database was created from a git repo).
- * This information is available from CodeQL CLI version 2.7.2 onwards.
+ * Gets (a subset of) the database metadata from a CodeQL database. In the
+ * future this information may be available using `codeql resolve database`
+ * instead. Because this information is only used for enhancing the output we
+ * catch errors for now. The caller must decide what to do in the case of
+ * missing information.
  *
  * @param database The name of the database.
- * @returns The commit SHA that the database was created from, or "HEAD" if we can't find the SHA.
+ * @returns The database metadata.
  */
-function getDatabaseSHA(database: string): string {
-  let metadata: DatabaseMetadata | undefined;
+function getDatabaseMetadata(database: string): DatabaseMetadata {
   try {
-    metadata = yaml.load(
+    return yaml.load(
       fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
-    ) as DatabaseMetadata | undefined;
+    ) as DatabaseMetadata;
   } catch (error) {
     console.log(`Unable to read codeql-database.yml: ${error}`);
-    return "HEAD";
-  }
-
-  const sha = metadata?.creationMetadata?.sha;
-
-  if (sha) {
-    return sha;
-  } else {
-    console.log(
-      "Unable to get exact commit SHA for the database. Linking to HEAD commit instead."
-    );
-    return "HEAD";
+    return {};
   }
 }
 
