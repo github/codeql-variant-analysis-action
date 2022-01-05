@@ -8,7 +8,7 @@ import anyTest, { TestInterface } from "ava";
 import {
   runQuery,
   getBqrsInfo,
-  getDatabaseSHA,
+  getDatabaseMetadata,
   BQRSInfo,
   getRemoteQueryPackDefaultQuery,
 } from "./codeql";
@@ -74,7 +74,7 @@ test("running a query in a pack", async (t) => {
   }
 });
 
-test("getting the commit SHA from a database", async (t) => {
+test("getting the commit SHA and CLI version from a database", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   try {
     fs.writeFileSync(
@@ -91,7 +91,11 @@ creationMetadata:
   creationTime: "2021-11-08T12:58:40.345998Z"
 `
     );
-    t.is(getDatabaseSHA(tmpDir), "ccf1e13626d97b009b4da78f719f028d9f7cdf80");
+    t.is(
+      getDatabaseMetadata(tmpDir).creationMetadata?.sha,
+      "ccf1e13626d97b009b4da78f719f028d9f7cdf80"
+    );
+    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.cliVersion, "2.7.2");
   } finally {
     await rmRF(tmpDir);
   }
@@ -110,7 +114,7 @@ columnKind: "utf16"
 primaryLanguage: "javascript"
 `
     );
-    t.is(getDatabaseSHA(tmpDir), "HEAD");
+    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
   } finally {
     await rmRF(tmpDir);
   }
@@ -125,7 +129,7 @@ test("getting the commit SHA when codeql-database.yml exists, but is invalid", a
 bar
 `
     );
-    t.is(getDatabaseSHA(tmpDir), "HEAD");
+    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
   } finally {
     await rmRF(tmpDir);
   }
@@ -134,7 +138,7 @@ bar
 test("getting the commit SHA when the codeql-database.yml does not exist", async (t) => {
   const tmpDir = fs.mkdtempSync("tmp");
   try {
-    t.is(getDatabaseSHA(tmpDir), "HEAD");
+    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
   } finally {
     await rmRF(tmpDir);
   }
