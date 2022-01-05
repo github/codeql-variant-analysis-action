@@ -140,27 +140,6 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
   }
 });
 
-test("reading the metadata for a real database", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  const cwd = process.cwd();
-  process.chdir(tmpDir);
-  try {
-    // Test the real database, which has no commit SHA (until CodeQL CLI 2.7.2 is released).
-    // TODO: update this test once CodeQL CLI 2.7.2 is released.
-    await exec("codeql", [
-      "database",
-      "unbundle",
-      t.context.db,
-      "--name=realDb",
-    ]);
-    const sha2 = getDatabaseSHA("realDb");
-    t.is(sha2, "HEAD");
-  } finally {
-    process.chdir(cwd);
-    await rmRF(tmpDir);
-  }
-});
-
 test("creating a result index", async (t) => {
   const queryPack = path.resolve("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
