@@ -122,7 +122,7 @@ async function downloadDatabase(
 
   try {
     return await download(
-      `https://api.github.com/repositories/${repoId}/code-scanning/codeql/databases/${language}`,
+      `https://api.github.com/repos/${repoName}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
       authHeader
     );
