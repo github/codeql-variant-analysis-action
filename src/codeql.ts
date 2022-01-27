@@ -246,6 +246,7 @@ async function outputSarif(
     `--output=${sarif}`,
     `-t=kind=${kind}`,
     "-t=id=remote-query",
+    "--sarif-add-snippets",
     bqrs,
   ]);
   return [sarif];
