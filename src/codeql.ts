@@ -101,7 +101,13 @@ async function runQuery(
       compatibleQueryKinds,
       sourceLocationPrefix
     ),
-    outputSarif(codeql, bqrs, compatibleQueryKinds, sourceLocationPrefix),
+    outputSarif(
+      codeql,
+      bqrs,
+      compatibleQueryKinds,
+      databaseName,
+      sourceLocationPrefix
+    ),
     outputResultCount(bqrsInfo),
   ];
 
@@ -235,6 +241,7 @@ async function outputSarif(
   codeql: string,
   bqrs: string,
   compatibleQueryKinds: string[],
+  databaseName: string,
   sourceLocationPrefix: string
 ): Promise<string[]> {
   let kind: string;
@@ -256,7 +263,9 @@ async function outputSarif(
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-snippets",
-    "--source-archive=db/src.zip",
+    // Hard-coded the source archive as src.zip inside the database, since that's
+    // where the CLI puts it. If this changes, we need to update this path.
+    `--source-archive=${databaseName}/src.zip`,
     `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
