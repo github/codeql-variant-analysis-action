@@ -90,6 +90,7 @@ async function runQuery(
   const bqrsInfo = await getBqrsInfo(codeql, bqrs);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
+  const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
     outputMd(
@@ -97,9 +98,10 @@ async function runQuery(
       bqrs,
       nwo,
       dbMetadata.creationMetadata?.sha || "HEAD",
-      compatibleQueryKinds
+      compatibleQueryKinds,
+      sourceLocationPrefix
     ),
-    outputSarif(codeql, bqrs, compatibleQueryKinds),
+    outputSarif(codeql, bqrs, compatibleQueryKinds, sourceLocationPrefix),
     outputResultCount(bqrsInfo),
   ];
 
@@ -178,13 +180,23 @@ async function outputCsv(codeql: string, bqrs: string): Promise<string[]> {
   return [csv];
 }
 
+async function getSourceLocationPrefix(codeql: string) {
+  const resolveDbOutput = await getExecOutput(codeql, [
+    "resolve",
+    "database",
+    "db",
+  ]);
+  return JSON.parse(resolveDbOutput.stdout).sourceLocationPrefix;
+}
+
 // Generates results.md from the given bqrs file
 async function outputMd(
   codeql: string,
   bqrs: string,
   nwo: string,
   databaseSHA: string,
-  compatibleQueryKinds: string[]
+  compatibleQueryKinds: string[],
+  sourceLocationPrefix: string
 ): Promise<string[]> {
   const json = path.join("results", "results.json");
   await exec(codeql, [
@@ -195,10 +207,6 @@ async function outputMd(
     "--entities=all",
     bqrs,
   ]);
-
-  const sourceLocationPrefix = JSON.parse(
-    (await getExecOutput(codeql, ["resolve", "database", "db"])).stdout
-  ).sourceLocationPrefix;
 
   // This will load the whole result set into memory. Given that we just ran a
   // query, we probably have quite a lot of memory available. However, at some
@@ -226,7 +234,8 @@ async function outputMd(
 async function outputSarif(
   codeql: string,
   bqrs: string,
-  compatibleQueryKinds: string[]
+  compatibleQueryKinds: string[],
+  sourceLocationPrefix: string
 ): Promise<string[]> {
   let kind: string;
   if (compatibleQueryKinds.includes("Problem")) {
@@ -247,6 +256,8 @@ async function outputSarif(
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-snippets",
+    "--source-archive",
+    `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
   return [sarif];
