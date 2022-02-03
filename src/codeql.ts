@@ -256,7 +256,7 @@ async function outputSarif(
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-snippets",
-    "--source-archive",
+    "--source-archive=db/src.zip",
     `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
