@@ -9,7 +9,7 @@ import {
 import { getInput, notice, setFailed } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import { GitHub } from "@actions/github/lib/utils";
-import { mkdirP, mv } from "@actions/io";
+import { mkdirP } from "@actions/io";
 import { extractTar } from "@actions/tool-cache";
 
 import { getRemoteQueryPackDefaultQuery } from "./codeql";
@@ -50,6 +50,12 @@ async function run(): Promise<void> {
       artifactClient
     );
 
+    // Fail if there are no result artifacts
+    if (resultArtifacts.length === 0) {
+      setFailed("Unable to run query on any repositories.");
+      return;
+    }
+
     await mkdirP("results");
 
     const octokit = getOctokit(token);
@@ -61,7 +67,6 @@ async function run(): Promise<void> {
     });
 
     await Promise.all([
-      uploadCSVs(resultArtifacts, artifactClient),
       uploadResultIndex(resultArtifacts, artifactClient),
       updateIssueBody(
         octokit,
@@ -110,27 +115,6 @@ async function downloadArtifacts(
   );
 
   return [resultArtifacts, errorArtifacts];
-}
-
-async function uploadCSVs(
-  resultArtifacts: DownloadResponse[],
-  artifactClient: ArtifactClient
-) {
-  const csvs = await Promise.all(
-    resultArtifacts.map(async function (response) {
-      const csv = path.join(response.downloadPath, "results.csv");
-      const csvDest = path.join("results", response.artifactName);
-      await mv(csv, csvDest);
-      return csvDest;
-    })
-  );
-
-  await artifactClient.uploadArtifact(
-    "all-results", // name
-    csvs, // files
-    "results", // rootdirectory
-    { continueOnError: false }
-  );
 }
 
 async function uploadResultIndex(
