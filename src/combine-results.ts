@@ -67,7 +67,7 @@ async function run(): Promise<void> {
     });
 
     await Promise.all([
-      uploadResultIndex(resultArtifacts, artifactClient),
+      uploadResultIndex(resultArtifacts, errorArtifacts, artifactClient),
       updateIssueBody(
         octokit,
         issue.data.number,
@@ -119,10 +119,12 @@ async function downloadArtifacts(
 
 async function uploadResultIndex(
   resultArtifacts: DownloadResponse[],
+  errorArtifacts: DownloadResponse[],
   artifactClient: ArtifactClient
 ) {
   const resultsIndex: ResultIndexItem[] = await createResultIndex(
-    resultArtifacts
+    resultArtifacts,
+    errorArtifacts
   );
 
   // Create the index.json file

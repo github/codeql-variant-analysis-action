@@ -339,17 +339,26 @@ function timeout(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface ResultIndexItem {
+interface SuccessIndexItem {
   nwo: string;
   id: string;
   results_count: number;
   bqrs_file_size: number;
   sarif_file_size?: number;
 }
+interface ErrorIndexItem {
+  nwo: string;
+  id: string;
+  error: string;
+}
+
+type ResultIndexItem = SuccessIndexItem | ErrorIndexItem;
+
 async function createResultIndex(
-  resultArtifacts: DownloadResponse[]
+  resultArtifacts: DownloadResponse[],
+  errorArtifacts: DownloadResponse[]
 ): Promise<ResultIndexItem[]> {
-  return await Promise.all(
+  const resultArtifactPromises: Array<Promise<ResultIndexItem>> =
     resultArtifacts.map(async function (response) {
       const nwo = fs.readFileSync(
         path.join(response.downloadPath, "nwo.txt"),
@@ -380,6 +389,27 @@ async function createResultIndex(
         sarif_file_size,
       };
       return resultIndexItem;
-    })
+    });
+  const errorArtifactPromises: Array<Promise<ResultIndexItem>> =
+    errorArtifacts.map(async function (response) {
+      const nwo = fs.readFileSync(
+        path.join(response.downloadPath, "nwo.txt"),
+        "utf-8"
+      );
+      // id is the artifactName without the "-error" suffix
+      const id = response.artifactName.split("-error")[0];
+      const error = fs.readFileSync(
+        path.join(response.downloadPath, "error.txt"),
+        "utf-8"
+      );
+      const resultIndexItem: ResultIndexItem = {
+        nwo,
+        id,
+        error,
+      };
+      return resultIndexItem;
+    });
+  return await Promise.all(
+    resultArtifactPromises.concat(errorArtifactPromises)
   );
 }
