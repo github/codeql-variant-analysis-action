@@ -339,14 +339,14 @@ function timeout(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface SuccessIndexItem {
+export interface SuccessIndexItem {
   nwo: string;
   id: string;
   results_count: number;
   bqrs_file_size: number;
   sarif_file_size?: number;
 }
-interface ErrorIndexItem {
+export interface ErrorIndexItem {
   nwo: string;
   id: string;
   error: string;
@@ -397,7 +397,10 @@ async function createResultIndex(
         "utf-8"
       );
       // id is the artifactName without the "-error" suffix
-      const id = response.artifactName.split("-error")[0];
+      const id = response.artifactName.substring(
+        0,
+        response.artifactName.length - 6
+      );
       const error = fs.readFileSync(
         path.join(response.downloadPath, "error.txt"),
         "utf-8"

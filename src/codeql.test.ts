@@ -12,7 +12,11 @@ import {
   BQRSInfo,
   getRemoteQueryPackDefaultQuery,
 } from "./codeql";
-import { createResultIndex } from "./interpret";
+import {
+  createResultIndex,
+  ErrorIndexItem,
+  SuccessIndexItem,
+} from "./interpret";
 
 const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
 
@@ -146,6 +150,7 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
 
 test("creating a result index", async (t) => {
   const queryPack = path.resolve("testdata/test_pack");
+  const responsePath = path.resolve("testdata/test_download_response");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -153,16 +158,29 @@ test("creating a result index", async (t) => {
     const output = await runQuery("codeql", t.context.db, "a/b", queryPack);
     const outputDir = path.dirname(output[0]); // We know that all output files are in the same directory.
     const downloadResponse = {
-      artifactName: "results",
+      artifactName: "123",
       downloadPath: outputDir,
     };
-    const result = await createResultIndex([downloadResponse]);
 
-    t.is(result.length, 1);
-    t.is(result[0].nwo, "a/b");
-    t.is(result[0].id, "results");
-    t.is(result[0].results_count, 3);
-    t.true(result[0].bqrs_file_size > 0);
+    const downloadResponse2 = {
+      artifactName: "124-error",
+      downloadPath: responsePath,
+    };
+    const result = await createResultIndex(
+      [downloadResponse],
+      [downloadResponse2]
+    );
+
+    t.is(result.length, 2);
+    const successItem = result[0] as SuccessIndexItem;
+    t.is(successItem.nwo, "a/b");
+    t.is(successItem.id, "123");
+    t.is(successItem.results_count, 3);
+    t.true(successItem.bqrs_file_size > 0);
+    const errorItem = result[1] as ErrorIndexItem;
+    t.is(errorItem.nwo, "a/c");
+    t.is(errorItem.id, "124");
+    t.is(errorItem.error, "Ceci n'est pas un error message.");
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);
