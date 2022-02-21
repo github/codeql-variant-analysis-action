@@ -14,7 +14,7 @@ import {
 } from "./codeql";
 import {
   createResultIndex,
-  ErrorIndexItem,
+  FailureIndexItem,
   SuccessIndexItem,
 } from "./interpret";
 
@@ -177,10 +177,10 @@ test("creating a result index", async (t) => {
     t.is(successItem.id, "123");
     t.is(successItem.results_count, 3);
     t.true(successItem.bqrs_file_size > 0);
-    const errorItem = result[1] as ErrorIndexItem;
-    t.is(errorItem.nwo, "a/c");
-    t.is(errorItem.id, "124");
-    t.is(errorItem.error, "Ceci n'est pas un error message.");
+    const failureItem = result[1] as FailureIndexItem;
+    t.is(failureItem.nwo, "a/c");
+    t.is(failureItem.id, "124");
+    t.is(failureItem.error, "Ceci n'est pas un error message.");
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);

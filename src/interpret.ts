@@ -346,13 +346,13 @@ export interface SuccessIndexItem {
   bqrs_file_size: number;
   sarif_file_size?: number;
 }
-export interface ErrorIndexItem {
+export interface FailureIndexItem {
   nwo: string;
   id: string;
   error: string;
 }
 
-type ResultIndexItem = SuccessIndexItem | ErrorIndexItem;
+type ResultIndexItem = SuccessIndexItem | FailureIndexItem;
 
 async function createResultIndex(
   resultArtifacts: DownloadResponse[],
