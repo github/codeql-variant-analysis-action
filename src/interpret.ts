@@ -17,7 +17,6 @@ export {
   interpret,
   createResultIndex,
   createResultsMd,
-  ResultIndexItem,
 };
 
 // Methods in this file consume the output from `codeql bqrs decode --format=json`.
@@ -352,67 +351,73 @@ export interface FailureIndexItem {
   error: string;
 }
 
-type ResultIndexItem = SuccessIndexItem | FailureIndexItem;
+export interface ResultIndex {
+  successes: SuccessIndexItem[];
+  failures: FailureIndexItem[];
+}
 
-async function createResultIndex(
-  resultArtifacts: DownloadResponse[],
-  errorArtifacts: DownloadResponse[]
-): Promise<ResultIndexItem[]> {
-  const resultArtifactPromises: Array<Promise<ResultIndexItem>> =
-    resultArtifacts.map(async function (response) {
-      const nwo = fs.readFileSync(
-        path.join(response.downloadPath, "nwo.txt"),
+function createResultIndex(
+  successArtifacts: DownloadResponse[],
+  failureArtifacts: DownloadResponse[]
+): ResultIndex {
+  const successes: SuccessIndexItem[] = successArtifacts.map(function (
+    response
+  ) {
+    const nwo = fs.readFileSync(
+      path.join(response.downloadPath, "nwo.txt"),
+      "utf-8"
+    );
+    const id = response.artifactName;
+    const results_count = parseInt(
+      fs.readFileSync(
+        path.join(response.downloadPath, "resultcount.txt"),
         "utf-8"
-      );
-      const id = response.artifactName;
-      const results_count = parseInt(
-        fs.readFileSync(
-          path.join(response.downloadPath, "resultcount.txt"),
-          "utf-8"
-        ),
-        10
-      );
-      const bqrs_file_size = fs.statSync(
-        path.join(response.downloadPath, "results.bqrs")
+      ),
+      10
+    );
+    const bqrs_file_size = fs.statSync(
+      path.join(response.downloadPath, "results.bqrs")
+    ).size;
+    let sarif_file_size: undefined | number = undefined;
+    if (fs.existsSync(path.join(response.downloadPath, "results.sarif"))) {
+      sarif_file_size = fs.statSync(
+        path.join(response.downloadPath, "results.sarif")
       ).size;
-      let sarif_file_size: undefined | number = undefined;
-      if (fs.existsSync(path.join(response.downloadPath, "results.sarif"))) {
-        sarif_file_size = fs.statSync(
-          path.join(response.downloadPath, "results.sarif")
-        ).size;
-      }
-      const resultIndexItem: ResultIndexItem = {
-        nwo,
-        id,
-        results_count,
-        bqrs_file_size,
-        sarif_file_size,
-      };
-      return resultIndexItem;
-    });
-  const errorArtifactPromises: Array<Promise<ResultIndexItem>> =
-    errorArtifacts.map(async function (response) {
-      const nwo = fs.readFileSync(
-        path.join(response.downloadPath, "nwo.txt"),
-        "utf-8"
-      );
-      // id is the artifactName without the "-error" suffix
-      const id = response.artifactName.substring(
-        0,
-        response.artifactName.length - 6
-      );
-      const error = fs.readFileSync(
-        path.join(response.downloadPath, "error.txt"),
-        "utf-8"
-      );
-      const resultIndexItem: ResultIndexItem = {
-        nwo,
-        id,
-        error,
-      };
-      return resultIndexItem;
-    });
-  return await Promise.all(
-    resultArtifactPromises.concat(errorArtifactPromises)
-  );
+    }
+    const successIndexItem: SuccessIndexItem = {
+      nwo,
+      id,
+      results_count,
+      bqrs_file_size,
+      sarif_file_size,
+    };
+    return successIndexItem;
+  });
+  const failures: FailureIndexItem[] = failureArtifacts.map(function (
+    response
+  ) {
+    const nwo = fs.readFileSync(
+      path.join(response.downloadPath, "nwo.txt"),
+      "utf-8"
+    );
+    // id is the artifactName without the "-error" suffix
+    const id = response.artifactName.substring(
+      0,
+      response.artifactName.length - 6
+    );
+    const error = fs.readFileSync(
+      path.join(response.downloadPath, "error.txt"),
+      "utf-8"
+    );
+    const failureIndexItem: FailureIndexItem = {
+      nwo,
+      id,
+      error,
+    };
+    return failureIndexItem;
+  });
+  return {
+    successes,
+    failures,
+  };
 }

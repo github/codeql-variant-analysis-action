@@ -12,11 +12,7 @@ import {
   BQRSInfo,
   getRemoteQueryPackDefaultQuery,
 } from "./codeql";
-import {
-  createResultIndex,
-  FailureIndexItem,
-  SuccessIndexItem,
-} from "./interpret";
+import { createResultIndex } from "./interpret";
 
 const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
 
@@ -166,18 +162,19 @@ test("creating a result index", async (t) => {
       artifactName: "124-error",
       downloadPath: responsePath,
     };
-    const result = await createResultIndex(
+    const resultIndex = createResultIndex(
       [downloadResponse],
       [downloadResponse2]
     );
 
-    t.is(result.length, 2);
-    const successItem = result[0] as SuccessIndexItem;
+    t.is(resultIndex.successes.length, 1);
+    t.is(resultIndex.failures.length, 1);
+    const successItem = resultIndex.successes[0];
     t.is(successItem.nwo, "a/b");
     t.is(successItem.id, "123");
     t.is(successItem.results_count, 3);
     t.true(successItem.bqrs_file_size > 0);
-    const failureItem = result[1] as FailureIndexItem;
+    const failureItem = resultIndex.failures[0];
     t.is(failureItem.nwo, "a/c");
     t.is(failureItem.id, "124");
     t.is(failureItem.error, "Ceci n'est pas un error message.");

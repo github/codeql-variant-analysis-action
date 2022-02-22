@@ -14,11 +14,7 @@ import { extractTar } from "@actions/tool-cache";
 
 import { getRemoteQueryPackDefaultQuery } from "./codeql";
 import { download } from "./download";
-import {
-  createResultIndex,
-  createResultsMd,
-  ResultIndexItem,
-} from "./interpret";
+import { createResultIndex, createResultsMd } from "./interpret";
 
 type Octokit = InstanceType<typeof GitHub>;
 
@@ -122,10 +118,7 @@ async function uploadResultIndex(
   errorArtifacts: DownloadResponse[],
   artifactClient: ArtifactClient
 ) {
-  const resultsIndex: ResultIndexItem[] = await createResultIndex(
-    resultArtifacts,
-    errorArtifacts
-  );
+  const resultsIndex = createResultIndex(resultArtifacts, errorArtifacts);
 
   // Create the index.json file
   const resultIndexFile = path.join("results", "index.json");
