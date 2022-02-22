@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+cd "$(dirname "$0")/.."
+
+gh extensions install github/gh-codeql
+gh codeql download
+
+export PATH=$PWD:$PATH
+
+chmod +x codeql
