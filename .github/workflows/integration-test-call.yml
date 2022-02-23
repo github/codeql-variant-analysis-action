@@ -45,7 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
-      - name: Update status check to state 'success'
+      - name: Update status check to state 'failure'
         if: ${{ needs.query.result != 'success' }}
         run: |
           gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
