@@ -13,7 +13,7 @@ jobs:
             -f context=integration-test \
             -f description="integration-test-call.yml" \
             -f state=pending \
-            -f target_url=https://github.com/dsp-testing/qc-run2/actions/workflows/integration-test-call.yml
+            -f target_url=https://github.com/$GITHUB_REPOSITORY/actions/workflows/integration-test-call.yml
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
@@ -25,7 +25,7 @@ jobs:
             -R "$GITHUB_REPOSITORY" \
             -r "$GITHUB_REF" \
             -f language=go \
-            -f query_pack_url="https://github.com/dsp-testing/qc-run2/releases/download/test/test_pack2.tar.gz" \
-            -f instructions_url="https://github.com/dsp-testing/qc-run2/releases/download/test/instructions.json"
+            -f query_pack_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz" \
+            -f instructions_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/instructions.json"
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
