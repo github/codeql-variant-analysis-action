@@ -7,6 +7,5 @@ cd "$(dirname "$0")/.."
 gh extensions install github/gh-codeql
 gh codeql download
 
+# TODO: fix this bit
 export PATH=$PWD:$PATH
-
-chmod +x codeql
