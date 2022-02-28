@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+cd "$(dirname "$0")/.."
+
+if gh extension list | grep "^gh codeql" -q
+then
+  echo "gh codeql extension is already installed"
+else
+  gh extension install github/gh-codeql
+fi
+
+gh codeql download
+
+export PATH="$PWD/script:$PATH"
+
+npm run test "$@"
