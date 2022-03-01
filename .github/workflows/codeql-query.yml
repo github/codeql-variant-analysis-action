@@ -75,7 +75,7 @@ jobs:
           CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
 
       - name: Run query
-        uses: dsp-testing/qc-run2/query@main
+        uses: dsp-testing/qc-run2/query@get-db-sha
         with:
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
@@ -98,7 +98,7 @@ jobs:
           CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
 
       - name: Combine results
-        uses: dsp-testing/qc-run2/combine-results@main
+        uses: dsp-testing/qc-run2/combine-results@get-db-sha
         with:
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}

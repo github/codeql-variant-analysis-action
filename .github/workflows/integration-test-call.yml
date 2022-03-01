@@ -24,7 +24,7 @@ jobs:
   query:
     needs:
       - init
-    uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@main
+    uses: dsp-testing/qc-run2/.github/workflows/codeql-query.yml@get-db-sha
     secrets:
       TEST_PAT: ${{ secrets.BOT_TOKEN }}
 
