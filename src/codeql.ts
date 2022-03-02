@@ -106,9 +106,7 @@ async function runQuery(
       bqrs,
       compatibleQueryKinds,
       databaseName,
-      sourceLocationPrefix,
-      nwo,
-      dbMetadata.creationMetadata?.sha || "HEAD"
+      sourceLocationPrefix
     ),
     outputResultCount(bqrsInfo),
   ];
@@ -244,9 +242,7 @@ async function outputSarif(
   bqrs: string,
   compatibleQueryKinds: string[],
   databaseName: string,
-  sourceLocationPrefix: string,
-  nwo: string,
-  ref: string
+  sourceLocationPrefix: string
 ): Promise<string[]> {
   let kind: string;
   if (compatibleQueryKinds.includes("Problem")) {
@@ -270,7 +266,7 @@ async function outputSarif(
     // Hard-coded the source archive as src.zip inside the database, since that's
     // where the CLI puts it. If this changes, we need to update this path.
     `--source-archive=${databaseName}/src.zip`,
-    `--source-location-prefix=https://github.com/${nwo}/blob/${ref}/${sourceLocationPrefix}`,
+    `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
   return [sarif];
