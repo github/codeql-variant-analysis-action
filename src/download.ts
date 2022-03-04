@@ -21,7 +21,7 @@ export class HTTPError extends Error {
   }
 }
 
-const userAgent = "GitHub remote queries";
+const userAgent = "GitHub multi-repository variant analysis";
 
 /**
  * Download a file from an url and stream it into a local file
@@ -34,7 +34,8 @@ const userAgent = "GitHub remote queries";
 export async function download(
   url: string,
   dest: string,
-  auth?: string
+  auth?: string,
+  accept?: string
 ): Promise<string> {
   await io.mkdirP(path.dirname(dest));
   core.debug(`Downloading ${url}`);
@@ -46,7 +47,7 @@ export async function download(
   const retryHelper = new RetryHelper(maxAttempts, minSeconds, maxSeconds);
   return await retryHelper.execute(
     async () => {
-      return await downloadAttempt(url, dest, auth);
+      return await downloadAttempt(url, dest, auth, accept);
     },
     (err: Error) => {
       if (err instanceof HTTPError && err.httpStatusCode) {
@@ -69,7 +70,8 @@ export async function download(
 async function downloadAttempt(
   url: string,
   dest: string,
-  auth?: string
+  auth?: string,
+  accept?: string
 ): Promise<string> {
   if (fs.existsSync(dest)) {
     throw new Error(`Destination file path ${dest} already exists`);
@@ -84,6 +86,9 @@ async function downloadAttempt(
   if (auth) {
     core.debug("set auth");
     headers.authorization = auth;
+  }
+  if (accept) {
+    headers.accept = accept;
   }
 
   const response: httpm.HttpClientResponse = await http.get(url, headers);
