@@ -104,6 +104,8 @@ async function runQuery(
     outputSarif(
       codeql,
       bqrs,
+      nwo,
+      dbMetadata.creationMetadata?.sha || "HEAD",
       compatibleQueryKinds,
       databaseName,
       sourceLocationPrefix
@@ -241,6 +243,8 @@ async function outputMd(
 async function outputSarif(
   codeql: string,
   bqrs: string,
+  nwo: string,
+  databaseSHA: string,
   compatibleQueryKinds: string[],
   databaseName: string,
   sourceLocationPrefix: string
@@ -255,12 +259,12 @@ async function outputSarif(
     return [];
   }
 
-  const sarif = path.join("results", "results.sarif");
+  const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
     "interpret",
     "--format=sarif-latest",
-    `--output=${sarif}`,
+    `--output=${sarifFile}`,
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-file-contents",
@@ -270,7 +274,21 @@ async function outputSarif(
     `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
-  return [sarif];
+  const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
+
+  if (Array.isArray(sarif.runs)) {
+    for (const run of sarif.runs) {
+      run.versionControlProvenance = run.versionControlProvenance || [];
+      run.versionControlProvenance.push({
+        repositoryUri: `https://github.com/${nwo}`,
+        revisionId: databaseSHA,
+      });
+    }
+  }
+
+  fs.writeFileSync(sarifFile, JSON.stringify(sarif));
+
+  return [sarifFile];
 }
 
 // Generates results count
