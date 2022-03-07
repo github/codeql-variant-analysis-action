@@ -132,7 +132,8 @@ async function downloadDatabase(
     return await download(
       `https://api.github.com/repos/${repoName}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
-      authHeader
+      authHeader,
+      "application/zip"
     );
   } catch (error: any) {
     console.log("Error while downloading database");
