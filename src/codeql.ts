@@ -264,6 +264,7 @@ async function outputSarif(
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-file-contents",
+    "--sarif-add-snippets",
     // Hard-coded the source archive as src.zip inside the database, since that's
     // where the CLI puts it. If this changes, we need to update this path.
     `--source-archive=${databaseName}/src.zip`,
