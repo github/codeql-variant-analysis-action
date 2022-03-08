@@ -11,6 +11,7 @@ import {
   getDatabaseMetadata,
   BQRSInfo,
   getRemoteQueryPackDefaultQuery,
+  injectVersionControlInfo,
 } from "./codeql";
 import { createResultIndex } from "./interpret";
 
@@ -189,4 +190,31 @@ test("getting the default query from a pack", async (t) => {
     await getRemoteQueryPackDefaultQuery("codeql", "testdata/test_pack"),
     path.resolve("testdata/test_pack/x/query.ql")
   );
+});
+
+test("populating the SARIF versionControlProvenance property", (t) => {
+  const sarif = {
+    $schema:
+      "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+    version: "2.1.0",
+    runs: [
+      {
+        tool: {},
+        artifacts: [],
+        results: [],
+        columnKind: "utf16CodeUnits",
+        properties: {},
+      },
+    ],
+  } as any;
+  const nwo = "a/b";
+  const sha = "testsha123";
+
+  injectVersionControlInfo(sarif, nwo, sha);
+  const expected = {
+    repositoryUri: `https://github.com/${nwo}`,
+    revisionId: sha,
+  };
+
+  t.deepEqual(sarif.runs[0].versionControlProvenance[0], expected);
 });

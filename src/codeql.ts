@@ -104,9 +104,11 @@ async function runQuery(
     outputSarif(
       codeql,
       bqrs,
+      nwo,
       compatibleQueryKinds,
       databaseName,
-      sourceLocationPrefix
+      sourceLocationPrefix,
+      dbMetadata.creationMetadata?.sha
     ),
     outputResultCount(bqrsInfo),
   ];
@@ -241,9 +243,11 @@ async function outputMd(
 async function outputSarif(
   codeql: string,
   bqrs: string,
+  nwo: string,
   compatibleQueryKinds: string[],
   databaseName: string,
-  sourceLocationPrefix: string
+  sourceLocationPrefix: string,
+  databaseSHA?: string
 ): Promise<string[]> {
   let kind: string;
   if (compatibleQueryKinds.includes("Problem")) {
@@ -255,12 +259,12 @@ async function outputSarif(
     return [];
   }
 
-  const sarif = path.join("results", "results.sarif");
+  const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
     "interpret",
     "--format=sarif-latest",
-    `--output=${sarif}`,
+    `--output=${sarifFile}`,
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-file-contents",
@@ -271,7 +275,39 @@ async function outputSarif(
     `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
-  return [sarif];
+  const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
+
+  injectVersionControlInfo(sarif, nwo, databaseSHA);
+
+  fs.writeFileSync(sarifFile, JSON.stringify(sarif));
+
+  return [sarifFile];
+}
+
+/**
+ * Injects the GitHub repository URL and, if available, the commit SHA into the
+ * SARIF `versionControlProvenance` property.
+ */
+export function injectVersionControlInfo(
+  sarif: any,
+  nwo: string,
+  databaseSHA?: string
+) {
+  if (Array.isArray(sarif.runs)) {
+    for (const run of sarif.runs) {
+      run.versionControlProvenance = run.versionControlProvenance || [];
+      if (databaseSHA) {
+        run.versionControlProvenance.push({
+          repositoryUri: `https://github.com/${nwo}`,
+          revisionId: databaseSHA,
+        });
+      } else {
+        run.versionControlProvenance.push({
+          repositoryUri: `https://github.com/${nwo}`,
+        });
+      }
+    }
+  }
 }
 
 // Generates results count
