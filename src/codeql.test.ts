@@ -192,7 +192,7 @@ test("getting the default query from a pack", async (t) => {
   );
 });
 
-test("populating the SARIF versionControl property", (t) => {
+test("populating the SARIF versionControlProvenance property", (t) => {
   const sarif = {
     $schema:
       "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
