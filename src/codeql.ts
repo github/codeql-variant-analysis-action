@@ -276,6 +276,22 @@ async function outputSarif(
   ]);
   const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
 
+  injectVersionControlInfo(sarif, nwo, databaseSHA);
+
+  fs.writeFileSync(sarifFile, JSON.stringify(sarif));
+
+  return [sarifFile];
+}
+
+/**
+ * Injects the GitHub repository URL and, if available, the commit SHA into the
+ * SARIF `versionControlProvenance` property.
+ */
+export function injectVersionControlInfo(
+  sarif: any,
+  nwo: string,
+  databaseSHA?: string
+) {
   if (Array.isArray(sarif.runs)) {
     for (const run of sarif.runs) {
       run.versionControlProvenance = run.versionControlProvenance || [];
@@ -291,10 +307,6 @@ async function outputSarif(
       }
     }
   }
-
-  fs.writeFileSync(sarifFile, JSON.stringify(sarif));
-
-  return [sarifFile];
 }
 
 // Generates results count
