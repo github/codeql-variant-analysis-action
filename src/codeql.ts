@@ -105,10 +105,10 @@ async function runQuery(
       codeql,
       bqrs,
       nwo,
-      dbMetadata.creationMetadata?.sha || "HEAD",
       compatibleQueryKinds,
       databaseName,
-      sourceLocationPrefix
+      sourceLocationPrefix,
+      dbMetadata.creationMetadata?.sha
     ),
     outputResultCount(bqrsInfo),
   ];
@@ -244,10 +244,10 @@ async function outputSarif(
   codeql: string,
   bqrs: string,
   nwo: string,
-  databaseSHA: string,
   compatibleQueryKinds: string[],
   databaseName: string,
-  sourceLocationPrefix: string
+  sourceLocationPrefix: string,
+  databaseSHA?: string
 ): Promise<string[]> {
   let kind: string;
   if (compatibleQueryKinds.includes("Problem")) {
@@ -279,10 +279,16 @@ async function outputSarif(
   if (Array.isArray(sarif.runs)) {
     for (const run of sarif.runs) {
       run.versionControlProvenance = run.versionControlProvenance || [];
-      run.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`,
-        revisionId: databaseSHA,
-      });
+      if (databaseSHA) {
+        run.versionControlProvenance.push({
+          repositoryUri: `https://github.com/${nwo}`,
+          revisionId: databaseSHA,
+        });
+      } else {
+        run.versionControlProvenance.push({
+          repositoryUri: `https://github.com/${nwo}`,
+        });
+      }
     }
   }
 
