@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync } from "fs";
+import fs from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
@@ -18,26 +18,26 @@ interface Repo {
 
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
-  try {
-    const queryPackUrl = getInput("query_pack_url", { required: true });
-    const language = getInput("language", { required: true });
-    const repos: Repo[] = JSON.parse(
-      getInput("repositories", { required: true })
-    );
-    const codeql = getInput("codeql", { required: true });
+  const queryPackUrl = getInput("query_pack_url", { required: true });
+  const language = getInput("language", { required: true });
+  const repos: Repo[] = JSON.parse(
+    getInput("repositories", { required: true })
+  );
+  const codeql = getInput("codeql", { required: true });
 
-    for (const repo of repos) {
-      if (repo.token) {
-        setSecret(repo.token);
-      }
-      if (repo.pat) {
-        setSecret(repo.pat);
-      }
+  for (const repo of repos) {
+    if (repo.token) {
+      setSecret(repo.token);
     }
+    if (repo.pat) {
+      setSecret(repo.pat);
+    }
+  }
 
-    const curDir = cwd();
-    for (const repo of repos) {
-      const workDir = mkdtempSync(path.join(curDir, repo.id.toString()));
+  const curDir = cwd();
+  for (const repo of repos) {
+    try {
+      const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
       chdir(workDir);
 
       // 1. Use the GitHub API to download the database using token
@@ -70,22 +70,25 @@ async function run(): Promise<void> {
         "results", // rootdirectory
         { continueOnError: false }
       );
+    } catch (error: any) {
+      setFailed(error.message);
+
+      // Write error messages to a file and upload as an artifact, so that the
+      // combine-results job "knows" about the failures
+      fs.mkdirSync("errors");
+      const errorFile = path.join("errors", "error.txt");
+      fs.appendFileSync(errorFile, error.message);
+
+      const nwoFile = path.join("errors", "nwo.txt");
+      fs.writeFileSync(nwoFile, repo.nwo);
+
+      await artifactClient.uploadArtifact(
+        `${repo.id.toString()}-error`, // name
+        [errorFile, nwoFile], // files
+        "errors", // rootdirectory
+        { continueOnError: false }
+      );
     }
-  } catch (error: any) {
-    setFailed(error.message);
-
-    // Write error messages to a file and upload as an artifact, so that the
-    // combine-results job "knows" about the failures
-    mkdirSync("errors");
-    const errorFile = path.join(cwd(), "errors", "error.txt");
-    appendFileSync(errorFile, error.message); // TODO: Include information about which repository produced the error
-
-    await artifactClient.uploadArtifact(
-      "error", // name
-      ["errors/error.txt"], // files
-      "errors", // rootdirectory
-      { continueOnError: false, retentionDays: 1 }
-    );
   }
 }
 
