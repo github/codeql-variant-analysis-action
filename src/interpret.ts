@@ -371,11 +371,15 @@ function createResultIndex(
     const id = response.artifactName;
     let sha: string | undefined = undefined;
     const shaPath = path.join(response.downloadPath, "sha.txt");
-    if (
-      fs.existsSync(shaPath) &&
-      fs.readFileSync(shaPath, "utf-8").length > 0
-    ) {
+    try {
       sha = fs.readFileSync(shaPath, "utf-8");
+    } catch (err: any) {
+      // check if this is a file not found error
+      if (err?.code === "ENOENT") {
+        console.log("File not found!");
+      } else {
+        throw err;
+      }
     }
     const results_count = parseInt(
       fs.readFileSync(
