@@ -341,7 +341,7 @@ function timeout(ms: number): Promise<void> {
 export interface SuccessIndexItem {
   nwo: string;
   id: string;
-  sha: string;
+  sha?: string;
   results_count: number;
   bqrs_file_size: number;
   sarif_file_size?: number;
@@ -369,10 +369,14 @@ function createResultIndex(
       "utf-8"
     );
     const id = response.artifactName;
-    const sha = fs.readFileSync(
-      path.join(response.downloadPath, "sha.txt"),
-      "utf-8"
-    );
+    let sha: string | undefined = undefined;
+    const shaPath = path.join(response.downloadPath, "sha.txt");
+    if (
+      fs.existsSync(shaPath) &&
+      fs.readFileSync(shaPath, "utf-8").length > 0
+    ) {
+      sha = fs.readFileSync(shaPath, "utf-8");
+    }
     const results_count = parseInt(
       fs.readFileSync(
         path.join(response.downloadPath, "resultcount.txt"),
