@@ -373,13 +373,10 @@ function createResultIndex(
     const shaPath = path.join(response.downloadPath, "sha.txt");
     try {
       sha = fs.readFileSync(shaPath, "utf-8");
-    } catch (err: any) {
-      // check if this is a file not found error
-      if (err?.code === "ENOENT") {
-        console.log("File not found!");
-      } else {
-        throw err;
-      }
+    } catch (err) {
+      console.log(
+        `Couldn't read sha.txt from ${response.downloadPath}: ${err}`
+      );
     }
     const results_count = parseInt(
       fs.readFileSync(
