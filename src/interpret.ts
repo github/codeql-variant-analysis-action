@@ -341,6 +341,7 @@ function timeout(ms: number): Promise<void> {
 export interface SuccessIndexItem {
   nwo: string;
   id: string;
+  sha?: string;
   results_count: number;
   bqrs_file_size: number;
   sarif_file_size?: number;
@@ -368,6 +369,15 @@ function createResultIndex(
       "utf-8"
     );
     const id = response.artifactName;
+    let sha: string | undefined = undefined;
+    const shaPath = path.join(response.downloadPath, "sha.txt");
+    try {
+      sha = fs.readFileSync(shaPath, "utf-8");
+    } catch (err) {
+      console.log(
+        `Couldn't read sha.txt from ${response.downloadPath}: ${err}`
+      );
+    }
     const results_count = parseInt(
       fs.readFileSync(
         path.join(response.downloadPath, "resultcount.txt"),
@@ -387,6 +397,7 @@ function createResultIndex(
     const successIndexItem: SuccessIndexItem = {
       nwo,
       id,
+      sha,
       results_count,
       bqrs_file_size,
       sarif_file_size,

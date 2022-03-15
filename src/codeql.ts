@@ -42,6 +42,7 @@ async function runQuery(
   fs.mkdirSync("results");
   const nwoFile = path.join("results", "nwo.txt");
   fs.writeFileSync(nwoFile, nwo);
+  const outputFiles = [bqrs, nwoFile];
 
   const databaseName = "db";
   await exec(codeql, [
@@ -55,6 +56,12 @@ async function runQuery(
   console.log(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
+  let databaseSHAFile: string | undefined;
+  if (dbMetadata.creationMetadata?.sha) {
+    databaseSHAFile = path.join("results", "sha.txt");
+    fs.writeFileSync(databaseSHAFile, dbMetadata.creationMetadata.sha);
+    outputFiles.push(databaseSHAFile);
+  }
 
   await exec(codeql, [
     "database",
@@ -113,7 +120,7 @@ async function runQuery(
     outputResultCount(bqrsInfo),
   ];
 
-  return [bqrs, nwoFile].concat(...(await Promise.all(outputPromises)));
+  return outputFiles.concat(...(await Promise.all(outputPromises)));
 }
 
 async function downloadDatabase(
