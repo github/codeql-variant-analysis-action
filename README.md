@@ -1,5 +1,5 @@
-# Development guide
+# CodeQL variant analysis action
 
-- Install the recommended extensions for automatic formatting on save.
-- We use the [ava](https://github.com/avajs/ava) test runner. To run one or more specific test(s), use `npm run test -- -m <title>`.
-- To test against a particular branch, the action references in [`.github/workflows/codeql-query.yml`](.github/workflows/codeql-query.yml) need to be updated to point at this branch. This change must be reverted before merging to `main`. The scripts `script/use-this-branch` and `script/use-main` are provided to make this a bit easier.
+This action is used internally by GitHub's multi-repository variant analysis. It is not intended to be used directly.
+
+If you want to use CodeQL to analyze your source code, please see the [CodeQL Action](https://github.com/github/codeql-action) and the [Code scanning documentation](https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning).
