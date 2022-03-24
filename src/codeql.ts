@@ -98,6 +98,7 @@ async function runQuery(
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
+  const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
   const outputPromises: Array<Promise<string[]>> = [
     outputCsv(codeql, bqrs),
     outputMd(
@@ -108,16 +109,17 @@ async function runQuery(
       compatibleQueryKinds,
       sourceLocationPrefix
     ),
-    outputSarif(
-      codeql,
-      bqrs,
-      nwo,
-      compatibleQueryKinds,
-      databaseName,
-      sourceLocationPrefix,
-      dbMetadata.creationMetadata?.sha
-    ),
-    outputResultCount(bqrsInfo),
+    isSarif
+      ? outputSarifAndCount(
+          codeql,
+          bqrs,
+          nwo,
+          compatibleQueryKinds,
+          databaseName,
+          sourceLocationPrefix,
+          dbMetadata.creationMetadata?.sha
+        )
+      : outputBqrsResultCount(bqrsInfo),
   ];
 
   return outputFiles.concat(...(await Promise.all(outputPromises)));
@@ -245,9 +247,22 @@ async function outputMd(
   );
   return [md];
 }
+/**
+ * Checks if the query kind is compatible with SARIF output.
+ */
+function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
+  if (
+    compatibleQueryKinds.includes("Problem") ||
+    compatibleQueryKinds.includes("PathProblem")
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
 // Generates results.sarif from the given bqrs file, if query kind supports it
-async function outputSarif(
+async function outputSarifAndCount(
   codeql: string,
   bqrs: string,
   nwo: string,
@@ -284,10 +299,14 @@ async function outputSarif(
   const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
 
   injectVersionControlInfo(sarif, nwo, databaseSHA);
-
   fs.writeFileSync(sarifFile, JSON.stringify(sarif));
 
-  return [sarifFile];
+  const resultCountFile = path.join("results", "resultcount.txt");
+
+  const sarifResultCount = getSarifResultCount(sarif);
+  fs.writeFileSync(resultCountFile, JSON.stringify(sarifResultCount));
+
+  return [sarifFile, resultCountFile];
 }
 
 /**
@@ -316,9 +335,26 @@ export function injectVersionControlInfo(
   }
 }
 
-// Generates results count
-async function outputResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
-  const count = path.join("results", "resultcount.txt");
+/**
+ * Gets the number of results in the given SARIF data.
+ */
+export function getSarifResultCount(sarif: any): number {
+  let count = 0;
+  if (Array.isArray(sarif.runs)) {
+    for (const run of sarif.runs) {
+      if (Array.isArray(run.results)) {
+        count = count + parseInt(run.results.length);
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * Gets the number of results in the given BQRS data.
+ */
+async function outputBqrsResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
+  const resultCountFile = path.join("results", "resultcount.txt");
   // find the rows for the result set with name "#select"
   const selectResultSet = bqrsInfo.resultSets.find(
     (resultSet) => resultSet.name === "#select"
@@ -326,8 +362,12 @@ async function outputResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
   if (!selectResultSet) {
     throw new Error("No result set named #select");
   }
-  await fs.promises.writeFile(count, selectResultSet.rows.toString(), "utf8");
-  return [count];
+  await fs.promises.writeFile(
+    resultCountFile,
+    selectResultSet.rows.toString(),
+    "utf8"
+  );
+  return [resultCountFile];
 }
 
 interface DatabaseMetadata {
