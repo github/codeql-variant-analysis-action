@@ -251,14 +251,10 @@ async function outputMd(
  * Checks if the query kind is compatible with SARIF output.
  */
 function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
-  if (
+  return (
     compatibleQueryKinds.includes("Problem") ||
     compatibleQueryKinds.includes("PathProblem")
-  ) {
-    return true;
-  } else {
-    return false;
-  }
+  );
 }
 
 // Generates results.sarif from the given bqrs file, if query kind supports it
