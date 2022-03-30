@@ -12,6 +12,7 @@ import {
   BQRSInfo,
   getRemoteQueryPackDefaultQuery,
   injectVersionControlInfo,
+  getSarifResultCount,
 } from "./codeql";
 import { createResultIndex } from "./interpret";
 
@@ -217,4 +218,34 @@ test("populating the SARIF versionControlProvenance property", (t) => {
   };
 
   t.deepEqual(sarif.runs[0].versionControlProvenance[0], expected);
+});
+
+test("counting the number of results in a SARIF file)", (t) => {
+  const sarif = {
+    $schema:
+      "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+    version: "2.1.0",
+    runs: [
+      {
+        tool: {},
+        artifacts: [],
+        results: [
+          {
+            ruleId: "test-rule1",
+          },
+          {
+            ruleId: "test-rule2",
+          },
+          {
+            ruleId: "test-rule3",
+          },
+        ],
+        columnKind: "utf16CodeUnits",
+        properties: {},
+      },
+    ],
+  } as any;
+
+  const resultCount = getSarifResultCount(sarif);
+  t.is(resultCount, 3);
 });
