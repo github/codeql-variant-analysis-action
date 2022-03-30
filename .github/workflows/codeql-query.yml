@@ -93,8 +93,7 @@ jobs:
     if: always()
     needs:
       - run
-    permissions:
-      issues: write
+    permissions: {}
 
     steps:
       # NOTE: this is only expected to work on github.com hosted runnners.
