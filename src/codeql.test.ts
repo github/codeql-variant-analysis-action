@@ -55,13 +55,7 @@ test("running a query in a pack", async (t) => {
   try {
     await runQuery("codeql", t.context.db, "a/b", queryPack);
 
-    t.true(
-      fs
-        .readFileSync(path.join("results", "results.md"), "utf-8")
-        .includes("| 0 | 1 |")
-    );
     t.true(fs.existsSync(path.join("results", "results.bqrs")));
-    t.true(fs.existsSync(path.join("results", "results.csv")));
 
     const bqrsInfo: BQRSInfo = await getBqrsInfo(
       "codeql",

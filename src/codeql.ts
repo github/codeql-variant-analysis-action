@@ -6,7 +6,6 @@ import * as yaml from "js-yaml";
 
 import { deserialize } from "./deserialize";
 import { download } from "./download";
-import { interpret } from "./interpret";
 
 export {
   BQRSInfo,
@@ -100,15 +99,6 @@ async function runQuery(
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
   const outputPromises: Array<Promise<string[]>> = [
-    outputCsv(codeql, bqrs),
-    outputMd(
-      codeql,
-      bqrs,
-      nwo,
-      dbMetadata.creationMetadata?.sha || "HEAD",
-      compatibleQueryKinds,
-      sourceLocationPrefix
-    ),
     isSarif
       ? outputSarifAndCount(
           codeql,
@@ -185,19 +175,6 @@ async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
   return deserialize(bqrsInfoOutput.stdout);
 }
 
-// Generates results.csv from the given bqrs file
-async function outputCsv(codeql: string, bqrs: string): Promise<string[]> {
-  const csv = path.join("results", "results.csv");
-  await exec(codeql, [
-    "bqrs",
-    "decode",
-    "--format=csv",
-    `--output=${csv}`,
-    bqrs,
-  ]);
-  return [csv];
-}
-
 async function getSourceLocationPrefix(codeql: string) {
   const resolveDbOutput = await getExecOutput(codeql, [
     "resolve",
@@ -207,46 +184,6 @@ async function getSourceLocationPrefix(codeql: string) {
   return JSON.parse(resolveDbOutput.stdout).sourceLocationPrefix;
 }
 
-// Generates results.md from the given bqrs file
-async function outputMd(
-  codeql: string,
-  bqrs: string,
-  nwo: string,
-  databaseSHA: string,
-  compatibleQueryKinds: string[],
-  sourceLocationPrefix: string
-): Promise<string[]> {
-  const json = path.join("results", "results.json");
-  await exec(codeql, [
-    "bqrs",
-    "decode",
-    "--format=json",
-    `--output=${json}`,
-    "--entities=all",
-    bqrs,
-  ]);
-
-  // This will load the whole result set into memory. Given that we just ran a
-  // query, we probably have quite a lot of memory available. However, at some
-  // point this is likely to break down. We could then look at using a streaming
-  // parser such as http://oboejs.com/
-  const jsonResults = JSON.parse(await fs.promises.readFile(json, "utf8"));
-
-  const md = path.join("results", "results.md");
-  const s = fs.createWriteStream(md, {
-    encoding: "utf8",
-  });
-
-  await interpret(
-    s,
-    jsonResults,
-    nwo,
-    compatibleQueryKinds,
-    sourceLocationPrefix,
-    databaseSHA
-  );
-  return [md];
-}
 /**
  * Checks if the query kind is compatible with SARIF output.
  */
