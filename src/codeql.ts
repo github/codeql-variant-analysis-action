@@ -189,8 +189,9 @@ async function getSourceLocationPrefix(codeql: string) {
  */
 function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
   return (
-    compatibleQueryKinds.includes("Problem") ||
-    compatibleQueryKinds.includes("PathProblem")
+    !compatibleQueryKinds.includes("Diagnostic") &&
+    (compatibleQueryKinds.includes("Problem") ||
+      compatibleQueryKinds.includes("PathProblem"))
   );
 }
 
