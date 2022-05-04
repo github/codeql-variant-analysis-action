@@ -2,7 +2,10 @@ import fs from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
-import { create as createArtifactClient } from "@actions/artifact";
+import {
+  ArtifactClient,
+  create as createArtifactClient,
+} from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 
@@ -35,6 +38,22 @@ async function run(): Promise<void> {
   }
 
   const curDir = cwd();
+
+  let queryPack: string;
+  try {
+    // Download and extract the query pack.
+    console.log("Getting query pack");
+    const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
+    queryPack = await extractTar(queryPackArchive);
+  } catch (error: any) {
+    // Consider all repos to have failed
+    setFailed(error.message);
+    for (const repo of repos) {
+      await uploadError(error, repo, artifactClient);
+    }
+    return;
+  }
+
   for (const repo of repos) {
     try {
       const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
@@ -50,14 +69,6 @@ async function run(): Promise<void> {
         repo.pat
       );
 
-      // 2. Download and extract the query pack.
-      console.log("Getting query pack");
-      const queryPackArchive = await download(
-        queryPackUrl,
-        "query_pack.tar.gz"
-      );
-      const queryPack = await extractTar(queryPackArchive);
-
       // 2. Run the query
       console.log("Running query");
       const filesToUpload = await runQuery(codeql, dbZip, repo.nwo, queryPack);
@@ -72,24 +83,31 @@ async function run(): Promise<void> {
       );
     } catch (error: any) {
       setFailed(error.message);
-
-      // Write error messages to a file and upload as an artifact, so that the
-      // combine-results job "knows" about the failures
-      fs.mkdirSync("errors");
-      const errorFile = path.join("errors", "error.txt");
-      fs.appendFileSync(errorFile, error.message);
-
-      const nwoFile = path.join("errors", "nwo.txt");
-      fs.writeFileSync(nwoFile, repo.nwo);
-
-      await artifactClient.uploadArtifact(
-        `${repo.id.toString()}-error`, // name
-        [errorFile, nwoFile], // files
-        "errors", // rootdirectory
-        { continueOnError: false }
-      );
+      await uploadError(error, repo, artifactClient);
     }
   }
+}
+
+// Write error messages to a file and upload as an artifact,
+// so that the combine-results job "knows" about the failures.
+async function uploadError(
+  error: any,
+  repo: Repo,
+  artifactClient: ArtifactClient
+) {
+  fs.mkdirSync("errors");
+  const errorFile = path.join("errors", "error.txt");
+  fs.appendFileSync(errorFile, error.message);
+
+  const nwoFile = path.join("errors", "nwo.txt");
+  fs.writeFileSync(nwoFile, repo.nwo);
+
+  await artifactClient.uploadArtifact(
+    `${repo.id.toString()}-error`, // name
+    [errorFile, nwoFile], // files
+    "errors", // rootdirectory
+    { continueOnError: false }
+  );
 }
 
 void run();
