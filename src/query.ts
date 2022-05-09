@@ -15,6 +15,9 @@ import { download } from "./download";
 interface Repo {
   id: number;
   nwo: string;
+  downloadUrl?: string;
+
+  // token and pat are deprecated
   token?: string; // SignedAuthToken
   pat?: string;
 }
@@ -29,6 +32,9 @@ async function run(): Promise<void> {
   const codeql = getInput("codeql", { required: true });
 
   for (const repo of repos) {
+    if (repo.downloadUrl) {
+      setSecret(repo.downloadUrl);
+    }
     if (repo.token) {
       setSecret(repo.token);
     }
@@ -59,15 +65,22 @@ async function run(): Promise<void> {
       const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
       chdir(workDir);
 
-      // 1. Use the GitHub API to download the database using token
-      console.log("Getting database");
-      const dbZip = await downloadDatabase(
-        repo.id,
-        repo.nwo,
-        language,
-        repo.token,
-        repo.pat
-      );
+      let dbZip: string;
+      if (repo.downloadUrl) {
+        // 1a. Use the provided signed URL to download the database
+        console.log("Getting database");
+        dbZip = await download(repo.downloadUrl, `${repo.id}.zip`);
+      } else {
+        // 1b. Use the GitHub API to download the database using token
+        console.log("Getting database");
+        dbZip = await downloadDatabase(
+          repo.id,
+          repo.nwo,
+          language,
+          repo.token,
+          repo.pat
+        );
+      }
 
       // 2. Run the query
       console.log("Running query");
