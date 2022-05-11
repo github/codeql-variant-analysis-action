@@ -119,13 +119,10 @@ async function downloadDatabase(
   repoId: number,
   repoName: string,
   language: string,
-  signedAuthToken?: string,
   pat?: string
 ): Promise<string> {
   let authHeader: string | undefined = undefined;
-  if (signedAuthToken) {
-    authHeader = `RemoteAuth ${signedAuthToken}`;
-  } else if (pat) {
+  if (pat) {
     authHeader = `token ${pat}`;
   }
 
