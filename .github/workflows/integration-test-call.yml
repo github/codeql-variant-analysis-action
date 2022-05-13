@@ -53,8 +53,6 @@ jobs:
         if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != '' }}
         run: |
           gh pr edit "${{ github.event.inputs.pr_number }}" --add-label "integration tests succeeded"
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
       - name: Update status check to state 'failure'
         if: ${{ needs.query.result != 'success' }}
