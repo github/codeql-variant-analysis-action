@@ -15,6 +15,17 @@ jobs:
       - name: Check workflow references only main
         run: |
           ! grep 'uses: github/codeql-variant-analysis-action/' .github/workflows/codeql-query.yml | grep -q -v '@main$'
+  
+  integration-tests-have-been-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check label is present on PR
+        if: ${{ github.event_name == "pull_request" }} 
+        run: |
+          gh api "/repos/$GITHUB_REPOSITORY/issues/${{ github.event.inputs.pr_number }}/labels" | jq -r '.[].name' | grep "integration tests succeeded"
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
   lint-js:
     runs-on: ubuntu-latest

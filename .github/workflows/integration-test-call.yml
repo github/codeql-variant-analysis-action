@@ -6,6 +6,7 @@ on:
       query_pack_url:
       language:
       instructions_url:
+      pr_number:
 
 jobs:
   init:
@@ -42,6 +43,14 @@ jobs:
             -f state=success \
             -f description="integration-test-call.yml" \
             -f target_url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+      - name: Add success label to pull request
+        if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != "" }}
+        run: |
+          gh api -X POST "/repos/$GITHUB_REPOSITORY/issues/${{ github.event.inputs.pr_number }}/labels" \
+            -d '{"labels":["integration tests succeeded"]}'
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 

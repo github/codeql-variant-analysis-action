@@ -2,6 +2,8 @@ name: "Integration test (trigger only)"
 
 on:
   push:
+    branches: [main]
+  pull_request:
 
 jobs:
   trigger:
@@ -26,6 +28,7 @@ jobs:
             -r "$GITHUB_REF" \
             -f language=go \
             -f query_pack_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz" \
-            -f instructions_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/instructions.json"
+            -f instructions_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/instructions.json" \
+            -f pr_number="${{ github.event.pull_request.number }}"
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
