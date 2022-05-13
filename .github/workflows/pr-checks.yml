@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Check label is present on PR
-        if: ${{ github.event_name == "pull_request" }} 
+        if: ${{ github.event_name == 'pull_request' }} 
         run: |
           gh api "/repos/$GITHUB_REPOSITORY/issues/${{ github.event.inputs.pr_number }}/labels" | jq -r '.[].name' | grep "integration tests succeeded"
         env:
