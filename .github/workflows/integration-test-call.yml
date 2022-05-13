@@ -50,7 +50,7 @@ jobs:
         if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != '' }}
         run: |
           gh api -X POST "/repos/$GITHUB_REPOSITORY/issues/${{ github.event.inputs.pr_number }}/labels" \
-            -d '{"labels":["integration tests succeeded"]}'
+            -f body='{"labels":["integration tests succeeded"]}'
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
