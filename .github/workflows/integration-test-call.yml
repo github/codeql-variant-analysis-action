@@ -35,9 +35,6 @@ jobs:
     needs:
       - query
     steps:
-      # Need to check out repo so that 'gh pr' will know the correct repo
-      - uses: actions/checkout@v2
-
       - name: Update status check to state 'success'
         if: ${{ needs.query.result == 'success' }}
         run: |
@@ -53,6 +50,10 @@ jobs:
         if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != '' }}
         run: |
           gh pr edit "${{ github.event.inputs.pr_number }}" --add-label "integration tests succeeded"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
 
       - name: Update status check to state 'failure'
         if: ${{ needs.query.result != 'success' }}
