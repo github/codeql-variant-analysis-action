@@ -49,8 +49,7 @@ jobs:
       - name: Add success label to pull request
         if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != '' }}
         run: |
-          gh api -X POST "/repos/$GITHUB_REPOSITORY/issues/${{ github.event.inputs.pr_number }}/labels" \
-            -f body='{"labels":["integration tests succeeded"]}'
+          gh pr edit "${{ github.event.inputs.pr_number }}" --add-label "integration tests succeeded"
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
