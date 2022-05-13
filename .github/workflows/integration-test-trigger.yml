@@ -23,9 +23,14 @@ jobs:
       # The owner of the provided token must have write access to trigger this workflow run.
       - name: Trigger the real workflow
         run: |
+          if [ ${{ github.event_name }} == "pull_request" ]; then
+            REF="${{ github.event.pull_request.head.ref }}"
+          else
+            REF="$GITHUB_REF"
+          fi
           gh workflow run integration-test-call.yml \
             -R "$GITHUB_REPOSITORY" \
-            -r "$GITHUB_REF" \
+            -r "$REF" \
             -f language=go \
             -f query_pack_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz" \
             -f instructions_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/instructions.json" \
