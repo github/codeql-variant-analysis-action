@@ -23,8 +23,8 @@ jobs:
       # The owner of the provided token must have write access to trigger this workflow run.
       - name: Trigger the real workflow
         run: |
-          if [ ${{ github.event_name }} == "pull_request" ]; then
-            REF="${{ github.event.pull_request.head.ref }}"
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            REF="$GITHUB_HEAD_REF"
           else
             REF="$GITHUB_REF"
           fi

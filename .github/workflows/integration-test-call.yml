@@ -36,7 +36,7 @@ jobs:
       - query
     steps:
       # Need to check out repo so that 'gh pr' will know the correct repo
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Update status check to state 'success'
         if: ${{ needs.query.result == 'success' }}
