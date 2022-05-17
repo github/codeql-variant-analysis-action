@@ -6,6 +6,7 @@ on:
       query_pack_url:
       language:
       instructions_url:
+      pr_number:
 
 jobs:
   init:
@@ -34,6 +35,9 @@ jobs:
     needs:
       - query
     steps:
+      # Need to check out repo so that 'gh pr' will know the correct repo
+      - uses: actions/checkout@v3
+
       - name: Update status check to state 'success'
         if: ${{ needs.query.result == 'success' }}
         run: |
@@ -44,6 +48,14 @@ jobs:
             -f target_url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+      - name: Add success label to pull request
+        if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != '' }}
+        run: |
+          gh pr edit "$PR_NUM" --add-label "integration tests succeeded"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUM: ${{ github.event.inputs.pr_number }}
 
       - name: Update status check to state 'failure'
         if: ${{ needs.query.result != 'success' }}
