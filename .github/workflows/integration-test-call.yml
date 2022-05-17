@@ -60,7 +60,6 @@ jobs:
             gh pr edit "$PR_NUM" --add-label "integration tests succeeded"
           else
             echo "Detected $NUM_USAGES references to $REF branch"
-            exit 1
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
