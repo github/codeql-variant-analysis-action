@@ -53,9 +53,9 @@ jobs:
         if: ${{ needs.query.result == 'success' && github.event.inputs.pr_number != '' }}
         run: |
           # Get the branch without refs/heads/
-          REF=$(git rev-parse --abbrev-ref HEAD)
+          REF="$(git rev-parse --abbrev-ref HEAD)"
           # Only add the label if the workflow references the correct branch
-          NUM_USAGES=$(grep 'uses: github/codeql-variant-analysis-action/' .github/workflows/codeql-query.yml | grep "@${REF}$" | wc -l)
+          NUM_USAGES="$(grep 'uses: github/codeql-variant-analysis-action/' .github/workflows/codeql-query.yml | grep "@${REF}$" | wc -l)"
           if [ "$NUM_USAGES" == 2 ]; then
             gh pr edit "$PR_NUM" --add-label "integration tests succeeded"
           else
