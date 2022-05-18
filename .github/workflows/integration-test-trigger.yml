@@ -2,6 +2,8 @@ name: "Integration test (trigger only)"
 
 on:
   push:
+    branches: [main]
+  pull_request:
 
 jobs:
   trigger:
@@ -21,11 +23,17 @@ jobs:
       # The owner of the provided token must have write access to trigger this workflow run.
       - name: Trigger the real workflow
         run: |
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            REF="$GITHUB_HEAD_REF"
+          else
+            REF="$GITHUB_REF"
+          fi
           gh workflow run integration-test-call.yml \
             -R "$GITHUB_REPOSITORY" \
-            -r "$GITHUB_REF" \
+            -r "$REF" \
             -f language=go \
             -f query_pack_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz" \
-            -f instructions_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/instructions.json"
+            -f instructions_url="https://github.com/$GITHUB_REPOSITORY/releases/download/test/instructions.json" \
+            -f pr_number="${{ github.event.pull_request.number }}"
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
