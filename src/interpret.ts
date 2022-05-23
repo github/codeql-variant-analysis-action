@@ -3,6 +3,8 @@ import path from "path";
 
 import { DownloadResponse } from "@actions/artifact";
 
+import { QueryRunMetadata } from "./codeql";
+
 export { createResultIndex };
 
 export interface SuccessIndexItem {
@@ -31,27 +33,10 @@ function createResultIndex(
   const successes: SuccessIndexItem[] = successArtifacts.map(function (
     response
   ) {
-    const nwo = fs.readFileSync(
-      path.join(response.downloadPath, "nwo.txt"),
-      "utf-8"
-    );
+    const metadata = readMetadata(response);
+
     const id = response.artifactName;
-    let sha: string | undefined = undefined;
-    const shaPath = path.join(response.downloadPath, "sha.txt");
-    try {
-      sha = fs.readFileSync(shaPath, "utf-8");
-    } catch (err) {
-      console.log(
-        `Couldn't read sha.txt from ${response.downloadPath}: ${err}`
-      );
-    }
-    const results_count = parseInt(
-      fs.readFileSync(
-        path.join(response.downloadPath, "resultcount.txt"),
-        "utf-8"
-      ),
-      10
-    );
+
     const bqrs_file_size = fs.statSync(
       path.join(response.downloadPath, "results.bqrs")
     ).size;
@@ -62,10 +47,10 @@ function createResultIndex(
       ).size;
     }
     const successIndexItem: SuccessIndexItem = {
-      nwo,
+      nwo: metadata.nwo,
       id,
-      sha,
-      results_count,
+      sha: metadata.sha,
+      results_count: metadata.resultCount,
       bqrs_file_size,
       sarif_file_size,
     };
@@ -74,10 +59,10 @@ function createResultIndex(
   const failures: FailureIndexItem[] = failureArtifacts.map(function (
     response
   ) {
-    const nwo = fs.readFileSync(
-      path.join(response.downloadPath, "nwo.txt"),
-      "utf-8"
-    );
+    // TODO: Make sure we can get metadata (i.e. nwo), even if the run failed
+    const metadata = readMetadata(response);
+    const nwo = metadata.nwo;
+
     // id is the artifactName without the "-error" suffix
     const id = response.artifactName.substring(
       0,
@@ -98,4 +83,26 @@ function createResultIndex(
     successes,
     failures,
   };
+}
+
+function readMetadata(response: DownloadResponse): QueryRunMetadata {
+  const metadata = fs.readFileSync(
+    path.join(response.downloadPath, "metadata.json"),
+    "utf8"
+  );
+  try {
+    const metadataJson = JSON.parse(metadata);
+    if (!metadataJson.nwo || !metadataJson.resultCount) {
+      console.log(`metadata.json is missing nwo and resultCount properties.`);
+    } else {
+      return metadataJson;
+    }
+  } catch (error) {
+    console.log(
+      `Failed to parse metadata.json for ${response.artifactName}: ${error}`
+    );
+  }
+  throw new Error(
+    `Unable to read metadata from artifact ${response.artifactName}`
+  );
 }
