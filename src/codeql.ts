@@ -109,7 +109,10 @@ async function runQuery(
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
-  const metadataFilePath = outputQueryRunMetadata(
+  const metadataFilePath = path.join("results", "metadata.json");
+
+  writeQueryRunMetadataToFile(
+    metadataFilePath,
     nwo,
     resultCount,
     dbMetadata.creationMetadata?.sha
@@ -357,16 +360,14 @@ export interface QueryRunMetadata {
   sha?: string;
 }
 /**
- * Gets the metadata for a query run, writes it to a file, and
- * returns the path to that file.
+ * Writes the metadata for a query run to a given file.
  */
-function outputQueryRunMetadata(
+export function writeQueryRunMetadataToFile(
+  metadataFilePath: string,
   nwo: string,
-  resultCount: number,
+  resultCount?: number,
   sha?: string
-): string {
-  const metadataFilePath = path.join("results", "metadata.json");
-
+): void {
   const queryRunMetadata: QueryRunMetadata = {
     nwo,
     resultCount,
@@ -374,5 +375,5 @@ function outputQueryRunMetadata(
   };
 
   fs.writeFileSync(metadataFilePath, JSON.stringify(queryRunMetadata));
-  return metadataFilePath;
+  return;
 }

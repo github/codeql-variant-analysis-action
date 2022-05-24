@@ -9,7 +9,11 @@ import {
 import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 
-import { downloadDatabase, runQuery } from "./codeql";
+import {
+  downloadDatabase,
+  runQuery,
+  writeQueryRunMetadataToFile,
+} from "./codeql";
 import { download } from "./download";
 
 interface Repo {
@@ -103,7 +107,8 @@ async function uploadError(
   fs.appendFileSync(errorFilePath, error.message);
 
   const metadataFilePath = path.join("errors", "metadata.json");
-  fs.writeFileSync(metadataFilePath, { nwo: repo.nwo });
+
+  writeQueryRunMetadataToFile(metadataFilePath, repo.nwo);
 
   await artifactClient.uploadArtifact(
     `${repo.id.toString()}-error`, // name
