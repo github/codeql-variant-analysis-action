@@ -103,7 +103,7 @@ async function uploadError(
   fs.appendFileSync(errorFilePath, error.message);
 
   const metadataFilePath = path.join("errors", "metadata.json");
-  fs.writeFileSync(metadataFilePath, repo.nwo);
+  fs.writeFileSync(metadataFilePath, { nwo: repo.nwo });
 
   await artifactClient.uploadArtifact(
     `${repo.id.toString()}-error`, // name
