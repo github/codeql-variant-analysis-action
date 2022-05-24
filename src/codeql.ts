@@ -39,6 +39,7 @@ async function runQuery(
 ): Promise<string[]> {
   const bqrsFilePath = path.join("results", "results.bqrs");
   fs.mkdirSync("results");
+
   const outputFilePaths = [bqrsFilePath];
 
   const databaseName = "db";
@@ -352,7 +353,7 @@ async function getRemoteQueryPackDefaultQuery(
 
 export interface QueryRunMetadata {
   nwo: string;
-  resultCount: number;
+  resultCount?: number;
   sha?: string;
 }
 /**

@@ -34,6 +34,12 @@ function createResultIndex(
     response
   ) {
     const metadata = readMetadata(response);
+    if (!metadata.resultCount) {
+      console.log(`metadata.json is missing resultCount property.`);
+      throw new Error(
+        `Unable to read metadata from artifact ${response.artifactName}`
+      );
+    }
 
     const id = response.artifactName;
 
@@ -59,7 +65,6 @@ function createResultIndex(
   const failures: FailureIndexItem[] = failureArtifacts.map(function (
     response
   ) {
-    // TODO: Make sure we can get metadata (i.e. nwo), even if the run failed
     const metadata = readMetadata(response);
     const nwo = metadata.nwo;
 
@@ -92,8 +97,8 @@ function readMetadata(response: DownloadResponse): QueryRunMetadata {
   );
   try {
     const metadataJson = JSON.parse(metadata);
-    if (!metadataJson.nwo || !metadataJson.resultCount) {
-      console.log(`metadata.json is missing nwo and resultCount properties.`);
+    if (!metadataJson.nwo) {
+      console.log(`metadata.json is missing nwo property.`);
     } else {
       return metadataJson;
     }

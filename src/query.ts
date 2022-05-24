@@ -99,15 +99,15 @@ async function uploadError(
   artifactClient: ArtifactClient
 ) {
   fs.mkdirSync("errors");
-  const errorFile = path.join("errors", "error.txt");
-  fs.appendFileSync(errorFile, error.message);
+  const errorFilePath = path.join("errors", "error.txt");
+  fs.appendFileSync(errorFilePath, error.message);
 
-  const nwoFile = path.join("errors", "nwo.txt");
-  fs.writeFileSync(nwoFile, repo.nwo);
+  const metadataFilePath = path.join("errors", "metadata.json");
+  fs.writeFileSync(metadataFilePath, repo.nwo);
 
   await artifactClient.uploadArtifact(
     `${repo.id.toString()}-error`, // name
-    [errorFile, nwoFile], // files
+    [errorFilePath, metadataFilePath], // files
     "errors", // rootdirectory
     { continueOnError: false }
   );
