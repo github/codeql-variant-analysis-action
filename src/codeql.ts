@@ -105,7 +105,7 @@ async function runQuery(
     );
     resultCount = getSarifResultCount(sarif);
     const sarifFilePath = path.join("results", "results.sarif");
-    fs.writeFileSync(sarifFilePath, sarif);
+    fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
     outputFilePaths.push(sarifFilePath);
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
