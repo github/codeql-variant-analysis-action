@@ -3,7 +3,7 @@ import path from "path";
 
 import { DownloadResponse } from "@actions/artifact";
 
-import { QueryRunMetadata } from "./codeql";
+import { readQueryRunMetadataFromFile } from "./query-run-metadata";
 
 export { createResultIndex };
 
@@ -87,22 +87,4 @@ function createResultIndex(
     successes,
     failures,
   };
-}
-
-function readQueryRunMetadataFromFile(downloadPath: string): QueryRunMetadata {
-  try {
-    const metadata = fs.readFileSync(
-      path.join(downloadPath, "metadata.json"),
-      "utf8"
-    );
-    const metadataJson = JSON.parse(metadata);
-    if (!metadataJson.nwo) {
-      console.log(`metadata.json is missing nwo property.`);
-    } else {
-      return metadataJson;
-    }
-  } catch (error) {
-    console.log(`Failed to parse metadata.json: ${error}`);
-  }
-  throw new Error("Unable to read metadata from artifact");
 }

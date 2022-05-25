@@ -9,12 +9,9 @@ import {
 import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 
-import {
-  downloadDatabase,
-  runQuery,
-  writeQueryRunMetadataToFile,
-} from "./codeql";
+import { downloadDatabase, runQuery } from "./codeql";
 import { download } from "./download";
+import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 interface Repo {
   id: number;

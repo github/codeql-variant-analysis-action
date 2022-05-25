@@ -6,6 +6,7 @@ import * as yaml from "js-yaml";
 
 import { deserialize } from "./deserialize";
 import { download } from "./download";
+import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 export {
   BQRSInfo,
@@ -352,28 +353,4 @@ async function getRemoteQueryPackDefaultQuery(
   }
 
   return queries[0];
-}
-
-export interface QueryRunMetadata {
-  nwo: string;
-  resultCount?: number;
-  sha?: string;
-}
-/**
- * Writes the metadata for a query run to a given file.
- */
-export function writeQueryRunMetadataToFile(
-  metadataFilePath: string,
-  nwo: string,
-  resultCount?: number,
-  sha?: string
-): void {
-  const queryRunMetadata: QueryRunMetadata = {
-    nwo,
-    resultCount,
-    sha,
-  };
-
-  fs.writeFileSync(metadataFilePath, JSON.stringify(queryRunMetadata));
-  return;
 }
