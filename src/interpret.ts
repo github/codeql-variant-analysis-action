@@ -33,12 +33,10 @@ function createResultIndex(
   const successes: SuccessIndexItem[] = successArtifacts.map(function (
     response
   ) {
-    const metadata = readMetadata(response);
-    if (!metadata.resultCount) {
-      console.log(`metadata.json is missing resultCount property.`);
-      throw new Error(
-        `Unable to read metadata from artifact ${response.artifactName}`
-      );
+    console.log(`Reading metadata from artifact: ${response.artifactName}`);
+    const metadata = readQueryRunMetadataFromFile(response.downloadPath);
+    if (metadata.resultCount === undefined || metadata.resultCount === null) {
+      throw new Error(`metadata.json is missing resultCount property.`);
     }
 
     const id = response.artifactName;
@@ -65,7 +63,8 @@ function createResultIndex(
   const failures: FailureIndexItem[] = failureArtifacts.map(function (
     response
   ) {
-    const metadata = readMetadata(response);
+    console.log(`Reading metadata from artifact: ${response.artifactName}`);
+    const metadata = readQueryRunMetadataFromFile(response.downloadPath);
     const nwo = metadata.nwo;
 
     // id is the artifactName without the "-error" suffix
@@ -90,12 +89,12 @@ function createResultIndex(
   };
 }
 
-function readMetadata(response: DownloadResponse): QueryRunMetadata {
-  const metadata = fs.readFileSync(
-    path.join(response.downloadPath, "metadata.json"),
-    "utf8"
-  );
+function readQueryRunMetadataFromFile(downloadPath: string): QueryRunMetadata {
   try {
+    const metadata = fs.readFileSync(
+      path.join(downloadPath, "metadata.json"),
+      "utf8"
+    );
     const metadataJson = JSON.parse(metadata);
     if (!metadataJson.nwo) {
       console.log(`metadata.json is missing nwo property.`);
@@ -103,11 +102,7 @@ function readMetadata(response: DownloadResponse): QueryRunMetadata {
       return metadataJson;
     }
   } catch (error) {
-    console.log(
-      `Failed to parse metadata.json for ${response.artifactName}: ${error}`
-    );
+    console.log(`Failed to parse metadata.json: ${error}`);
   }
-  throw new Error(
-    `Unable to read metadata from artifact ${response.artifactName}`
-  );
+  throw new Error("Unable to read metadata from artifact");
 }
