@@ -11,6 +11,7 @@ export interface SuccessIndexItem {
   nwo: string;
   id: string;
   sha?: string;
+  source_location_prefix: string;
   results_count: number;
   bqrs_file_size: number;
   sarif_file_size?: number;
@@ -38,6 +39,11 @@ function createResultIndex(
     if (metadata.resultCount === undefined || metadata.resultCount === null) {
       throw new Error(`metadata.json is missing resultCount property.`);
     }
+    if (metadata.sourceLocationPrefix === undefined) {
+      throw new Error(
+        `metadata.json is missing sourceLocationPrefix property.`
+      );
+    }
 
     const id = response.artifactName;
 
@@ -54,6 +60,7 @@ function createResultIndex(
       nwo: metadata.nwo,
       id,
       sha: metadata.sha,
+      source_location_prefix: metadata.sourceLocationPrefix,
       results_count: metadata.resultCount,
       bqrs_file_size,
       sarif_file_size,

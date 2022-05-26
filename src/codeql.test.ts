@@ -168,6 +168,7 @@ test("creating a result index", async (t) => {
     const successItem = resultIndex.successes[0];
     t.is(successItem.nwo, "a/b");
     t.is(successItem.id, "123");
+    t.true(successItem.source_location_prefix.length > 0);
     t.is(successItem.results_count, 3);
     t.true(successItem.bqrs_file_size > 0);
     const failureItem = resultIndex.failures[0];

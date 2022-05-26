@@ -116,7 +116,8 @@ async function runQuery(
     metadataFilePath,
     nwo,
     resultCount,
-    dbMetadata.creationMetadata?.sha
+    dbMetadata.creationMetadata?.sha,
+    sourceLocationPrefix
   );
   outputFilePaths.push(metadataFilePath);
 
