@@ -3,6 +3,8 @@ import path from "path";
 
 import { DownloadResponse } from "@actions/artifact";
 
+import { readQueryRunMetadataFromFile } from "./query-run-metadata";
+
 export { createResultIndex };
 
 export interface SuccessIndexItem {
@@ -31,27 +33,14 @@ function createResultIndex(
   const successes: SuccessIndexItem[] = successArtifacts.map(function (
     response
   ) {
-    const nwo = fs.readFileSync(
-      path.join(response.downloadPath, "nwo.txt"),
-      "utf-8"
-    );
-    const id = response.artifactName;
-    let sha: string | undefined = undefined;
-    const shaPath = path.join(response.downloadPath, "sha.txt");
-    try {
-      sha = fs.readFileSync(shaPath, "utf-8");
-    } catch (err) {
-      console.log(
-        `Couldn't read sha.txt from ${response.downloadPath}: ${err}`
-      );
+    console.log(`Reading metadata from artifact: ${response.artifactName}`);
+    const metadata = readQueryRunMetadataFromFile(response.downloadPath);
+    if (metadata.resultCount === undefined || metadata.resultCount === null) {
+      throw new Error(`metadata.json is missing resultCount property.`);
     }
-    const results_count = parseInt(
-      fs.readFileSync(
-        path.join(response.downloadPath, "resultcount.txt"),
-        "utf-8"
-      ),
-      10
-    );
+
+    const id = response.artifactName;
+
     const bqrs_file_size = fs.statSync(
       path.join(response.downloadPath, "results.bqrs")
     ).size;
@@ -62,10 +51,10 @@ function createResultIndex(
       ).size;
     }
     const successIndexItem: SuccessIndexItem = {
-      nwo,
+      nwo: metadata.nwo,
       id,
-      sha,
-      results_count,
+      sha: metadata.sha,
+      results_count: metadata.resultCount,
       bqrs_file_size,
       sarif_file_size,
     };
@@ -74,10 +63,10 @@ function createResultIndex(
   const failures: FailureIndexItem[] = failureArtifacts.map(function (
     response
   ) {
-    const nwo = fs.readFileSync(
-      path.join(response.downloadPath, "nwo.txt"),
-      "utf-8"
-    );
+    console.log(`Reading metadata from artifact: ${response.artifactName}`);
+    const metadata = readQueryRunMetadataFromFile(response.downloadPath);
+    const nwo = metadata.nwo;
+
     // id is the artifactName without the "-error" suffix
     const id = response.artifactName.substring(
       0,
