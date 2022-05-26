@@ -11,10 +11,10 @@ export interface SuccessIndexItem {
   nwo: string;
   id: string;
   sha?: string;
-  source_location_prefix: string;
   results_count: number;
   bqrs_file_size: number;
   sarif_file_size?: number;
+  source_location_prefix: string;
 }
 export interface FailureIndexItem {
   nwo: string;
@@ -39,7 +39,10 @@ function createResultIndex(
     if (metadata.resultCount === undefined || metadata.resultCount === null) {
       throw new Error(`metadata.json is missing resultCount property.`);
     }
-    if (metadata.sourceLocationPrefix === undefined) {
+    if (
+      metadata.sourceLocationPrefix === undefined ||
+      metadata.sourceLocationPrefix === null
+    ) {
       throw new Error(
         `metadata.json is missing sourceLocationPrefix property.`
       );
@@ -60,10 +63,10 @@ function createResultIndex(
       nwo: metadata.nwo,
       id,
       sha: metadata.sha,
-      source_location_prefix: metadata.sourceLocationPrefix,
       results_count: metadata.resultCount,
       bqrs_file_size,
       sarif_file_size,
+      source_location_prefix: metadata.sourceLocationPrefix,
     };
     return successIndexItem;
   });
