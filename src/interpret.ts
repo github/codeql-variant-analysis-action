@@ -39,10 +39,7 @@ function createResultIndex(
     if (metadata.resultCount === undefined || metadata.resultCount === null) {
       throw new Error(`metadata.json is missing resultCount property.`);
     }
-    if (
-      metadata.sourceLocationPrefix === undefined ||
-      metadata.sourceLocationPrefix === null
-    ) {
+    if (!metadata.sourceLocationPrefix) {
       throw new Error(
         `metadata.json is missing sourceLocationPrefix property.`
       );
