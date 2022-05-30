@@ -15,6 +15,7 @@ npm run removeNPMAbsolutePaths
 if [ ! -z "$(git status --porcelain)" ]; then
     # If we get a fail here then the PR needs attention
     >&2 echo "Failed: node_modules are not up to date. Run 'npm ci && npm run removeNPMAbsolutePaths'."
+    >&2 echo "For best results use linux when running the above commands. Use a codespace or docker container if necessary."
     git status
     exit 1
 fi
