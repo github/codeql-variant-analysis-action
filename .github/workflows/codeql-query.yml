@@ -113,8 +113,3 @@ jobs:
 
       - name: Combine results
         uses: github/codeql-variant-analysis-action/combine-results@main
-        with:
-          query_pack_url: ${{ github.event.inputs.query_pack_url }}
-          language: ${{ github.event.inputs.language }}
-          token: ${{ github.token }}
-          codeql: ${{ steps.init.outputs.codeql-path }}

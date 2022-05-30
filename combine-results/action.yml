@@ -1,19 +1,6 @@
 name: "CodeQL: Combine and post query results"
 description: "Combine the results of a batch query run and post to an issue"
 author: "GitHub"
-inputs:
-  query_pack_url:
-    description: "URL for a tarball containing CodeQL query plus dependencies."
-    required: true
-  language:
-    description: "Language of CodeQL query"
-    required: true
-  token:
-    description: "Token to use to post the results to an issue"
-    required: true
-  codeql:
-    description: "path to CodeQL binary to use"
-    required: true
 runs:
   using: "node12"
   main: "../lib/combine-results.js"
