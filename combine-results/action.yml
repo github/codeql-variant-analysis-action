@@ -1,5 +1,5 @@
-name: "CodeQL: Combine and post query results"
-description: "Combine the results of a batch query run and post to an issue"
+name: "CodeQL: Combine query results"
+description: "Combine the results of a batch query run into a single index file"
 author: "GitHub"
 runs:
   using: "node12"
