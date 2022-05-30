@@ -6,6 +6,7 @@ import * as yaml from "js-yaml";
 
 import { deserialize } from "./deserialize";
 import { download } from "./download";
+import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 export {
   BQRSInfo,
@@ -22,7 +23,7 @@ const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
  * - query/    (query.ql and any other supporting files)
- * - results/  (results.{bqrs,csv,json,md} and nwo.txt)
+ * - results/  (results.{bqrs,sarif} and metadata.json)
  *
  * @param     codeql              The path to the codeql binary
  * @param     database            The path to the bundled database zip file
@@ -37,11 +38,10 @@ async function runQuery(
   nwo: string,
   queryPack: string
 ): Promise<string[]> {
-  const bqrs = path.join("results", "results.bqrs");
+  const bqrsFilePath = path.join("results", "results.bqrs");
   fs.mkdirSync("results");
-  const nwoFile = path.join("results", "nwo.txt");
-  fs.writeFileSync(nwoFile, nwo);
-  const outputFiles = [bqrs, nwoFile];
+
+  const outputFilePaths = [bqrsFilePath];
 
   const databaseName = "db";
   await exec(codeql, [
@@ -55,12 +55,6 @@ async function runQuery(
   console.log(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
-  let databaseSHAFile: string | undefined;
-  if (dbMetadata.creationMetadata?.sha) {
-    databaseSHAFile = path.join("results", "sha.txt");
-    fs.writeFileSync(databaseSHAFile, dbMetadata.creationMetadata.sha);
-    outputFiles.push(databaseSHAFile);
-  }
 
   await exec(codeql, [
     "database",
@@ -91,41 +85,53 @@ async function runQuery(
     throw new Error(`Unexpected file in ${cur}: ${entry.name}`);
   }
 
-  fs.renameSync(path.join(cur, entry.name), bqrs);
+  fs.renameSync(path.join(cur, entry.name), bqrsFilePath);
 
-  const bqrsInfo = await getBqrsInfo(codeql, bqrs);
+  const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
-  const outputPromises: Array<Promise<string[]>> = [
-    isSarif
-      ? outputSarifAndCount(
-          codeql,
-          bqrs,
-          nwo,
-          compatibleQueryKinds,
-          databaseName,
-          sourceLocationPrefix,
-          dbMetadata.creationMetadata?.sha
-        )
-      : outputBqrsResultCount(bqrsInfo),
-  ];
+  let resultCount: number;
+  if (isSarif) {
+    const sarif = await generateSarif(
+      codeql,
+      bqrsFilePath,
+      nwo,
+      compatibleQueryKinds,
+      databaseName,
+      sourceLocationPrefix,
+      dbMetadata.creationMetadata?.sha
+    );
+    resultCount = getSarifResultCount(sarif);
+    const sarifFilePath = path.join("results", "results.sarif");
+    fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
+    outputFilePaths.push(sarifFilePath);
+  } else {
+    resultCount = getBqrsResultCount(bqrsInfo);
+  }
+  const metadataFilePath = path.join("results", "metadata.json");
 
-  return outputFiles.concat(...(await Promise.all(outputPromises)));
+  writeQueryRunMetadataToFile(
+    metadataFilePath,
+    nwo,
+    resultCount,
+    dbMetadata.creationMetadata?.sha,
+    sourceLocationPrefix
+  );
+  outputFilePaths.push(metadataFilePath);
+
+  return outputFilePaths;
 }
 
 async function downloadDatabase(
   repoId: number,
   repoName: string,
   language: string,
-  signedAuthToken?: string,
   pat?: string
 ): Promise<string> {
   let authHeader: string | undefined = undefined;
-  if (signedAuthToken) {
-    authHeader = `RemoteAuth ${signedAuthToken}`;
-  } else if (pat) {
+  if (pat) {
     authHeader = `token ${pat}`;
   }
 
@@ -194,8 +200,8 @@ function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
   );
 }
 
-// Generates results.sarif from the given bqrs file, if query kind supports it
-async function outputSarifAndCount(
+// Generates sarif from the given bqrs file, if query kind supports it
+async function generateSarif(
   codeql: string,
   bqrs: string,
   nwo: string,
@@ -223,6 +229,7 @@ async function outputSarifAndCount(
     `-t=kind=${kind}`,
     "-t=id=remote-query",
     "--sarif-add-snippets",
+    "--no-group-results",
     // Hard-coded the source archive as src.zip inside the database, since that's
     // where the CLI puts it. If this changes, we need to update this path.
     `--source-archive=${databaseName}/src.zip`,
@@ -232,14 +239,7 @@ async function outputSarifAndCount(
   const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
 
   injectVersionControlInfo(sarif, nwo, databaseSHA);
-  fs.writeFileSync(sarifFile, JSON.stringify(sarif));
-
-  const resultCountFile = path.join("results", "resultcount.txt");
-
-  const sarifResultCount = getSarifResultCount(sarif);
-  fs.writeFileSync(resultCountFile, JSON.stringify(sarifResultCount));
-
-  return [sarifFile, resultCountFile];
+  return sarif;
 }
 
 /**
@@ -286,21 +286,14 @@ export function getSarifResultCount(sarif: any): number {
 /**
  * Gets the number of results in the given BQRS data.
  */
-async function outputBqrsResultCount(bqrsInfo: BQRSInfo): Promise<string[]> {
-  const resultCountFile = path.join("results", "resultcount.txt");
-  // find the rows for the result set with name "#select"
+function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
   const selectResultSet = bqrsInfo.resultSets.find(
     (resultSet) => resultSet.name === "#select"
   );
   if (!selectResultSet) {
     throw new Error("No result set named #select");
   }
-  await fs.promises.writeFile(
-    resultCountFile,
-    selectResultSet.rows.toString(),
-    "utf8"
-  );
-  return [resultCountFile];
+  return selectResultSet.rows;
 }
 
 interface DatabaseMetadata {

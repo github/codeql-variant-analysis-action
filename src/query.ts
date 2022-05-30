@@ -11,14 +11,14 @@ import { extractTar } from "@actions/tool-cache";
 
 import { downloadDatabase, runQuery } from "./codeql";
 import { download } from "./download";
+import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 interface Repo {
   id: number;
   nwo: string;
   downloadUrl?: string;
 
-  // token and pat are deprecated
-  token?: string; // SignedAuthToken
+  // pat is deprecated and only used during integration tests
   pat?: string;
 }
 
@@ -34,9 +34,6 @@ async function run(): Promise<void> {
   for (const repo of repos) {
     if (repo.downloadUrl) {
       setSecret(repo.downloadUrl);
-    }
-    if (repo.token) {
-      setSecret(repo.token);
     }
     if (repo.pat) {
       setSecret(repo.pat);
@@ -73,13 +70,7 @@ async function run(): Promise<void> {
       } else {
         // 1b. Use the GitHub API to download the database using token
         console.log("Getting database");
-        dbZip = await downloadDatabase(
-          repo.id,
-          repo.nwo,
-          language,
-          repo.token,
-          repo.pat
-        );
+        dbZip = await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
       }
 
       // 2. Run the query
@@ -109,15 +100,16 @@ async function uploadError(
   artifactClient: ArtifactClient
 ) {
   fs.mkdirSync("errors");
-  const errorFile = path.join("errors", "error.txt");
-  fs.appendFileSync(errorFile, error.message);
+  const errorFilePath = path.join("errors", "error.txt");
+  fs.appendFileSync(errorFilePath, error.message);
 
-  const nwoFile = path.join("errors", "nwo.txt");
-  fs.writeFileSync(nwoFile, repo.nwo);
+  const metadataFilePath = path.join("errors", "metadata.json");
+
+  writeQueryRunMetadataToFile(metadataFilePath, repo.nwo);
 
   await artifactClient.uploadArtifact(
     `${repo.id.toString()}-error`, // name
-    [errorFile, nwoFile], // files
+    [errorFilePath, metadataFilePath], // files
     "errors", // rootdirectory
     { continueOnError: false }
   );
