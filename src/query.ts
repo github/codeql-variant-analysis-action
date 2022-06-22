@@ -58,10 +58,12 @@ async function run(): Promise<void> {
   }
 
   for (const repo of repos) {
-    try {
-      const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
-      chdir(workDir);
+    // Create a new directory to contain all files created during analysis of this repo.
+    const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
+    // Change into the new directory to further ensure that all created files go in there.
+    chdir(workDir);
 
+    try {
       let dbZip: string;
       if (repo.downloadUrl) {
         // 1a. Use the provided signed URL to download the database
@@ -89,6 +91,10 @@ async function run(): Promise<void> {
       setFailed(error.message);
       await uploadError(error, repo, artifactClient);
     }
+
+    // We can now delete the work dir. All required files have already been uploaded.
+    chdir(curDir);
+    fs.rmdirSync(workDir, { recursive: true });
   }
 }
 
