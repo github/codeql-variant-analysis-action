@@ -6,8 +6,8 @@ import * as yaml from "js-yaml";
 
 import { deserialize } from "./deserialize";
 import { download } from "./download";
-import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 import { getMemoryFlagValue } from "./query-run-memory";
+import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 export {
   BQRSInfo,
