@@ -7,6 +7,7 @@ import * as yaml from "js-yaml";
 import { deserialize } from "./deserialize";
 import { download } from "./download";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
+import { getMemoryFlagValue } from "./query-run-memory";
 
 export {
   BQRSInfo,
@@ -59,6 +60,7 @@ async function runQuery(
   await exec(codeql, [
     "database",
     "run-queries",
+    `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
     queryPack,
     "--",
