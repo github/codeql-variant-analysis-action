@@ -23,7 +23,7 @@ const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
 
 // We set the query evaluation timeout at 30 minutes, i.e. 1800 seconds, since most databases are analyzed faster than that.
 // Analyzing really large databases can take longer, but that is limited by the 6h Actions timeout anyway.
-const QUERY_EVALUATION_TIMEOUT = 1800;
+const QUERY_EVALUATION_TIMEOUT = 600;
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
