@@ -13,6 +13,7 @@ export {
   BQRSInfo,
   downloadDatabase,
   runQuery,
+  RunQueryResult,
   getBqrsInfo,
   getDatabaseMetadata,
   getRemoteQueryPackDefaultQuery,
