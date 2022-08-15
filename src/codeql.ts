@@ -49,7 +49,6 @@ async function runQuery(
   nwo: string,
   queryPack: string
 ): Promise<RunQueryResult> {
-  const bqrsFilePath = path.join("results", "results.bqrs");
   fs.mkdirSync("results");
 
   const databaseName = "db";
@@ -76,26 +75,9 @@ async function runQuery(
     REMOTE_QUERY_PACK_NAME,
   ]);
 
-  let cur = `${databaseName}/results`;
-  let entries: fs.Dirent[];
-  while (
-    (entries = fs.readdirSync(cur, { withFileTypes: true })) &&
-    entries.length === 1 &&
-    entries[0].isDirectory()
-  ) {
-    cur = path.join(cur, entries[0].name);
-  }
-
-  if (entries.length !== 1) {
-    throw new Error(`Expected a single file in ${cur}, found: ${entries}`);
-  }
-
-  const entry = entries[0];
-  if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
-    throw new Error(`Unexpected file in ${cur}: ${entry.name}`);
-  }
-
-  fs.renameSync(path.join(cur, entry.name), bqrsFilePath);
+  const bqrsFilePath = path.join("results", "results.bqrs");
+  const tempBqrsFilePath = getBqrsFile(databaseName);
+  fs.renameSync(tempBqrsFilePath, bqrsFilePath);
 
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
@@ -370,4 +352,37 @@ async function getRemoteQueryPackDefaultQuery(
   }
 
   return queries[0];
+}
+
+/**
+ * Finds the BQRS result file for a database and ensures that exactly one is produced.
+ * Returns the path to that BQRS file.
+ * @param databaseName The name of the database that was analyzed.
+ * @returns string     The path to the BQRS result file.
+ */
+function getBqrsFile(databaseName: string): string {
+  // This is where results are saved, according to
+  // https://codeql.github.com/docs/codeql-cli/manual/database-run-queries/
+  let dbResultsFolder = `${databaseName}/results`;
+  let entries: fs.Dirent[];
+  while (
+    (entries = fs.readdirSync(dbResultsFolder, { withFileTypes: true })) &&
+    entries.length === 1 &&
+    entries[0].isDirectory()
+  ) {
+    dbResultsFolder = path.join(dbResultsFolder, entries[0].name);
+  }
+
+  if (entries.length !== 1) {
+    throw new Error(
+      `Expected a single file in ${dbResultsFolder}, found: ${entries}`
+    );
+  }
+
+  const entry = entries[0];
+  if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
+    throw new Error(`Unexpected file in ${dbResultsFolder}: ${entry.name}`);
+  }
+
+  return path.join(dbResultsFolder, entry.name);
 }
