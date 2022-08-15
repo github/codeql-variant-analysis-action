@@ -13,6 +13,7 @@ export {
   BQRSInfo,
   downloadDatabase,
   runQuery,
+  RunQueryResult,
   getBqrsInfo,
   getDatabaseMetadata,
   getRemoteQueryPackDefaultQuery,
@@ -21,28 +22,35 @@ export {
 // This name must match that used by the vscode extension when creating the pack.
 const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
 
+interface RunQueryResult {
+  resultCount: number;
+  databaseSHA: string | undefined;
+  sourceLocationPrefix: string;
+  metadataFilePath: string;
+  bqrsFilePath: string;
+  sarifFilePath?: string;
+}
+
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
  * - query/    (query.ql and any other supporting files)
  * - results/  (results.{bqrs,sarif} and metadata.json)
  *
- * @param     codeql              The path to the codeql binary
- * @param     database            The path to the bundled database zip file
- * @param     nwo                 The name of the repository
- * @param     queryPack           The path to the query pack
- * @returns   Promise<string[]>   Resolves when the query has finished running.
- *                                Returns a list of files that have been created.
+ * @param     codeql                    The path to the codeql binary
+ * @param     database                  The path to the bundled database zip file
+ * @param     nwo                       The name of the repository
+ * @param     queryPack                 The path to the query pack
+ * @returns   Promise<RunQueryResult>   Resolves when the query has finished running. Returns information
+ * about the query result and paths to the result files and metadata.json file.
  */
 async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
   queryPack: string
-): Promise<string[]> {
+): Promise<RunQueryResult> {
   const bqrsFilePath = path.join("results", "results.bqrs");
   fs.mkdirSync("results");
-
-  const outputFilePaths = [bqrsFilePath];
 
   const databaseName = "db";
   await exec(codeql, [
@@ -95,6 +103,7 @@ async function runQuery(
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
   let resultCount: number;
+  let sarifFilePath: string | undefined;
   if (isSarif) {
     const sarif = await generateSarif(
       codeql,
@@ -106,9 +115,8 @@ async function runQuery(
       dbMetadata.creationMetadata?.sha
     );
     resultCount = getSarifResultCount(sarif);
-    const sarifFilePath = path.join("results", "results.sarif");
+    sarifFilePath = path.join("results", "results.sarif");
     fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
-    outputFilePaths.push(sarifFilePath);
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
@@ -121,9 +129,15 @@ async function runQuery(
     dbMetadata.creationMetadata?.sha,
     sourceLocationPrefix
   );
-  outputFilePaths.push(metadataFilePath);
 
-  return outputFilePaths;
+  return {
+    resultCount,
+    databaseSHA: dbMetadata.creationMetadata?.sha,
+    sourceLocationPrefix,
+    metadataFilePath,
+    bqrsFilePath,
+    sarifFilePath,
+  };
 }
 
 async function downloadDatabase(

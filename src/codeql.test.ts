@@ -148,7 +148,7 @@ test("creating a result index", async (t) => {
   process.chdir(tmpDir);
   try {
     const output = await runQuery("codeql", t.context.db, "a/b", queryPack);
-    const outputDir = path.dirname(output[0]); // We know that all output files are in the same directory.
+    const outputDir = path.dirname(output.bqrsFilePath); // We know that all output files are in the same directory.
     const downloadResponse = {
       artifactName: "123",
       downloadPath: outputDir,
