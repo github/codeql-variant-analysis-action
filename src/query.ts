@@ -52,14 +52,20 @@ async function run(): Promise<void> {
     // Consider all repos to have failed
     setFailed(error.message);
     for (const repo of repos) {
+      const workDir = createTempRepoDir(curDir, repo);
+      chdir(workDir);
+
       await uploadError(error, repo, artifactClient);
+
+      chdir(curDir);
+      fs.rmdirSync(workDir, { recursive: true });
     }
     return;
   }
 
   for (const repo of repos) {
     // Create a new directory to contain all files created during analysis of this repo.
-    const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
+    const workDir = createTempRepoDir(curDir, repo);
     // Change into the new directory to further ensure that all created files go in there.
     chdir(workDir);
 
@@ -126,6 +132,17 @@ async function uploadError(
     "errors", // rootdirectory
     { continueOnError: false }
   );
+}
+
+/**
+ * Creates a temporary directory for a given repository.
+ * @param curDir The current directory.
+ * @param repo The repository to create a temporary directory for.
+ * @returns The path to the temporary directory.
+ */
+function createTempRepoDir(curDir: string, repo: Repo): string {
+  const workDir = fs.mkdtempSync(path.join(curDir, repo.id.toString()));
+  return workDir;
 }
 
 void run();
