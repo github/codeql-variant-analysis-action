@@ -79,7 +79,7 @@ async function updateVariantAnalysisStatus(
       ${await response.readBody()}`
     );
     throw new Error(
-      `Error while setting variant analysis as "${status}". Status code: ${response.message.statusCode}`
+      `Error while setting variant analysis as "${data.status}". Status code: ${response.message.statusCode}`
     );
   }
 }
@@ -105,7 +105,7 @@ export async function getPolicyForRepoArtifact(
       ${await response.readBody()}`
     );
     throw new Error(
-      `Error while getting signed URL repo artifact". Status code: ${response.message.statusCode}`
+      `Error while getting policy for artifact. Status code: ${response.message.statusCode}`
     );
   }
 
