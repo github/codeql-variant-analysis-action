@@ -25,7 +25,7 @@ jobs:
   query:
     needs:
       - init
-    uses: github/codeql-variant-analysis-action/.github/workflows/codeql-query.yml@shati-patel/api-client
+    uses: github/codeql-variant-analysis-action/.github/workflows/codeql-query.yml@main
     secrets:
       TEST_PAT: ${{ secrets.BOT_TOKEN }}
 
