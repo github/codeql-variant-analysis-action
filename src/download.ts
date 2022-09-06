@@ -11,7 +11,7 @@ import * as httpm from "@actions/http-client";
 import { IHeaders } from "@actions/http-client/interfaces";
 import * as io from "@actions/io";
 
-import { getApiClient } from "./api-client";
+import { getApiClient } from "./gh-api-client";
 
 export class HTTPError extends Error {
   httpStatusCode: number | undefined;

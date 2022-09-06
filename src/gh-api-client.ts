@@ -1,6 +1,6 @@
 import * as httpm from "@actions/http-client";
 
-const userAgent = "GitHub multi-repository variant analysis";
+const userAgent = "GitHub multi-repository variant analysis action";
 
 export function getApiClient() {
   return new httpm.HttpClient(userAgent, [], {
@@ -24,7 +24,7 @@ interface FailureProperties {
   failureMessage: string;
 }
 
-type updateVariantAnalysisProperties =
+type UpdateVariantAnalysisProperties =
   | InProgressProperties
   | SuccessProperties
   | FailureProperties;
@@ -67,7 +67,7 @@ export async function setVariantAnalysisFailed(
 async function updateVariantAnalysisStatus(
   variantAnalysisId: number,
   repoId: number,
-  data: updateVariantAnalysisProperties
+  data: UpdateVariantAnalysisProperties
 ): Promise<void> {
   const http = getApiClient();
 
@@ -87,12 +87,12 @@ async function updateVariantAnalysisStatus(
 export async function getPolicyForRepoArtifact(
   variantAnalysisId: number,
   repoId: number,
-  artifact_size: number
+  artifactSize: number
 ): Promise<string> {
   const data = {
     name: "results.zip",
     content_type: "application/zip",
-    size: artifact_size,
+    size: artifactSize,
   };
   const http = getApiClient();
 
