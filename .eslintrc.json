@@ -1,10 +1,15 @@
-
 {
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "project": "./tsconfig.json"
     },
-    "plugins": ["@typescript-eslint", "filenames", "github", "import", "no-async-foreach"],
+    "plugins": [
+        "@typescript-eslint",
+        "filenames",
+        "github",
+        "import",
+        "no-async-foreach"
+    ],
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
@@ -14,42 +19,59 @@
         "plugin:prettier/recommended"
     ],
     "rules": {
-        "filenames/match-regex": ["error", "^[a-z0-9-]+(\\.test)?$"],
+        "filenames/match-regex": [
+            "error",
+            "^[a-z0-9-]+(\\.test)?$"
+        ],
         "import/extensions": "error",
         "import/no-amd": "error",
         "import/no-commonjs": "error",
         "import/no-dynamic-require": "error",
-        "import/no-extraneous-dependencies": ["error"],
+        "import/no-extraneous-dependencies": [
+            "error"
+        ],
         "import/no-namespace": "off",
         "import/no-unresolved": "error",
         "import/no-webpack-loader-syntax": "error",
-        "import/order": ["error", {
-            "alphabetize": {"order": "asc"},
-            "newlines-between": "always"
-        }],
+        "import/order": [
+            "error",
+            {
+                "alphabetize": {
+                    "order": "asc"
+                },
+                "newlines-between": "always"
+            }
+        ],
         "no-async-foreach/no-async-foreach": "error",
         "no-console": "off",
         "no-sequences": "error",
         "no-shadow": "off",
-        "@typescript-eslint/no-shadow": ["error"],
-        "one-var": ["error", "never"]
+        "@typescript-eslint/no-shadow": [
+            "error"
+        ],
+        "one-var": [
+            "error",
+            "never"
+        ]
     },
-    "overrides": [{
-        // "temporarily downgraded during transition to eslint
-        "files": "**",
-        "rules": {
-            "@typescript-eslint/ban-types": "off",
-            "@typescript-eslint/explicit-module-boundary-types": "off",
-            "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/no-unsafe-assignment": "off",
-            "@typescript-eslint/no-unsafe-call": "off",
-            "@typescript-eslint/no-unsafe-member-access": "off",
-            "@typescript-eslint/no-unsafe-return": "off",
-            "@typescript-eslint/no-var-requires": "off",
-            "@typescript-eslint/prefer-regexp-exec": "off",
-            "@typescript-eslint/require-await": "off",
-            "@typescript-eslint/restrict-template-expressions": "off",
-            "func-style": "off"
+    "overrides": [
+        {
+            // "temporarily downgraded during transition to eslint
+            "files": "**",
+            "rules": {
+                "@typescript-eslint/ban-types": "off",
+                "@typescript-eslint/explicit-module-boundary-types": "off",
+                "@typescript-eslint/no-explicit-any": "off",
+                "@typescript-eslint/no-unsafe-assignment": "off",
+                "@typescript-eslint/no-unsafe-call": "off",
+                "@typescript-eslint/no-unsafe-member-access": "off",
+                "@typescript-eslint/no-unsafe-return": "off",
+                "@typescript-eslint/no-var-requires": "off",
+                "@typescript-eslint/prefer-regexp-exec": "off",
+                "@typescript-eslint/require-await": "off",
+                "@typescript-eslint/restrict-template-expressions": "off",
+                "func-style": "off"
+            }
         }
-    }]
+    ]
 }
