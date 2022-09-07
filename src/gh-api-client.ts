@@ -8,26 +8,26 @@ export function getApiClient() {
   });
 }
 
-interface InProgressProperties {
+interface InProgressAnalysis {
   status: "in_progress";
 }
 
-interface SuccessProperties {
+interface SuccessfulAnalysis {
   status: "succeeded";
-  sourceLocationPrefix: string;
-  resultCount: number;
-  databaseSHA: string;
+  source_location_prefix: string;
+  result_count: number;
+  database_commit_sha: string;
 }
 
-interface FailureProperties {
+interface FailedAnalysis {
   status: "failed";
-  failureMessage: string;
+  failure_message: string;
 }
 
-type UpdateVariantAnalysisProperties =
-  | InProgressProperties
-  | SuccessProperties
-  | FailureProperties;
+type UpdateVariantAnalysis =
+  | InProgressAnalysis
+  | SuccessfulAnalysis
+  | FailedAnalysis;
 
 export async function setVariantAnalysisRepoInProgress(
   variantAnalysisId: number,
@@ -43,13 +43,13 @@ export async function setVariantAnalysisRepoSucceeded(
   repoId: number,
   sourceLocationPrefix: string,
   resultCount: number,
-  databaseSHA: string
+  databaseCommitSha: string
 ): Promise<void> {
   await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
     status: "succeeded",
-    sourceLocationPrefix,
-    resultCount,
-    databaseSHA,
+    source_location_prefix: sourceLocationPrefix,
+    result_count: resultCount,
+    database_commit_sha: databaseCommitSha,
   });
 }
 
@@ -60,14 +60,14 @@ export async function setVariantAnalysisFailed(
 ): Promise<void> {
   await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
     status: "failed",
-    failureMessage,
+    failure_message: failureMessage,
   });
 }
 
 async function updateVariantAnalysisStatus(
   variantAnalysisId: number,
   repoId: number,
-  data: UpdateVariantAnalysisProperties
+  data: UpdateVariantAnalysis
 ): Promise<void> {
   const http = getApiClient();
 
