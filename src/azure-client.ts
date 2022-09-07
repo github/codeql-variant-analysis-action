@@ -6,13 +6,13 @@ import { getApiClient } from "./gh-api-client";
 
 export interface Policy {
   upload_url: string;
-  header: Map<string, string>;
-  form: Map<string, string>;
+  header: Record<string, string>;
+  form: Record<string, string>;
 }
 
 export async function uploadArtifact(policy: Policy, artifactZipPath: string) {
   const data = new FormData();
-  for (const [key, value] of policy.form.entries()) {
+  for (const [key, value] of Object.entries(policy.form)) {
     data.append(key, value);
   }
 
