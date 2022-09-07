@@ -11,6 +11,8 @@ import * as httpm from "@actions/http-client";
 import { IHeaders } from "@actions/http-client/interfaces";
 import * as io from "@actions/io";
 
+import { getApiClient } from "./gh-api-client";
+
 export class HTTPError extends Error {
   httpStatusCode: number | undefined;
   httpMessage: string;
@@ -20,8 +22,6 @@ export class HTTPError extends Error {
     this.httpMessage = httpMessage;
   }
 }
-
-const userAgent = "GitHub multi-repository variant analysis";
 
 /**
  * Download a file from an url and stream it into a local file
@@ -78,9 +78,7 @@ async function downloadAttempt(
   }
 
   // Get the response headers
-  const http = new httpm.HttpClient(userAgent, [], {
-    allowRetries: false,
-  });
+  const http = getApiClient();
 
   const headers: IHeaders = {};
   if (auth) {
