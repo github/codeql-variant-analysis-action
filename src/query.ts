@@ -96,7 +96,7 @@ async function run(): Promise<void> {
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
       if (liveResults) {
-        await uploadQueryResultForRepo(variantAnalysisId, repo, runQueryResult);
+        await uploadRepoResult(variantAnalysisId, repo, runQueryResult);
         await setVariantAnalysisRepoSucceeded(
           variantAnalysisId,
           repo.id,
@@ -106,11 +106,7 @@ async function run(): Promise<void> {
         );
       }
 
-      await uploadResultsAsActionsArtifacts(
-        runQueryResult,
-        artifactClient,
-        repo
-      );
+      await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
     } catch (error: any) {
       setFailed(error.message);
       await uploadError(error, repo, artifactClient);
@@ -130,7 +126,7 @@ async function run(): Promise<void> {
   }
 }
 
-async function uploadResultsAsActionsArtifacts(
+async function uploadRepoResultToActions(
   runQueryResult: RunQueryResult,
   artifactClient: ArtifactClient,
   repo: Repo
@@ -151,7 +147,7 @@ async function uploadResultsAsActionsArtifacts(
   );
 }
 
-async function uploadQueryResultForRepo(
+async function uploadRepoResult(
   variantAnalysisId: number,
   repo: Repo,
   runQueryResult: RunQueryResult
