@@ -1,5 +1,7 @@
 import * as httpm from "@actions/http-client";
 
+import { Policy } from "./azure-client";
+
 const userAgent = "GitHub multi-repository variant analysis action";
 
 export function getApiClient() {
@@ -88,7 +90,7 @@ export async function getPolicyForRepoArtifact(
   variantAnalysisId: number,
   repoId: number,
   artifactSize: number
-): Promise<string> {
+): Promise<Policy> {
   const data = {
     name: "results.zip",
     content_type: "application/zip",
@@ -109,6 +111,5 @@ export async function getPolicyForRepoArtifact(
     );
   }
 
-  // TODO: Parse the response in a useful way
-  return await response.readBody();
+  return JSON.parse(await response.readBody());
 }
