@@ -15,8 +15,14 @@ inputs:
     required: true
 
   codeql:
-    description: "path to CodeQL binary to use"
+    description: "Path to CodeQL binary to use"
     required: true
+
+  variant_analysis_id:
+    description: "The ID of the variant analysis"
+    # This will eventually be required once live results is fully rolled out
+    # required: true
+
 runs:
   using: "node12"
   main: "../lib/query.js"

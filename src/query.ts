@@ -38,6 +38,7 @@ async function run(): Promise<void> {
   );
   const codeql = getInput("codeql", { required: true });
   const variantAnalysisId = parseInt(getInput("variant_analysis_id"));
+  const liveResults = !!variantAnalysisId;
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -64,7 +65,7 @@ async function run(): Promise<void> {
       chdir(workDir);
 
       await uploadError(error, repo, artifactClient);
-      if (variantAnalysisId) {
+      if (liveResults) {
         await setVariantAnalysisFailed(
           variantAnalysisId,
           repo.id,
@@ -87,14 +88,14 @@ async function run(): Promise<void> {
     try {
       const dbZip = await getDatabase(repo, language);
 
-      if (variantAnalysisId) {
+      if (liveResults) {
         await setVariantAnalysisRepoInProgress(variantAnalysisId, repo.id);
       }
 
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
-      if (variantAnalysisId) {
+      if (liveResults) {
         await uploadQueryResultForRepo(variantAnalysisId, repo, runQueryResult);
         await setVariantAnalysisRepoSucceeded(
           variantAnalysisId,
@@ -114,7 +115,7 @@ async function run(): Promise<void> {
       setFailed(error.message);
       await uploadError(error, repo, artifactClient);
 
-      if (variantAnalysisId) {
+      if (liveResults) {
         await setVariantAnalysisFailed(
           variantAnalysisId,
           repo.id,
