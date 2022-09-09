@@ -10,7 +10,7 @@ import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 
 import { uploadArtifact } from "./azure-client";
-import { downloadDatabase, runQuery } from "./codeql";
+import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -88,28 +88,14 @@ async function run(): Promise<void> {
       const dbZip = await getDatabase(repo, language);
 
       if (variantAnalysisId) {
-        // 1.5 Mark variant analysis for repo task as in progress
         await setVariantAnalysisRepoInProgress(variantAnalysisId, repo.id);
       }
 
-      // 2. Run the query
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
       if (variantAnalysisId) {
-        // 2.5 Get signed URL for artifact upload
-        const policy = await getPolicyForRepoArtifact(
-          variantAnalysisId,
-          repo.id,
-          runQueryResult.sarifFileSize || runQueryResult.bqrsFileSize
-        );
-
-        // Create Azure client for uploading to Azure Blob Storage
-        const fileToUpload =
-          runQueryResult.sarifFilePath || runQueryResult.bqrsFilePath;
-        await uploadArtifact(policy, fileToUpload);
-
-        // 3. Mark variant analysis for repo task as succeeded
+        await uploadQueryResultForRepo(variantAnalysisId, repo, runQueryResult);
         await setVariantAnalysisRepoSucceeded(
           variantAnalysisId,
           repo.id,
@@ -151,6 +137,24 @@ async function run(): Promise<void> {
     chdir(curDir);
     fs.rmdirSync(workDir, { recursive: true });
   }
+}
+
+async function uploadQueryResultForRepo(
+  variantAnalysisId: number,
+  repo: Repo,
+  runQueryResult: RunQueryResult
+) {
+  // Get policy for artifact upload
+  const policy = await getPolicyForRepoArtifact(
+    variantAnalysisId,
+    repo.id,
+    runQueryResult.sarifFileSize || runQueryResult.bqrsFileSize
+  );
+
+  // Use Azure client for uploading to Azure Blob Storage
+  const fileToUpload =
+    runQueryResult.sarifFilePath || runQueryResult.bqrsFilePath;
+  await uploadArtifact(policy, fileToUpload);
 }
 
 async function getDatabase(repo: Repo, language: string) {
