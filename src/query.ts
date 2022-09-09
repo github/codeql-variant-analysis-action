@@ -105,20 +105,10 @@ async function run(): Promise<void> {
         );
       }
 
-      // 3. Upload the results as an artifact
-      const filesToUpload = [
-        runQueryResult.bqrsFilePath,
-        runQueryResult.metadataFilePath,
-      ];
-      if (runQueryResult.sarifFilePath) {
-        filesToUpload.push(runQueryResult.sarifFilePath);
-      }
-      console.log("Uploading artifact");
-      await artifactClient.uploadArtifact(
-        repo.id.toString(), // name
-        filesToUpload, // files
-        "results", // rootdirectory
-        { continueOnError: false }
+      await uploadResultsAsActionsArtifacts(
+        runQueryResult,
+        artifactClient,
+        repo
       );
     } catch (error: any) {
       setFailed(error.message);
@@ -137,6 +127,27 @@ async function run(): Promise<void> {
     chdir(curDir);
     fs.rmdirSync(workDir, { recursive: true });
   }
+}
+
+async function uploadResultsAsActionsArtifacts(
+  runQueryResult: RunQueryResult,
+  artifactClient: ArtifactClient,
+  repo: Repo
+) {
+  const filesToUpload = [
+    runQueryResult.bqrsFilePath,
+    runQueryResult.metadataFilePath,
+  ];
+  if (runQueryResult.sarifFilePath) {
+    filesToUpload.push(runQueryResult.sarifFilePath);
+  }
+  console.log("Uploading artifact");
+  await artifactClient.uploadArtifact(
+    repo.id.toString(),
+    filesToUpload,
+    "results",
+    { continueOnError: false }
+  );
 }
 
 async function uploadQueryResultForRepo(
