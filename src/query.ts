@@ -9,8 +9,15 @@ import {
 import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 
+import { uploadArtifact } from "./azure-client";
 import { downloadDatabase, runQuery } from "./codeql";
 import { download } from "./download";
+import {
+  getPolicyForRepoArtifact,
+  setVariantAnalysisFailed,
+  setVariantAnalysisRepoInProgress,
+  setVariantAnalysisRepoSucceeded,
+} from "./gh-api-client";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 interface Repo {
@@ -30,6 +37,7 @@ async function run(): Promise<void> {
     getInput("repositories", { required: true })
   );
   const codeql = getInput("codeql", { required: true });
+  const variantAnalysisId = parseInt(getInput("variant_analysis_id"));
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -56,6 +64,13 @@ async function run(): Promise<void> {
       chdir(workDir);
 
       await uploadError(error, repo, artifactClient);
+      if (variantAnalysisId) {
+        await setVariantAnalysisFailed(
+          variantAnalysisId,
+          repo.id,
+          error.message
+        );
+      }
 
       chdir(curDir);
       fs.rmdirSync(workDir, { recursive: true });
@@ -81,9 +96,37 @@ async function run(): Promise<void> {
         dbZip = await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
       }
 
+      if (variantAnalysisId) {
+        // 1.5 Mark variant analysis for repo task as in progress
+        await setVariantAnalysisRepoInProgress(variantAnalysisId, repo.id);
+      }
+
       // 2. Run the query
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
+
+      if (variantAnalysisId) {
+        // 2.5 Get signed URL for artifact upload
+        const policy = await getPolicyForRepoArtifact(
+          variantAnalysisId,
+          repo.id,
+          runQueryResult.sarifFileSize || runQueryResult.bqrsFileSize
+        );
+
+        // Create Azure client for uploading to Azure Blob Storage
+        const fileToUpload =
+          runQueryResult.sarifFilePath || runQueryResult.bqrsFilePath;
+        await uploadArtifact(policy, fileToUpload);
+
+        // 3. Mark variant analysis for repo task as succeeded
+        await setVariantAnalysisRepoSucceeded(
+          variantAnalysisId,
+          repo.id,
+          runQueryResult.sourceLocationPrefix,
+          runQueryResult.resultCount,
+          runQueryResult.databaseSHA || "HEAD"
+        );
+      }
 
       // 3. Upload the results as an artifact
       const filesToUpload = [
@@ -103,6 +146,14 @@ async function run(): Promise<void> {
     } catch (error: any) {
       setFailed(error.message);
       await uploadError(error, repo, artifactClient);
+
+      if (variantAnalysisId) {
+        await setVariantAnalysisFailed(
+          variantAnalysisId,
+          repo.id,
+          error.message
+        );
+      }
     }
 
     // We can now delete the work dir. All required files have already been uploaded.
