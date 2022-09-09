@@ -85,16 +85,7 @@ async function run(): Promise<void> {
     chdir(workDir);
 
     try {
-      let dbZip: string;
-      if (repo.downloadUrl) {
-        // 1a. Use the provided signed URL to download the database
-        console.log("Getting database");
-        dbZip = await download(repo.downloadUrl, `${repo.id}.zip`);
-      } else {
-        // 1b. Use the GitHub API to download the database using token
-        console.log("Getting database");
-        dbZip = await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
-      }
+      const dbZip = await getDatabase(repo, language);
 
       if (variantAnalysisId) {
         // 1.5 Mark variant analysis for repo task as in progress
@@ -159,6 +150,17 @@ async function run(): Promise<void> {
     // We can now delete the work dir. All required files have already been uploaded.
     chdir(curDir);
     fs.rmdirSync(workDir, { recursive: true });
+  }
+}
+
+async function getDatabase(repo: Repo, language: string) {
+  console.log("Getting database");
+  if (repo.downloadUrl) {
+    // Use the provided signed URL to download the database
+    return await download(repo.downloadUrl, `${repo.id}.zip`);
+  } else {
+    // Use the GitHub API to download the database using token
+    return await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
   }
 }
 
