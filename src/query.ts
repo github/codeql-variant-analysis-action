@@ -86,11 +86,11 @@ async function run(): Promise<void> {
     chdir(workDir);
 
     try {
-      const dbZip = await getDatabase(repo, language);
-
       if (liveResults) {
         await setVariantAnalysisRepoInProgress(variantAnalysisId, repo.id);
       }
+
+      const dbZip = await getDatabase(repo, language);
 
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
