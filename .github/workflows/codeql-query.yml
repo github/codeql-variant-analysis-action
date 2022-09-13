@@ -91,6 +91,7 @@ jobs:
           language: ${{ github.event.inputs.language }}
           repositories: ${{ steps.repos.outputs.repositories }}
           codeql: ${{ steps.init.outputs.codeql-path }}
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
   combine-results:
     runs-on: ubuntu-latest
