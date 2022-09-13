@@ -10,6 +10,8 @@ export function getApiClient() {
   });
 }
 
+const GH_DOTCOM_API_URL = "https://api.github.com";
+
 interface InProgressAnalysis {
   status: "in_progress";
 }
@@ -32,48 +34,67 @@ type UpdateVariantAnalysis =
   | FailedAnalysis;
 
 export async function setVariantAnalysisRepoInProgress(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number
 ): Promise<void> {
-  await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
-    status: "in_progress",
-  });
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "in_progress",
+    }
+  );
 }
 
 export async function setVariantAnalysisRepoSucceeded(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   sourceLocationPrefix: string,
   resultCount: number,
   databaseCommitSha: string
 ): Promise<void> {
-  await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
-    status: "succeeded",
-    source_location_prefix: sourceLocationPrefix,
-    result_count: resultCount,
-    database_commit_sha: databaseCommitSha,
-  });
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "succeeded",
+      source_location_prefix: sourceLocationPrefix,
+      result_count: resultCount,
+      database_commit_sha: databaseCommitSha,
+    }
+  );
 }
 
 export async function setVariantAnalysisFailed(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   failureMessage: string
 ): Promise<void> {
-  await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
-    status: "failed",
-    failure_message: failureMessage,
-  });
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "failed",
+      failure_message: failureMessage,
+    }
+  );
 }
 
 async function updateVariantAnalysisStatus(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   data: UpdateVariantAnalysis
 ): Promise<void> {
   const http = getApiClient();
 
-  const url = `/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
+  const url = `${GH_DOTCOM_API_URL}/repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
   const response = await http.patch(url, JSON.stringify(data));
   if (response.message.statusCode !== 204) {
     console.log(
@@ -87,6 +108,7 @@ async function updateVariantAnalysisStatus(
 }
 
 export async function getPolicyForRepoArtifact(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   artifactSize: number
@@ -98,7 +120,7 @@ export async function getPolicyForRepoArtifact(
   };
   const http = getApiClient();
 
-  const url = `/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
+  const url = `${GH_DOTCOM_API_URL}/repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   const response = await http.patch(url, JSON.stringify(data));
 
   if (response.message.statusCode !== 201) {
