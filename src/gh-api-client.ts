@@ -8,6 +8,12 @@ export function getApiClient() {
   });
 }
 
+export interface Policy {
+  upload_url: string;
+  header: Record<string, string>;
+  form: Record<string, string>;
+}
+
 interface InProgressAnalysis {
   status: "in_progress";
 }
