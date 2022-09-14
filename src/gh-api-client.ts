@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import * as httpm from "@actions/http-client";
 
 const userAgent = "GitHub multi-repository variant analysis action";

@@ -51,8 +51,15 @@
             {
                 "selector": "property",
                 "format": [
-                    "camelCase",
-                    "snake_case"
+                    "camelCase"
+                ]
+            }
+        ],
+        "eslint-comments/no-use": [
+            "error",
+            {
+                "allow": [
+                    "eslint-disable"
                 ]
             }
         ],
