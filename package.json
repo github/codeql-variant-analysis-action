@@ -29,6 +29,7 @@
     "@actions/io": "^1.1.1",
     "@actions/tool-cache": "^1.7.1",
     "@octokit/action": "^4.0.8",
+    "@octokit/plugin-retry": "^3.0.9",
     "form-data": "^4.0.0"
   },
   "//": [
