@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import * as httpm from "@actions/http-client";
 
 const userAgent = "GitHub multi-repository variant analysis action";
@@ -6,6 +8,12 @@ export function getApiClient() {
   return new httpm.HttpClient(userAgent, [], {
     allowRetries: true,
   });
+}
+
+export interface Policy {
+  upload_url: string;
+  header: Record<string, string>;
+  form: Record<string, string>;
 }
 
 interface InProgressAnalysis {
