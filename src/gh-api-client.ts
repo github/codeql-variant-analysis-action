@@ -1,16 +1,17 @@
-import * as httpm from "@actions/http-client";
+import { Octokit } from "@octokit/action";
+import { retry } from "@octokit/plugin-retry";
 
-import { Policy } from "./azure-client";
+export const userAgent = "GitHub multi-repository variant analysis action";
 
-const userAgent = "GitHub multi-repository variant analysis action";
-
-export function getApiClient() {
-  return new httpm.HttpClient(userAgent, [], {
-    allowRetries: true,
-  });
+export function getOctokit() {
+  return new Octokit({ userAgent, retry });
 }
 
-const GH_DOTCOM_API_URL = "https://api.github.com";
+export interface Policy {
+  upload_url: string;
+  header: Record<string, string>;
+  form: Record<string, string>;
+}
 
 interface InProgressAnalysis {
   status: "in_progress";
@@ -92,17 +93,17 @@ async function updateVariantAnalysisStatus(
   repoId: number,
   data: UpdateVariantAnalysis
 ): Promise<void> {
-  const http = getApiClient();
+  const octokit = getOctokit();
 
-  const url = `${GH_DOTCOM_API_URL}/repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
-  const response = await http.patch(url, JSON.stringify(data));
-  if (response.message.statusCode !== 204) {
+  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
+  const response = await octokit.request(url, { data });
+  if (response.status !== 204) {
     console.log(
-      `Request to ${url} returned status code ${response.message.statusCode}:
-      ${await response.readBody()}`
+      `Request to ${url} returned status code ${response.status}:
+      ${JSON.stringify(response.data)}`
     );
     throw new Error(
-      `Error while setting variant analysis as "${data.status}". Status code: ${response.message.statusCode}`
+      `Error while setting variant analysis as "${data.status}". Status code: ${response.status}`
     );
   }
 }
@@ -118,20 +119,20 @@ export async function getPolicyForRepoArtifact(
     content_type: "application/zip",
     size: artifactSize,
   };
-  const http = getApiClient();
+  const octokit = getOctokit();
 
-  const url = `${GH_DOTCOM_API_URL}/repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
-  const response = await http.patch(url, JSON.stringify(data));
+  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
+  const response = await octokit.request(url, { data });
 
-  if (response.message.statusCode !== 201) {
+  if (response.status !== 201) {
     console.log(
-      `Request to ${url} returned status code ${response.message.statusCode}:
-      ${await response.readBody()}`
+      `Request to ${url} returned status code ${response.status}:
+      ${JSON.stringify(response.data)}`
     );
     throw new Error(
-      `Error while getting policy for artifact. Status code: ${response.message.statusCode}`
+      `Error while getting policy for artifact. Status code: ${response.status}`
     );
   }
 
-  return JSON.parse(await response.readBody());
+  return response.data;
 }

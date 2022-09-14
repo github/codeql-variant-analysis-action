@@ -2,13 +2,8 @@ import * as fs from "fs";
 
 import FormData from "form-data";
 
-import { getApiClient } from "./gh-api-client";
-
-export interface Policy {
-  upload_url: string;
-  header: Record<string, string>;
-  form: Record<string, string>;
-}
+import { getApiClient } from "./download";
+import { Policy } from "./gh-api-client";
 
 export async function uploadArtifact(policy: Policy, artifactZipPath: string) {
   const data = new FormData();
