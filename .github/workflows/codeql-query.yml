@@ -33,7 +33,9 @@ jobs:
       fail-fast: false
       matrix:
         repoNwos: ${{ fromJSON(needs.setup.outputs.repoNwoChunks) }}
-    permissions: {}
+    permissions:
+      security-events: write # This permission can be removed soon
+      contents: write
 
     steps:
       - name: Mask download URL
@@ -82,6 +84,8 @@ jobs:
 
       - name: Run query
         uses: github/codeql-variant-analysis-action/query@shati-patel/update-gh-api-client
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
