@@ -7,6 +7,7 @@ import { readQueryRunMetadataFromFile } from "./query-run-metadata";
 
 export { createResultIndex };
 
+/* eslint-disable @typescript-eslint/naming-convention */
 export interface SuccessIndexItem {
   nwo: string;
   id: string;
@@ -16,6 +17,8 @@ export interface SuccessIndexItem {
   sarif_file_size?: number;
   source_location_prefix: string;
 }
+/* eslint-enable @typescript-eslint/naming-convention */
+
 export interface FailureIndexItem {
   nwo: string;
   id: string;
@@ -56,6 +59,7 @@ function createResultIndex(
         path.join(response.downloadPath, "results.sarif")
       ).size;
     }
+    /* eslint-disable @typescript-eslint/naming-convention */
     const successIndexItem: SuccessIndexItem = {
       nwo: metadata.nwo,
       id,
@@ -65,6 +69,8 @@ function createResultIndex(
       sarif_file_size,
       source_location_prefix: metadata.sourceLocationPrefix,
     };
+    /* eslint-enable @typescript-eslint/naming-convention */
+
     return successIndexItem;
   });
   const failures: FailureIndexItem[] = failureArtifacts.map(function (

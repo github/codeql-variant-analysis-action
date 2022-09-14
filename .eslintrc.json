@@ -59,7 +59,8 @@
             "error",
             {
                 "allow": [
-                    "eslint-disable"
+                    "eslint-disable",
+                    "eslint-enable"
                 ]
             }
         ],
