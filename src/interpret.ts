@@ -50,6 +50,7 @@ function createResultIndex(
 
     const id = response.artifactName;
 
+    /* eslint-disable @typescript-eslint/naming-convention */
     const bqrs_file_size = fs.statSync(
       path.join(response.downloadPath, "results.bqrs")
     ).size;
@@ -59,7 +60,6 @@ function createResultIndex(
         path.join(response.downloadPath, "results.sarif")
       ).size;
     }
-    /* eslint-disable @typescript-eslint/naming-convention */
     const successIndexItem: SuccessIndexItem = {
       nwo: metadata.nwo,
       id,
