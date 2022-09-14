@@ -46,15 +46,7 @@
         "no-console": "off",
         "no-sequences": "error",
         "no-shadow": "off",
-        "@typescript-eslint/naming-convention": [
-            "error",
-            {
-                "selector": "property",
-                "format": [
-                    "camelCase"
-                ]
-            }
-        ],
+        "@typescript-eslint/naming-convention": "error",
         "eslint-comments/no-use": [
             "error",
             {
