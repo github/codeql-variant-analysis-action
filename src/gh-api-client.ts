@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { Octokit } from "@octokit/action";
 import { retry } from "@octokit/plugin-retry";
 
