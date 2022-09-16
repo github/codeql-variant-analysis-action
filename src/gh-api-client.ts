@@ -1,13 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { Octokit } from "@octokit/action";
+import { retry } from "@octokit/plugin-retry";
 
-import * as httpm from "@actions/http-client";
+export const userAgent = "GitHub multi-repository variant analysis action";
 
-const userAgent = "GitHub multi-repository variant analysis action";
-
-export function getApiClient() {
-  return new httpm.HttpClient(userAgent, [], {
-    allowRetries: true,
-  });
+export function getOctokit() {
+  return new Octokit({ userAgent, retry });
 }
 
 export interface Policy {
@@ -38,85 +36,85 @@ type UpdateVariantAnalysis =
   | FailedAnalysis;
 
 export async function setVariantAnalysisRepoInProgress(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number
 ): Promise<void> {
-  await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
-    status: "in_progress",
-  });
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "in_progress",
+    }
+  );
 }
 
 export async function setVariantAnalysisRepoSucceeded(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   sourceLocationPrefix: string,
   resultCount: number,
   databaseCommitSha: string
 ): Promise<void> {
-  await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
-    status: "succeeded",
-    source_location_prefix: sourceLocationPrefix,
-    result_count: resultCount,
-    database_commit_sha: databaseCommitSha,
-  });
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "succeeded",
+      source_location_prefix: sourceLocationPrefix,
+      result_count: resultCount,
+      database_commit_sha: databaseCommitSha,
+    }
+  );
 }
 
 export async function setVariantAnalysisFailed(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   failureMessage: string
 ): Promise<void> {
-  await updateVariantAnalysisStatus(variantAnalysisId, repoId, {
-    status: "failed",
-    failure_message: failureMessage,
-  });
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "failed",
+      failure_message: failureMessage,
+    }
+  );
 }
 
 async function updateVariantAnalysisStatus(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   data: UpdateVariantAnalysis
 ): Promise<void> {
-  const http = getApiClient();
+  const octokit = getOctokit();
 
-  const url = `/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
-  const response = await http.patch(url, JSON.stringify(data));
-  if (response.message.statusCode !== 204) {
-    console.log(
-      `Request to ${url} returned status code ${response.message.statusCode}:
-      ${await response.readBody()}`
-    );
-    throw new Error(
-      `Error while setting variant analysis as "${data.status}". Status code: ${response.message.statusCode}`
-    );
-  }
+  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
+  await octokit.request(url, { data });
 }
 
 export async function getPolicyForRepoArtifact(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
   artifactSize: number
-): Promise<string> {
+): Promise<Policy> {
   const data = {
     name: "results.zip",
     content_type: "application/zip",
     size: artifactSize,
   };
-  const http = getApiClient();
+  const octokit = getOctokit();
 
-  const url = `/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
-  const response = await http.patch(url, JSON.stringify(data));
+  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
+  const response = await octokit.request(url, { data });
 
-  if (response.message.statusCode !== 201) {
-    console.log(
-      `Request to ${url} returned status code ${response.message.statusCode}:
-      ${await response.readBody()}`
-    );
-    throw new Error(
-      `Error while getting policy for artifact. Status code: ${response.message.statusCode}`
-    );
-  }
-
-  // TODO: Parse the response in a useful way
-  return await response.readBody();
+  return response.data;
 }
