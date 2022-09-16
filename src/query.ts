@@ -122,6 +122,7 @@ async function run(): Promise<void> {
 
       await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
     } catch (error: any) {
+      console.error(error);
       setFailed(error.message);
       await uploadError(error, repo, artifactClient);
 
