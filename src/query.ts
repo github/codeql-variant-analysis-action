@@ -31,6 +31,9 @@ interface Repo {
 
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
+  const controllerRepoId = parseInt(
+    getInput("controller_repo_id", { required: true })
+  );
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
   const repos: Repo[] = JSON.parse(
@@ -67,6 +70,7 @@ async function run(): Promise<void> {
       await uploadError(error, repo, artifactClient);
       if (liveResults) {
         await setVariantAnalysisFailed(
+          controllerRepoId,
           variantAnalysisId,
           repo.id,
           error.message
@@ -87,7 +91,11 @@ async function run(): Promise<void> {
 
     try {
       if (liveResults) {
-        await setVariantAnalysisRepoInProgress(variantAnalysisId, repo.id);
+        await setVariantAnalysisRepoInProgress(
+          controllerRepoId,
+          variantAnalysisId,
+          repo.id
+        );
       }
 
       const dbZip = await getDatabase(repo, language);
@@ -96,8 +104,14 @@ async function run(): Promise<void> {
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
       if (liveResults) {
-        await uploadRepoResult(variantAnalysisId, repo, runQueryResult);
+        await uploadRepoResult(
+          controllerRepoId,
+          variantAnalysisId,
+          repo,
+          runQueryResult
+        );
         await setVariantAnalysisRepoSucceeded(
+          controllerRepoId,
           variantAnalysisId,
           repo.id,
           runQueryResult.sourceLocationPrefix,
@@ -113,6 +127,7 @@ async function run(): Promise<void> {
 
       if (liveResults) {
         await setVariantAnalysisFailed(
+          controllerRepoId,
           variantAnalysisId,
           repo.id,
           error.message
@@ -148,12 +163,14 @@ async function uploadRepoResultToActions(
 }
 
 async function uploadRepoResult(
+  controllerRepoId: number,
   variantAnalysisId: number,
   repo: Repo,
   runQueryResult: RunQueryResult
 ) {
   // Get policy for artifact upload
   const policy = await getPolicyForRepoArtifact(
+    controllerRepoId,
     variantAnalysisId,
     repo.id,
     runQueryResult.sarifFileSize || runQueryResult.bqrsFileSize

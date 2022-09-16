@@ -87,6 +87,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          controller_repo_id: ${{ github.event.repository.id }}
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
           repositories: ${{ steps.repos.outputs.repositories }}
