@@ -83,7 +83,7 @@ jobs:
           echo "::set-output name=codeql-path::${CODEQL}"
 
       - name: Run query
-        uses: github/codeql-variant-analysis-action/query@shati-patel/update-gh-api-client
+        uses: github/codeql-variant-analysis-action/query@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -116,4 +116,4 @@ jobs:
           echo "::set-output name=codeql-path::${CODEQL}"
 
       - name: Combine results
-        uses: github/codeql-variant-analysis-action/combine-results@shati-patel/update-gh-api-client
+        uses: github/codeql-variant-analysis-action/combine-results@main
