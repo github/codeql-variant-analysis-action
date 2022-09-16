@@ -118,7 +118,7 @@ export async function getPolicyForRepoArtifact(
   };
   const octokit = getOctokit();
 
-  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
+  const url = `PUT /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   try {
     const response = await octokit.request(url, { data });
     return response.data;
