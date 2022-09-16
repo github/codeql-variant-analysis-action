@@ -97,16 +97,7 @@ async function updateVariantAnalysisStatus(
   const octokit = getOctokit();
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
-  const response = await octokit.request(url, { data });
-  if (response.status !== 204) {
-    console.log(
-      `Request to ${url} returned status code ${response.status}:
-      ${JSON.stringify(response.data)}`
-    );
-    throw new Error(
-      `Error while setting variant analysis as "${data.status}". Status code: ${response.status}`
-    );
-  }
+  await octokit.request(url, { data });
 }
 
 export async function getPolicyForRepoArtifact(
@@ -124,16 +115,6 @@ export async function getPolicyForRepoArtifact(
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   const response = await octokit.request(url, { data });
-
-  if (response.status !== 201) {
-    console.log(
-      `Request to ${url} returned status code ${response.status}:
-      ${JSON.stringify(response.data)}`
-    );
-    throw new Error(
-      `Error while getting policy for artifact. Status code: ${response.status}`
-    );
-  }
 
   return response.data;
 }
