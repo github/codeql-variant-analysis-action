@@ -6,29 +6,19 @@ import {
   ArtifactClient,
   create as createArtifactClient,
 } from "@actions/artifact";
-import { getInput, setSecret, setFailed } from "@actions/core";
+import { getInput, saveState, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 
 import { downloadDatabase, runQuery } from "./codeql";
 import { download } from "./download";
+import { getRepos, Repo } from "./inputs";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
-
-interface Repo {
-  id: number;
-  nwo: string;
-  downloadUrl?: string;
-
-  // pat is deprecated and only used during integration tests
-  pat?: string;
-}
 
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
-  const repos: Repo[] = JSON.parse(
-    getInput("repositories", { required: true })
-  );
+  const repos: Repo[] = getRepos();
   const codeql = getInput("codeql", { required: true });
 
   for (const repo of repos) {
@@ -108,6 +98,10 @@ async function run(): Promise<void> {
     // We can now delete the work dir. All required files have already been uploaded.
     chdir(curDir);
     fs.rmdirSync(workDir, { recursive: true });
+
+    // Save that we have already completed this repo so we don't set the state
+    // to failure in the post-action when a later repo fails.
+    saveState(`repo_${repo.id}_completed`, "true");
   }
 }
 
