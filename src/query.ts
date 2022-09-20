@@ -8,6 +8,7 @@ import {
 } from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
+import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
 import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
@@ -169,18 +170,40 @@ async function uploadRepoResult(
   repo: Repo,
   runQueryResult: RunQueryResult
 ) {
+  const artifactContents = await getArtifactContentsForUpload(runQueryResult);
+
   // Get policy for artifact upload
   const policy = await getPolicyForRepoArtifact(
     controllerRepoId,
     variantAnalysisId,
     repo.id,
-    runQueryResult.sarifFileSize || runQueryResult.bqrsFileSize
+    artifactContents.length
   );
 
   // Use Azure client for uploading to Azure Blob Storage
-  const fileToUpload =
-    runQueryResult.sarifFilePath || runQueryResult.bqrsFilePath;
-  await uploadArtifact(policy, fileToUpload);
+  await uploadArtifact(policy, artifactContents);
+}
+
+async function getArtifactContentsForUpload(
+  runQueryResult: RunQueryResult
+): Promise<Buffer> {
+  const zip = new JSZip();
+
+  if (runQueryResult.sarifFilePath) {
+    const sarifFileContents = fs.readFileSync(
+      runQueryResult.sarifFilePath,
+      "utf-8"
+    );
+    zip.file("results.sarif", sarifFileContents);
+  } else {
+    const bqrsFileContents = fs.readFileSync(
+      runQueryResult.bqrsFilePath,
+      "utf-8"
+    );
+    zip.file("results.bqrs", bqrsFileContents);
+  }
+
+  return await zip.generateAsync({ type: "nodebuffer" });
 }
 
 async function getDatabase(repo: Repo, language: string) {
