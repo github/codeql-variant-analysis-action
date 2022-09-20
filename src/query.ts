@@ -65,10 +65,6 @@ async function run(): Promise<void> {
     // Consider all repos to have failed
     setFailed(error.message);
     for (const repo of repos) {
-      const workDir = createTempRepoDir(curDir, repo);
-      chdir(workDir);
-
-      await uploadError(error, repo, artifactClient);
       if (liveResults) {
         await setVariantAnalysisFailed(
           controllerRepoId,
@@ -76,10 +72,15 @@ async function run(): Promise<void> {
           repo.id,
           error.message
         );
-      }
+      } else {
+        const workDir = createTempRepoDir(curDir, repo);
+        chdir(workDir);
 
-      chdir(curDir);
-      fs.rmdirSync(workDir, { recursive: true });
+        await uploadError(error, repo, artifactClient);
+
+        chdir(curDir);
+        fs.rmdirSync(workDir, { recursive: true });
+      }
     }
     return;
   }
@@ -119,13 +120,12 @@ async function run(): Promise<void> {
           runQueryResult.resultCount,
           runQueryResult.databaseSHA || "HEAD"
         );
+      } else {
+        await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
       }
-
-      await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
     } catch (error: any) {
       console.error(error);
       setFailed(error.message);
-      await uploadError(error, repo, artifactClient);
 
       if (liveResults) {
         await setVariantAnalysisFailed(
@@ -134,6 +134,8 @@ async function run(): Promise<void> {
           repo.id,
           error.message
         );
+      } else {
+        await uploadError(error, repo, artifactClient);
       }
     }
 
