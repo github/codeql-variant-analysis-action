@@ -2,6 +2,10 @@ name: "CodeQL: Query"
 description: "Run a CodeQL query against a repository"
 author: "GitHub"
 inputs:
+  controller_repo_id:
+    description: "ID of the controller repository where the variant analysis is run."
+    required: true
+
   query_pack_url:
     description: "URL for a tarball containing CodeQL query plus dependencies."
     required: true
@@ -15,8 +19,14 @@ inputs:
     required: true
 
   codeql:
-    description: "path to CodeQL binary to use"
+    description: "Path to CodeQL binary to use"
     required: true
+
+  variant_analysis_id:
+    description: "The ID of the variant analysis"
+    # This will eventually be required once live results is fully rolled out
+    # required: true
+
 runs:
   using: "node12"
   main: "../lib/query.js"
