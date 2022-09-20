@@ -21,4 +21,4 @@ runs:
   using: "node12"
   main: "../lib/query.js"
   post: "../lib/post-query.js"
-  post-if: ${{ failure() || cancelled() }}
+  post-if: failure() || cancelled()
