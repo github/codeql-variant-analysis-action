@@ -96,7 +96,7 @@ jobs:
 
   combine-results:
     runs-on: ubuntu-latest
-    if: always()
+    if: ${{ always() && github.event.inputs.variant_analysis_id == '' }}
     needs:
       - run
     permissions: {}
