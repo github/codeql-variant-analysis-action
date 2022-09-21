@@ -97,7 +97,12 @@ async function updateVariantAnalysisStatus(
   const octokit = getOctokit();
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
-  await octokit.request(url, { data });
+  try {
+    await octokit.request(url, { data });
+  } catch (e: any) {
+    console.error(`Request to ${url} failed with status code ${e.status}`);
+    throw e;
+  }
 }
 
 export async function getPolicyForRepoArtifact(
@@ -113,8 +118,12 @@ export async function getPolicyForRepoArtifact(
   };
   const octokit = getOctokit();
 
-  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
-  const response = await octokit.request(url, { data });
-
-  return response.data;
+  const url = `PUT /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
+  try {
+    const response = await octokit.request(url, { data });
+    return response.data;
+  } catch (e: any) {
+    console.error(`Request to ${url} failed with status code ${e.status}`);
+    throw e;
+  }
 }

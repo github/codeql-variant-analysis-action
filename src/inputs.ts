@@ -10,7 +10,7 @@ export interface Repo {
 }
 
 export function getControllerRepoId(): number {
-  return parseInt(getInput("controller_repo_id"));
+  return parseInt(getInput("controller_repo_id", { required: true }));
 }
 
 export function getVariantAnalysisId(): number {

@@ -1,17 +1,14 @@
-import * as fs from "fs";
-
 import FormData from "form-data";
 
 import { getApiClient } from "./download";
 import { Policy } from "./gh-api-client";
 
-export async function uploadArtifact(policy: Policy, artifactZipPath: string) {
+export async function uploadArtifact(policy: Policy, artifactContents: Buffer) {
   const data = new FormData();
   for (const [key, value] of Object.entries(policy.form)) {
     data.append(key, value);
   }
 
-  const artifactContents = fs.readFileSync(artifactZipPath, "utf8");
   data.append("file", artifactContents, {
     contentType: "application/zip",
     filename: "results.zip",

@@ -87,10 +87,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          controller_repo_id: ${{ github.repository_id }}
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
           repositories: ${{ steps.repos.outputs.repositories }}
           codeql: ${{ steps.init.outputs.codeql-path }}
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
   combine-results:
     runs-on: ubuntu-latest

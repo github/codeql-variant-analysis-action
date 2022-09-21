@@ -28,7 +28,9 @@ interface RunQueryResult {
   sourceLocationPrefix: string;
   metadataFilePath: string;
   bqrsFilePath: string;
+  bqrsFileSize: number;
   sarifFilePath?: string;
+  sarifFileSize?: number;
 }
 
 /**
@@ -79,6 +81,8 @@ async function runQuery(
   const tempBqrsFilePath = getBqrsFile(databaseName);
   fs.renameSync(tempBqrsFilePath, bqrsFilePath);
 
+  const bqrsFileSize = fs.statSync(bqrsFilePath).size;
+
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
@@ -86,6 +90,7 @@ async function runQuery(
   const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
   let resultCount: number;
   let sarifFilePath: string | undefined;
+  let sarifFileSize: number | undefined;
   if (isSarif) {
     const sarif = await generateSarif(
       codeql,
@@ -99,6 +104,7 @@ async function runQuery(
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = path.join("results", "results.sarif");
     fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
+    sarifFileSize = fs.statSync(sarifFilePath).size;
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
@@ -118,7 +124,9 @@ async function runQuery(
     sourceLocationPrefix,
     metadataFilePath,
     bqrsFilePath,
+    bqrsFileSize,
     sarifFilePath,
+    sarifFileSize,
   };
 }
 

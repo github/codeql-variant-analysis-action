@@ -8,18 +8,34 @@ import {
 } from "@actions/artifact";
 import { getInput, saveState, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
+import JSZip from "jszip";
 
-import { downloadDatabase, runQuery } from "./codeql";
+import { uploadArtifact } from "./azure-client";
+import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
 import { download } from "./download";
-import { getRepos, Repo } from "./inputs";
+import {
+  getPolicyForRepoArtifact,
+  setVariantAnalysisFailed,
+  setVariantAnalysisRepoInProgress,
+  setVariantAnalysisRepoSucceeded,
+} from "./gh-api-client";
+import {
+  getControllerRepoId,
+  getRepos,
+  getVariantAnalysisId,
+  Repo,
+} from "./inputs";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
+  const controllerRepoId = getControllerRepoId();
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
   const repos: Repo[] = getRepos();
   const codeql = getInput("codeql", { required: true });
+  const variantAnalysisId = getVariantAnalysisId();
+  const liveResults = !!variantAnalysisId;
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -46,6 +62,14 @@ async function run(): Promise<void> {
       chdir(workDir);
 
       await uploadError(error, repo, artifactClient);
+      if (liveResults) {
+        await setVariantAnalysisFailed(
+          controllerRepoId,
+          variantAnalysisId,
+          repo.id,
+          error.message
+        );
+      }
 
       chdir(curDir);
       fs.rmdirSync(workDir, { recursive: true });
@@ -60,39 +84,50 @@ async function run(): Promise<void> {
     chdir(workDir);
 
     try {
-      let dbZip: string;
-      if (repo.downloadUrl) {
-        // 1a. Use the provided signed URL to download the database
-        console.log("Getting database");
-        dbZip = await download(repo.downloadUrl, `${repo.id}.zip`);
-      } else {
-        // 1b. Use the GitHub API to download the database using token
-        console.log("Getting database");
-        dbZip = await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
+      if (liveResults) {
+        await setVariantAnalysisRepoInProgress(
+          controllerRepoId,
+          variantAnalysisId,
+          repo.id
+        );
       }
 
-      // 2. Run the query
+      const dbZip = await getDatabase(repo, language);
+
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
-      // 3. Upload the results as an artifact
-      const filesToUpload = [
-        runQueryResult.bqrsFilePath,
-        runQueryResult.metadataFilePath,
-      ];
-      if (runQueryResult.sarifFilePath) {
-        filesToUpload.push(runQueryResult.sarifFilePath);
+      if (liveResults) {
+        await uploadRepoResult(
+          controllerRepoId,
+          variantAnalysisId,
+          repo,
+          runQueryResult
+        );
+        await setVariantAnalysisRepoSucceeded(
+          controllerRepoId,
+          variantAnalysisId,
+          repo.id,
+          runQueryResult.sourceLocationPrefix,
+          runQueryResult.resultCount,
+          runQueryResult.databaseSHA || "HEAD"
+        );
       }
-      console.log("Uploading artifact");
-      await artifactClient.uploadArtifact(
-        repo.id.toString(), // name
-        filesToUpload, // files
-        "results", // rootdirectory
-        { continueOnError: false }
-      );
+
+      await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
     } catch (error: any) {
+      console.error(error);
       setFailed(error.message);
       await uploadError(error, repo, artifactClient);
+
+      if (liveResults) {
+        await setVariantAnalysisFailed(
+          controllerRepoId,
+          variantAnalysisId,
+          repo.id,
+          error.message
+        );
+      }
     }
 
     // We can now delete the work dir. All required files have already been uploaded.
@@ -102,6 +137,80 @@ async function run(): Promise<void> {
     // Save that we have already completed this repo so we don't set the state
     // to failure in the post-action when a later repo fails.
     saveState(`repo_${repo.id}_completed`, "true");
+  }
+}
+
+async function uploadRepoResultToActions(
+  runQueryResult: RunQueryResult,
+  artifactClient: ArtifactClient,
+  repo: Repo
+) {
+  const filesToUpload = [
+    runQueryResult.bqrsFilePath,
+    runQueryResult.metadataFilePath,
+  ];
+  if (runQueryResult.sarifFilePath) {
+    filesToUpload.push(runQueryResult.sarifFilePath);
+  }
+  console.log("Uploading artifact");
+  await artifactClient.uploadArtifact(
+    repo.id.toString(),
+    filesToUpload,
+    "results",
+    { continueOnError: false }
+  );
+}
+
+async function uploadRepoResult(
+  controllerRepoId: number,
+  variantAnalysisId: number,
+  repo: Repo,
+  runQueryResult: RunQueryResult
+) {
+  const artifactContents = await getArtifactContentsForUpload(runQueryResult);
+
+  // Get policy for artifact upload
+  const policy = await getPolicyForRepoArtifact(
+    controllerRepoId,
+    variantAnalysisId,
+    repo.id,
+    artifactContents.length
+  );
+
+  // Use Azure client for uploading to Azure Blob Storage
+  await uploadArtifact(policy, artifactContents);
+}
+
+async function getArtifactContentsForUpload(
+  runQueryResult: RunQueryResult
+): Promise<Buffer> {
+  const zip = new JSZip();
+
+  if (runQueryResult.sarifFilePath) {
+    const sarifFileContents = fs.readFileSync(
+      runQueryResult.sarifFilePath,
+      "utf-8"
+    );
+    zip.file("results.sarif", sarifFileContents);
+  } else {
+    const bqrsFileContents = fs.readFileSync(
+      runQueryResult.bqrsFilePath,
+      "utf-8"
+    );
+    zip.file("results.bqrs", bqrsFileContents);
+  }
+
+  return await zip.generateAsync({ type: "nodebuffer" });
+}
+
+async function getDatabase(repo: Repo, language: string) {
+  console.log("Getting database");
+  if (repo.downloadUrl) {
+    // Use the provided signed URL to download the database
+    return await download(repo.downloadUrl, `${repo.id}.zip`);
+  } else {
+    // Use the GitHub API to download the database using token
+    return await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
   }
 }
 
