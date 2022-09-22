@@ -69,6 +69,10 @@ async function run(): Promise<void> {
           repo.id,
           error.message
         );
+
+        // Save that we have already completed this repo so we don't set the state
+        // to failure in the post-action when a later repo fails.
+        saveState(`repo_${repo.id}_completed`, "true");
       }
 
       chdir(curDir);
@@ -130,13 +134,13 @@ async function run(): Promise<void> {
       }
     }
 
-    // We can now delete the work dir. All required files have already been uploaded.
-    chdir(curDir);
-    fs.rmdirSync(workDir, { recursive: true });
-
     // Save that we have already completed this repo so we don't set the state
     // to failure in the post-action when a later repo fails.
     saveState(`repo_${repo.id}_completed`, "true");
+
+    // We can now delete the work dir. All required files have already been uploaded.
+    chdir(curDir);
+    fs.rmdirSync(workDir, { recursive: true });
   }
 }
 
