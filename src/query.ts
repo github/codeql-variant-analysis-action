@@ -6,7 +6,7 @@ import {
   ArtifactClient,
   create as createArtifactClient,
 } from "@actions/artifact";
-import { getInput, setSecret, setFailed } from "@actions/core";
+import { getInput, saveState, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 import JSZip from "jszip";
 
@@ -19,29 +19,22 @@ import {
   setVariantAnalysisRepoInProgress,
   setVariantAnalysisRepoSucceeded,
 } from "./gh-api-client";
+import {
+  getControllerRepoId,
+  getRepos,
+  getVariantAnalysisId,
+  Repo,
+} from "./inputs";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
-
-interface Repo {
-  id: number;
-  nwo: string;
-  downloadUrl?: string;
-
-  // pat is deprecated and only used during integration tests
-  pat?: string;
-}
 
 async function run(): Promise<void> {
   const artifactClient = createArtifactClient();
-  const controllerRepoId = parseInt(
-    getInput("controller_repo_id", { required: true })
-  );
+  const controllerRepoId = getControllerRepoId();
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
-  const repos: Repo[] = JSON.parse(
-    getInput("repositories", { required: true })
-  );
+  const repos: Repo[] = getRepos();
   const codeql = getInput("codeql", { required: true });
-  const variantAnalysisId = parseInt(getInput("variant_analysis_id"));
+  const variantAnalysisId = getVariantAnalysisId();
   const liveResults = !!variantAnalysisId;
 
   for (const repo of repos) {
@@ -72,6 +65,10 @@ async function run(): Promise<void> {
           repo.id,
           error.message
         );
+
+        // Save that we have already completed this repo so we don't set the state
+        // to failure in the post-action when a later repo fails.
+        saveState(`repo_${repo.id}_completed`, "true");
       } else {
         const workDir = createTempRepoDir(curDir, repo);
         chdir(workDir);
@@ -138,6 +135,10 @@ async function run(): Promise<void> {
         await uploadError(error, repo, artifactClient);
       }
     }
+
+    // Save that we have already completed this repo so we don't set the state
+    // to failure in the post-action when a later repo fails.
+    saveState(`repo_${repo.id}_completed`, "true");
 
     // We can now delete the work dir. All required files have already been uploaded.
     chdir(curDir);
