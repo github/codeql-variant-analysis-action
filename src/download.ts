@@ -2,13 +2,13 @@
 // https://github.com/actions/toolkit/blob/27f76dfe1afb2b7e5e679cd8e97192d34d8320e6/packages/tool-cache/src/tool-cache.ts
 
 import * as fs from "fs";
+import { OutgoingHttpHeaders } from "http";
 import * as path from "path";
 import * as stream from "stream";
 import * as util from "util";
 
 import * as core from "@actions/core";
 import * as httpm from "@actions/http-client";
-import { IHeaders } from "@actions/http-client/interfaces";
 import * as io from "@actions/io";
 
 import { userAgent } from "./gh-api-client";
@@ -87,7 +87,7 @@ async function downloadAttempt(
   // Get the response headers
   const http = getApiClient();
 
-  const headers: IHeaders = {};
+  const headers: OutgoingHttpHeaders = {};
   if (auth) {
     core.debug("set auth");
     headers.authorization = auth;
