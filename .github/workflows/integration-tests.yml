@@ -1,0 +1,123 @@
+name: "Integration tests"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Trigger variant analysis
+        id: trigger
+        run: |
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            REF="$GITHUB_HEAD_REF"
+          else
+            REF="$GITHUB_REF_NAME"
+          fi
+
+          QUERY_PACK=$(curl https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz -L | base64)
+
+          cat <<EOF >> input.json
+            {
+              "action_repo_ref": "$REF",
+              "language": "go",
+              "query_pack": "$QUERY_PACK",
+              "repositories": [
+                "docker/compose",
+                "hashicorp/terraform",
+                "github/does-not-exist"
+              ]
+            }
+          EOF
+          echo "input.json: $(cat input.json)"
+
+          RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses" -X POST -d @input.json)
+          echo "Response: $RESPONSE"
+
+          ID="$(echo "$RESPONSE" | jq '.id')"
+          echo "Triggered variant analysis $ID"
+
+          if [ "$ID" == "null" ]; then
+            echo "Error triggering variant analysis"
+            exit 1
+          fi
+
+          echo "::set-output name=variant_analysis_id::$ID"
+
+      - name: Wait for variant analysis to complete
+        run: |
+          while true; do
+            RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
+            STATUS="$(echo "$RESPONSE" | jq '.status' -r)"
+            echo "Variant analysis ${{ steps.trigger.outputs.variant_analysis_id }} status: $STATUS"
+            if [ "$STATUS" == "completed" ]; then
+              echo "Exiting..."
+              exit 0
+            fi
+            sleep 10s
+          done
+
+      - name: Validate variant analysis status
+        id: validate
+        run: |
+          RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
+          echo "Response: $RESPONSE"
+
+          if [ "$(echo "$RESPONSE" | jq '.failure_reason')" != "null" ]; then
+            echo "Failure reason is not null"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.scanned_repositories | length')" != "2" ]; then
+            echo "Number of scanned repos is not 2"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.scanned_repositories[].repository.full_name' -r | sort)" != "$(echo -e "docker/compose\nhashicorp/terraform")" ]; then
+            echo "Full names of scanned repos is incorrect"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.scanned_repositories[] | select(.analysis_status = "succeeded") | .repository.full_name' | wc -l)" != "2" ]; then
+            echo "Number of repositories with successful status is not 2"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.scanned_repositories[] | select(.result_count = 3) | .repository.full_name' | wc -l)" != "2" ]; then
+            echo "Number of repositories with precisely 3 results is not 2"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.scanned_repositories[] | select(.artifact_size_in_bytes > 0) | .repository.full_name' | wc -l)" != "2" ]; then
+            echo "Number of repositories with a non-zero artifact size is not 2"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.skipped_repositories.not_found_repos.repository_count')" != "1" ]; then
+            echo "Number of not found skipped repos is not 1"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.skipped_repositories.not_found_repos.repository_full_names[]' -r)" != "github/does-not-exist" ]; then
+            echo "Not found skipped repos is incorrect"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.skipped_repositories.access_mismatch_repos.repository_count')" != "0" ]; then
+            echo "Number of access mismatch skipped repos is not 0"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.skipped_repositories.no_codeql_db_repos.repository_count')" != "0" ]; then
+            echo "Number of no CodeQL DB skipped repos is not 0"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq '.skipped_repositories.over_limit_repos.repository_count')" != "0" ]; then
+            echo "Number of over limit skipped repos is not 0"
+            exit 1
+          fi
