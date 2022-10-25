@@ -3,7 +3,11 @@ name: "Integration test (trigger only)"
 on:
   push:
     branches: [main]
-  pull_request:
+  pull_request_target:
+
+permissions:
+  actions: write
+  statuses: write
 
 jobs:
   trigger:
@@ -23,7 +27,7 @@ jobs:
       # The owner of the provided token must have write access to trigger this workflow run.
       - name: Trigger the real workflow
         run: |
-          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+          if [ "$GITHUB_EVENT_NAME" == "pull_request_target" ]; then
             REF="$GITHUB_HEAD_REF"
           else
             REF="$GITHUB_REF"
