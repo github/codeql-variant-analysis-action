@@ -38,6 +38,13 @@ jobs:
       contents: write
 
     steps:
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v3
+        with:
+          repository: 'github/codeql-variant-analysis-action'
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
       - name: Mask download URL
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
@@ -83,7 +90,7 @@ jobs:
           echo "::set-output name=codeql-path::${CODEQL}"
 
       - name: Run query
-        uses: github/codeql-variant-analysis-action/query@main
+        uses: ./query
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -102,6 +109,13 @@ jobs:
     permissions: {}
 
     steps:
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v3
+        with:
+          repository: 'github/codeql-variant-analysis-action'
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
       # NOTE: this is only expected to work on github.com hosted runnners.
       # It will not work on any self-hosted runners.
       - name: Initialize CodeQL
@@ -118,4 +132,4 @@ jobs:
           echo "::set-output name=codeql-path::${CODEQL}"
 
       - name: Combine results
-        uses: github/codeql-variant-analysis-action/combine-results@main
+        uses: ./combine-results

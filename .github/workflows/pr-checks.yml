@@ -7,15 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  workflow-references-main:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: Check workflow references only main
-        run: |
-          ! grep 'uses: github/codeql-variant-analysis-action/' .github/workflows/codeql-query.yml | grep -q -v '@main$'
-
   lint-js:
     runs-on: ubuntu-latest
 
