@@ -67,16 +67,16 @@ jobs:
         run: |
           const fs = require('fs');
           const process = require('process');
+
           const allRepos = JSON.parse(fs.readFileSync("instructions.json")).repositories;
           const repoNwos = new Set(${{ toJSON(matrix.repoNwos) }});
           const repositories = allRepos.filter(r => repoNwos.has(r.nwo));
           if ("${{ secrets.TEST_PAT }}") {
             allRepos.forEach(r => r.pat = "${{ secrets.TEST_PAT }}")
           }
+
           const githubOutput = process.env.GITHUB_OUTPUT;
-          const outputFile = fs.openSync(githubOutput, 'a');
-          fs.writeSync(outputFile, `repositories=${JSON.stringify(repositories)}`);
-          fs.closeSync(outputFile);
+          fs.appendFileSync(githubOutput, `repositories=${JSON.stringify(repositories)}`);
 
       # NOTE: this is only expected to work on github.com hosted runnners.
       # It will not work on any self-hosted runners.
