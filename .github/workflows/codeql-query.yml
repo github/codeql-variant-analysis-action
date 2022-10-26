@@ -22,7 +22,7 @@ jobs:
         id: split
         run: |
           curl --fail --show-error --location --retry 10 "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")" | \
-            jq --raw-output '"repoNwoChunks=\(.repoNwoChunks)" >> $GITHUB_OUTPUT'
+            jq --raw-output '"repoNwoChunks=\(.repoNwoChunks)"' >> $GITHUB_OUTPUT
 
   run:
     runs-on: ubuntu-latest
@@ -66,13 +66,17 @@ jobs:
         shell: node {0}
         run: |
           const fs = require('fs');
+          const process = require('process');
           const allRepos = JSON.parse(fs.readFileSync("instructions.json")).repositories;
           const repoNwos = new Set(${{ toJSON(matrix.repoNwos) }});
           const repositories = allRepos.filter(r => repoNwos.has(r.nwo));
           if ("${{ secrets.TEST_PAT }}") {
             allRepos.forEach(r => r.pat = "${{ secrets.TEST_PAT }}")
           }
-          console.log(`repositories=${JSON.stringify(repositories)} >> $GITHUB_OUTPUT`);
+          const githubOutput = process.env.GITHUB_OUTPUT;
+          const outputFile = fs.openSync(githubOutput, 'a');
+          fs.writeSync(outputFile, `repositories=${JSON.stringify(repositories)}`);
+          fs.closeSync(outputFile);
 
       # NOTE: this is only expected to work on github.com hosted runnners.
       # It will not work on any self-hosted runners.
