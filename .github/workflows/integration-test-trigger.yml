@@ -11,7 +11,12 @@ jobs:
     steps:
       - name: Create a status check in state 'pending'
         run: |
-          gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            SHA="$GITHUB_SHA"
+          fi
+          gh api -X POST "/repos/$GITHUB_REPOSITORY/statuses/$SHA" \
             -f context=integration-test \
             -f description="integration-test-call.yml" \
             -f state=pending \
