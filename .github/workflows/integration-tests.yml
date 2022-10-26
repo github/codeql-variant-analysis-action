@@ -46,7 +46,7 @@ jobs:
             exit 1
           fi
 
-          echo "::set-output name=variant_analysis_id::$ID"
+          echo "variant_analysis_id=$ID" >> $GITHUB_OUTPUT
 
       - name: Wait for variant analysis to complete
         run: |
