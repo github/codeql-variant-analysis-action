@@ -22,7 +22,7 @@ jobs:
         id: split
         run: |
           curl --fail --show-error --location --retry 10 "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")" | \
-            jq --raw-output '"::set-output name=repoNwoChunks::\(.repoNwoChunks)"'
+            jq --raw-output '"repoNwoChunks=\(.repoNwoChunks)"' >> $GITHUB_OUTPUT
 
   run:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
         with:
-          repository: 'github/codeql-variant-analysis-action'
+          repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask download URL
@@ -66,13 +66,17 @@ jobs:
         shell: node {0}
         run: |
           const fs = require('fs');
+          const process = require('process');
+
           const allRepos = JSON.parse(fs.readFileSync("instructions.json")).repositories;
           const repoNwos = new Set(${{ toJSON(matrix.repoNwos) }});
           const repositories = allRepos.filter(r => repoNwos.has(r.nwo));
           if ("${{ secrets.TEST_PAT }}") {
             allRepos.forEach(r => r.pat = "${{ secrets.TEST_PAT }}")
           }
-          console.log(`::set-output name=repositories::${JSON.stringify(repositories)}`);
+
+          const githubOutput = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(githubOutput, `repositories=${JSON.stringify(repositories)}`);
 
       # NOTE: this is only expected to work on github.com hosted runnners.
       # It will not work on any self-hosted runners.
@@ -87,7 +91,7 @@ jobs:
 
           CODEQL="$VERSION/x64/codeql/codeql"
           "${CODEQL}" version --format=json
-          echo "::set-output name=codeql-path::${CODEQL}"
+          echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
 
       - name: Run query
         uses: ./query
@@ -113,7 +117,7 @@ jobs:
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
         with:
-          repository: 'github/codeql-variant-analysis-action'
+          repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
       # NOTE: this is only expected to work on github.com hosted runnners.
@@ -129,7 +133,7 @@ jobs:
 
           CODEQL="$VERSION/x64/codeql/codeql"
           "${CODEQL}" version --format=json
-          echo "::set-output name=codeql-path::${CODEQL}"
+          echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
 
       - name: Combine results
         uses: ./combine-results
