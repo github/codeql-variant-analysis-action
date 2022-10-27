@@ -30,10 +30,15 @@ interface FailedAnalysis {
   failure_message: string;
 }
 
+interface CanceledAnalysis {
+  status: "canceled";
+}
+
 type UpdateVariantAnalysis =
   | InProgressAnalysis
   | SuccessfulAnalysis
-  | FailedAnalysis;
+  | FailedAnalysis
+  | CanceledAnalysis;
 
 export async function setVariantAnalysisRepoInProgress(
   controllerRepoId: number,
@@ -84,6 +89,21 @@ export async function setVariantAnalysisFailed(
     {
       status: "failed",
       failure_message: failureMessage,
+    }
+  );
+}
+
+export async function setVariantAnalysisCanceled(
+  controllerRepoId: number,
+  variantAnalysisId: number,
+  repoId: number
+): Promise<void> {
+  await updateVariantAnalysisStatus(
+    controllerRepoId,
+    variantAnalysisId,
+    repoId,
+    {
+      status: "canceled",
     }
   );
 }

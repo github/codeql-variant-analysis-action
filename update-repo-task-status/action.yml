@@ -1,0 +1,22 @@
+name: "CodeQL: Update repository task status"
+description: "Set repository task as failed or canceled"
+author: "GitHub"
+inputs:
+  workflow_status:
+    description: "The status of the workflow: 'canceled' or 'failed'."
+
+  controller_repo_id:
+    description: "ID of the controller repository where the variant analysis is run."
+    required: true
+
+  repositories:
+    description: "Repositories to run the query against. A JSON encoded array of the form {id: number, nwo: string, token: string}[]"
+    required: true
+
+  variant_analysis_id:
+    description: "The ID of the variant analysis"
+    required: true
+
+runs:
+  using: "node16"
+  main: "../lib/update-repo-task-status.js"
