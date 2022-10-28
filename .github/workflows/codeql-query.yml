@@ -106,7 +106,7 @@ jobs:
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
       - name: Handle workflow canceled
-        if: canceled() && github.event.inputs.variant_analysis_id != ''
+        if: cancelled() && github.event.inputs.variant_analysis_id != ''
         uses: ./update-repo-task-status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
       - name: Handle workflow failed
-        if: failed() && github.event.inputs.variant_analysis_id != ''
+        if: failure() && github.event.inputs.variant_analysis_id != ''
         uses: ./update-repo-task-status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
