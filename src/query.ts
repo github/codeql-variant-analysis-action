@@ -200,7 +200,10 @@ async function getArtifactContentsForUpload(
     zip.file("results.bqrs", bqrsFileContents);
   }
 
-  return await zip.generateAsync({ type: "nodebuffer" });
+  return await zip.generateAsync({
+    compression: "DEFLATE",
+    type: "nodebuffer",
+  });
 }
 
 async function getDatabase(repo: Repo, language: string) {
