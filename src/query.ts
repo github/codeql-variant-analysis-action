@@ -193,16 +193,10 @@ async function getArtifactContentsForUpload(
   const zip = new JSZip();
 
   if (runQueryResult.sarifFilePath) {
-    const sarifFileContents = fs.readFileSync(
-      runQueryResult.sarifFilePath,
-      "utf-8"
-    );
+    const sarifFileContents = fs.createReadStream(runQueryResult.sarifFilePath);
     zip.file("results.sarif", sarifFileContents);
   } else {
-    const bqrsFileContents = fs.readFileSync(
-      runQueryResult.bqrsFilePath,
-      "utf-8"
-    );
+    const bqrsFileContents = fs.createReadStream(runQueryResult.bqrsFilePath);
     zip.file("results.bqrs", bqrsFileContents);
   }
 
