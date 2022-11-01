@@ -41,6 +41,7 @@ jobs:
       # To use the action in this repository, we need to check out the repository
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
+        if: always()
         with:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
