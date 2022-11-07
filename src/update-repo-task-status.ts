@@ -13,7 +13,7 @@ import {
 
 // All states that indicate the repository has been scanned and cannot
 // change status anymore.
-const COMPLETED_STATES = ["succeeded", "failed", "canceled", "timed_out"];
+const PENDING_STATES = ["pending", "in_progress"];
 
 /**
  * If the overall variant analysis workflow failed or was canceled,
@@ -23,10 +23,6 @@ async function updateRepoTaskStatus(): Promise<void> {
   const controllerRepoId = getControllerRepoId();
   const variantAnalysisId = getVariantAnalysisId();
   const workflowStatus = getWorkflowStatus();
-
-  if (!controllerRepoId || !variantAnalysisId || !workflowStatus) {
-    return;
-  }
 
   const repos = getRepos();
 
@@ -66,7 +62,7 @@ async function updateRepoTaskStatus(): Promise<void> {
  * @returns whether the repo is in a completed state, i.e. it cannot normally change state anymore
  */
 function isCompleted(repoTaskstatus: AnalysisStatus): boolean {
-  return COMPLETED_STATES.includes(repoTaskstatus);
+  return !PENDING_STATES.includes(repoTaskstatus);
 }
 
 void updateRepoTaskStatus();

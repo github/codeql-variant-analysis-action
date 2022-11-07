@@ -4,6 +4,7 @@ author: "GitHub"
 inputs:
   workflow_status:
     description: "The status of the workflow: 'canceled' or 'failed'."
+    required: true
 
   controller_repo_id:
     description: "ID of the controller repository where the variant analysis is run."
