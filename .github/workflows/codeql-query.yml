@@ -46,6 +46,11 @@ jobs:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
+      - name: Mask signed URL
+        if: github.event.inputs.signed_auth_token != ''
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
       - name: Mask download URL
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
