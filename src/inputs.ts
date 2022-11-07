@@ -17,6 +17,10 @@ export function getVariantAnalysisId(): number {
   return parseInt(getInput("variant_analysis_id"));
 }
 
+export function getSignedAuthToken(): string {
+  return getInput("signed_auth_token");
+}
+
 export function getRepos(): Repo[] {
   return JSON.parse(getInput("repositories", { required: true }));
 }
