@@ -30,5 +30,3 @@ inputs:
 runs:
   using: "node16"
   main: "../lib/query.js"
-  post: "../lib/post-query.js"
-  post-if: failure() || cancelled()

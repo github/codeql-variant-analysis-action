@@ -20,3 +20,7 @@ export function getVariantAnalysisId(): number {
 export function getRepos(): Repo[] {
   return JSON.parse(getInput("repositories", { required: true }));
 }
+
+export function getWorkflowStatus(): string {
+  return getInput("workflow_status", { required: true });
+}

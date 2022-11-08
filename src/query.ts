@@ -6,7 +6,7 @@ import {
   ArtifactClient,
   create as createArtifactClient,
 } from "@actions/artifact";
-import { getInput, saveState, setSecret, setFailed } from "@actions/core";
+import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 import JSZip from "jszip";
 
@@ -65,10 +65,6 @@ async function run(): Promise<void> {
           repo.id,
           error.message
         );
-
-        // Save that we have already completed this repo so we don't set the state
-        // to failure in the post-action when a later repo fails.
-        saveState(`repo_${repo.id}_completed`, "true");
       } else {
         const workDir = createTempRepoDir(curDir, repo);
         chdir(workDir);
@@ -135,11 +131,6 @@ async function run(): Promise<void> {
         await uploadError(error, repo, artifactClient);
       }
     }
-
-    // Save that we have already completed this repo so we don't set the state
-    // to failure in the post-action when a later repo fails.
-    saveState(`repo_${repo.id}_completed`, "true");
-
     // We can now delete the work dir. All required files have already been uploaded.
     chdir(curDir);
     fs.rmdirSync(workDir, { recursive: true });
