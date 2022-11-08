@@ -1,11 +1,30 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Octokit } from "@octokit/action";
 import { retry } from "@octokit/plugin-retry";
+import { EndpointOptions, RequestInterface } from "@octokit/types";
+
+import { getSignedAuthToken } from "./inputs";
 
 export const userAgent = "GitHub multi-repository variant analysis action";
 
-export function getOctokit() {
-  return new Octokit({ userAgent, retry });
+export function getOctokitRequestInterface(): RequestInterface {
+  const octokit = new Octokit({ userAgent, retry });
+
+  const signedAuthToken = getSignedAuthToken();
+  if (signedAuthToken) {
+    return octokit.request.defaults({
+      request: {
+        hook: (request: RequestInterface, options: EndpointOptions) => {
+          if (options.headers) {
+            options.headers.authorization = `RemoteAuth ${signedAuthToken}`;
+          }
+          return request(options);
+        },
+      },
+    });
+  }
+
+  return octokit.request;
 }
 
 export interface Policy {
@@ -126,11 +145,11 @@ async function updateVariantAnalysisStatus(
   repoId: number,
   data: UpdateVariantAnalysis
 ): Promise<void> {
-  const octokit = getOctokit();
+  const octokitRequest = getOctokitRequestInterface();
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
   try {
-    await octokit.request(url, { data });
+    await octokitRequest(url, { data });
   } catch (e: any) {
     console.error(`Request to ${url} failed with status code ${e.status}`);
     throw e;
@@ -142,11 +161,11 @@ export async function getRepoTask(
   variantAnalysisId: number,
   repoId: number
 ): Promise<RepoTask> {
-  const octokit = getOctokit();
+  const octokitRequest = getOctokitRequestInterface();
 
   const url = `GET /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
   try {
-    const response = await octokit.request(url);
+    const response = await octokitRequest(url);
     return response.data;
   } catch (e: any) {
     console.error(`Request to ${url} failed with status code ${e.status}`);
@@ -165,11 +184,11 @@ export async function getPolicyForRepoArtifact(
     content_type: "application/zip",
     size: artifactSize,
   };
-  const octokit = getOctokit();
+  const octokitRequest = getOctokitRequestInterface();
 
   const url = `PUT /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   try {
-    const response = await octokit.request(url, { data });
+    const response = await octokitRequest(url, { data });
     return response.data;
   } catch (e: any) {
     console.error(`Request to ${url} failed with status code ${e.status}`);
