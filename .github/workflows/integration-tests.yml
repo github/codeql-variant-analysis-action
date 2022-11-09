@@ -53,7 +53,11 @@ jobs:
           while true; do
             RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
             STATUS="$(echo "$RESPONSE" | jq '.status' -r)"
+            ACTIONS_WORKFLOW_RUN_ID="$(echo "$RESPONSE" | jq '.actions_workflow_run_id' -r)"
             echo "Variant analysis ${{ steps.trigger.outputs.variant_analysis_id }} status: $STATUS"
+            if [ "$ACTION_WORKFLOW_RUN_ID" != "null" ]; then
+              echo "Actions workflow URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ACTIONS_WORKFLOW_RUN_ID"
+            fi
             if [ "$STATUS" == "completed" ]; then
               echo "Exiting..."
               exit 0
@@ -66,6 +70,7 @@ jobs:
         run: |
           RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
           echo "Response: $RESPONSE"
+          echo "Actions workflow URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$(echo "$RESPONSE" | jq '.actions_workflow_run_id')"
 
           if [ "$(echo "$RESPONSE" | jq '.failure_reason')" != "null" ]; then
             echo "Failure reason is not null"
@@ -119,5 +124,17 @@ jobs:
 
           if [ "$(echo "$RESPONSE" | jq '.skipped_repositories.over_limit_repos.repository_count')" != "0" ]; then
             echo "Number of over limit skipped repos is not 0"
+            exit 1
+          fi
+
+          ACTIONS_RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$(echo "$RESPONSE" | jq '.actions_workflow_run_id')")
+
+          if [ "$(echo "$ACTIONS_RESPONSE" | jq '.status' -r)" != "completed" ]; then
+            echo "Actions workflow status is not completed"
+            exit 1
+          fi
+
+          if [ "$(echo "$ACTIONS_RESPONSE" | jq '.conclusion' -r)" != "success" ]; then
+            echo "Actions workflow conclusion is not success"
             exit 1
           fi
