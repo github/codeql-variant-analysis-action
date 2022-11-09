@@ -19,7 +19,7 @@ jobs:
             REF="$GITHUB_REF_NAME"
           fi
 
-          QUERY_PACK=$(curl https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz -L | base64)
+          QUERY_PACK=$(curl --no-progress-meter https://github.com/$GITHUB_REPOSITORY/releases/download/test/test_pack2.tar.gz -L | base64)
 
           cat <<EOF >> input.json
             {
@@ -35,7 +35,7 @@ jobs:
           EOF
           echo "input.json: $(cat input.json)"
 
-          RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses" -X POST -d @input.json)
+          RESPONSE=$(curl --no-progress-meter -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses" -X POST -d @input.json)
           echo "Response: $RESPONSE"
 
           ID="$(echo "$RESPONSE" | jq '.id')"
@@ -51,7 +51,7 @@ jobs:
       - name: Wait for variant analysis to complete
         run: |
           while true; do
-            RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
+            RESPONSE=$(curl --no-progress-meter -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
             STATUS="$(echo "$RESPONSE" | jq '.status' -r)"
             ACTIONS_WORKFLOW_RUN_ID="$(echo "$RESPONSE" | jq '.actions_workflow_run_id' -r)"
             echo "Variant analysis ${{ steps.trigger.outputs.variant_analysis_id }} status: $STATUS"
@@ -68,7 +68,7 @@ jobs:
       - name: Validate variant analysis status
         id: validate
         run: |
-          RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
+          RESPONSE=$(curl --no-progress-meter -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/code-scanning/codeql/variant-analyses/${{ steps.trigger.outputs.variant_analysis_id }}")
           echo "Response: $RESPONSE"
           echo "Actions workflow URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$(echo "$RESPONSE" | jq '.actions_workflow_run_id')"
 
@@ -127,7 +127,7 @@ jobs:
             exit 1
           fi
 
-          ACTIONS_RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$(echo "$RESPONSE" | jq '.actions_workflow_run_id')")
+          ACTIONS_RESPONSE=$(curl --no-progress-meter -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$(echo "$RESPONSE" | jq '.actions_workflow_run_id')")
 
           if [ "$(echo "$ACTIONS_RESPONSE" | jq '.status' -r)" != "completed" ]; then
             echo "Actions workflow status is not completed"
