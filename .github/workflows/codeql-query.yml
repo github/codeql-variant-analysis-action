@@ -46,7 +46,7 @@ jobs:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
-      - name: Mask signed URL
+      - name: Mask signed auth token
         if: github.event.inputs.signed_auth_token != ''
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
@@ -172,9 +172,14 @@ jobs:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
+      - name: Mask signed auth token
+        if: github.event.inputs.signed_auth_token != ''
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
       - name: Mask download URL
         run: |
-          echo "::add-mask::$(jq .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
 
       # Download and use ::add::mask for all tokens.
       # Note that masking does not persist to other/future jobs in the same workflow.
@@ -217,9 +222,14 @@ jobs:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
+      - name: Mask signed auth token
+        if: github.event.inputs.signed_auth_token != ''
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
       - name: Mask download URL
         run: |
-          echo "::add-mask::$(jq .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
 
       # Download and use ::add::mask for all tokens.
       # Note that masking does not persist to other/future jobs in the same workflow.
