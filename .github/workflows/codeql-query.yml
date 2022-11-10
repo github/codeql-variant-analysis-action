@@ -111,17 +111,6 @@ jobs:
           codeql: ${{ steps.init.outputs.codeql-path }}
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
-      - name: Handle workflow canceled
-        if: cancelled() && github.event.inputs.variant_analysis_id != ''
-        uses: ./update-repo-task-status
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          workflow_status: "canceled"
-          controller_repo_id: ${{ github.repository_id }}
-          repositories: ${{ steps.repos.outputs.repositories }}
-          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
-
       - name: Handle workflow failed
         if: failure() && github.event.inputs.variant_analysis_id != ''
         uses: ./update-repo-task-status
