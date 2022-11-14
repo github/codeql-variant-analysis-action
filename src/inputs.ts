@@ -28,3 +28,7 @@ export function getRepos(): Repo[] {
 export function getWorkflowStatus(): string {
   return getInput("workflow_status", { required: true });
 }
+
+export function getInstructionsPath(): string {
+  return getInput("instructions_path", { required: true });
+}

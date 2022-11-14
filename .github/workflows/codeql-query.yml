@@ -46,7 +46,7 @@ jobs:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
 
-      - name: Mask signed URL
+      - name: Mask signed auth token
         if: github.event.inputs.signed_auth_token != ''
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
@@ -111,17 +111,6 @@ jobs:
           codeql: ${{ steps.init.outputs.codeql-path }}
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
-      - name: Handle workflow canceled
-        if: cancelled() && github.event.inputs.variant_analysis_id != ''
-        uses: ./update-repo-task-status
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          workflow_status: "canceled"
-          controller_repo_id: ${{ github.repository_id }}
-          repositories: ${{ steps.repos.outputs.repositories }}
-          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
-
       - name: Handle workflow failed
         if: failure() && github.event.inputs.variant_analysis_id != ''
         uses: ./update-repo-task-status
@@ -165,3 +154,97 @@ jobs:
 
       - name: Combine results
         uses: ./combine-results
+
+  update-repo-tasks-statuses-cancelled:
+    runs-on: ubuntu-latest
+    if: cancelled() && github.event.inputs.variant_analysis_id != ''
+    needs:
+      - run
+    permissions:
+      security-events: write # This permission can be removed soon
+      contents: write
+
+    steps:
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v3
+        with:
+          repository: "github/codeql-variant-analysis-action"
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
+      - name: Mask signed auth token
+        if: github.event.inputs.signed_auth_token != ''
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
+      - name: Mask download URL
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+
+      # Download and use ::add::mask for all tokens.
+      # Note that masking does not persist to other/future jobs in the same workflow.
+      - name: Download and mask tokens
+        run: |
+          curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          jq '.repositories | [.[].token , .[].pat] | map( select( . != null ) ) | .[]' --raw-output instructions.json | \
+            xargs -I {} echo "::add-mask::{}"
+
+      # Extract the repositories that were analyzed in this workflow from the instructions file.
+      - name: Extract repos
+        id: repos
+        run: |
+          echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
+
+      - name: Handle workflow cancelled
+        uses: ./update-repo-task-statuses
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          workflow_status: "canceled"
+          controller_repo_id: ${{ github.repository_id }}
+          instructions_path: instructions.json
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+
+  update-repo-tasks-statuses-failure:
+    runs-on: ubuntu-latest
+    if: failure() && github.event.inputs.variant_analysis_id != ''
+    needs:
+      - run
+    permissions:
+      security-events: write # This permission can be removed soon
+      contents: write
+
+    steps:
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v3
+        with:
+          repository: "github/codeql-variant-analysis-action"
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
+      - name: Mask signed auth token
+        if: github.event.inputs.signed_auth_token != ''
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
+      - name: Mask download URL
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+
+      # Download and use ::add::mask for all tokens.
+      # Note that masking does not persist to other/future jobs in the same workflow.
+      - name: Download and mask tokens
+        run: |
+          curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          jq '.repositories | [.[].token , .[].pat] | map( select( . != null ) ) | .[]' --raw-output instructions.json | \
+            xargs -I {} echo "::add-mask::{}"
+
+      - name: Handle workflow cancelled
+        uses: ./update-repo-task-statuses
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          workflow_status: "failed"
+          controller_repo_id: ${{ github.repository_id }}
+          instructions_path: instructions.json
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
