@@ -58,7 +58,7 @@ jobs:
             if [ "$ACTION_WORKFLOW_RUN_ID" != "null" ]; then
               echo "Actions workflow URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ACTIONS_WORKFLOW_RUN_ID"
             fi
-            if [ "$STATUS" == "completed" ]; then
+            if [ "$STATUS" != "in_progress" ]; then
               echo "Exiting..."
               exit 0
             fi
@@ -74,6 +74,11 @@ jobs:
 
           if [ "$(echo "$RESPONSE" | jq '.failure_reason')" != "null" ]; then
             echo "Failure reason is not null"
+            exit 1
+          fi
+
+          if [ "$(echo "$RESPONSE" | jq -r '.status')" != "succeeded" ]; then
+            echo "Status is not succeeded"
             exit 1
           fi
 
