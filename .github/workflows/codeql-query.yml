@@ -196,13 +196,13 @@ jobs:
           echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
 
       - name: Handle workflow cancelled
-        uses: ./update-repo-task-status
+        uses: ./update-repo-task-statuses
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           workflow_status: "canceled"
           controller_repo_id: ${{ github.repository_id }}
-          repositories: ${{ steps.repos.outputs.repositories }}
+          instructions_path: instructions.json
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
   update-repo-tasks-statuses-failure:
@@ -239,18 +239,12 @@ jobs:
           jq '.repositories | [.[].token , .[].pat] | map( select( . != null ) ) | .[]' --raw-output instructions.json | \
             xargs -I {} echo "::add-mask::{}"
 
-      # Extract the repositories that were analyzed in this workflow from the instructions file.
-      - name: Extract repos
-        id: repos
-        run: |
-          echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
-
       - name: Handle workflow cancelled
-        uses: ./update-repo-task-status
+        uses: ./update-repo-task-statuses
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           workflow_status: "failed"
           controller_repo_id: ${{ github.repository_id }}
-          repositories: ${{ steps.repos.outputs.repositories }}
+          instructions_path: instructions.json
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
