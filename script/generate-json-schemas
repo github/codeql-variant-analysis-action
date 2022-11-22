@@ -3,3 +3,6 @@
 set -eu
 
 cd "$(dirname "$0")/.."
+
+$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type RepoArray --additional-properties true --out src/json-schemas/RepoArray.json
+$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type Instructions --additional-properties true --out src/json-schemas/Instructions.json
