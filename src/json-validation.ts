@@ -5,7 +5,9 @@ import Ajv from "ajv";
 type Schema = "RepoArray" | "Instructions";
 
 export function validateObject<T>(obj: unknown, schema: Schema): T {
-  const schemaContents = fs.readFileSync(`./json-schemas/${schema}.json`);
+  const schemaContents = fs.readFileSync(
+    `${__dirname}/../src/json-schemas/${schema}.json`
+  );
   const ajv = new Ajv();
   const validate = ajv.compile(schemaContents);
   const valid = validate(obj);
