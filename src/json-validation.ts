@@ -30,10 +30,11 @@ export function validateObject<T extends keyof SchemaTypes>(
 ): SchemaTypes[T] {
   const validator = validators[schema]();
   if (!validator(obj)) {
-    for (const error of validator.errors || []) {
-      console.error(error.message);
-    }
-    throw new Error(`Object does not match the "${schema}" schema`);
+    throw new Error(
+      `Object does not match the "${schema}" schema: ${ajv.errorsText(
+        validator.errors
+      )}`
+    );
   }
   return obj as SchemaTypes[T];
 }
