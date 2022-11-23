@@ -1,11 +1,12 @@
 import anyTest, { TestInterface } from "ava";
 
 import { Instructions, RepoArray } from "./inputs";
-import { ALL_SCHEMAS, validateObject } from "./json-validation";
+import { Schema, schemas, validateObject } from "./json-validation";
 
 const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
 
-for (const schema of ALL_SCHEMAS) {
+const schemaNames = Object.keys(schemas) as Schema[];
+for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
     const obj = JSON.parse(
       JSON.stringify({
@@ -13,7 +14,7 @@ for (const schema of ALL_SCHEMAS) {
       })
     );
     const error = t.throws(() => validateObject(obj, schema));
-    t.deepEqual(error, new Error());
+    t.deepEqual(error.message, `Object does not match the "${schema}" schema`);
   });
 }
 
@@ -34,7 +35,7 @@ test("can successfully validate RepoArray", (t) => {
       pat: "abcdef",
     },
   ];
-  t.notThrows(() => validateObject(obj, "RepoArray"));
+  t.notThrows(() => validateObject(obj, "repoArray"));
 });
 
 test("can successfully validate Instructions", (t) => {
@@ -46,5 +47,5 @@ test("can successfully validate Instructions", (t) => {
       },
     ],
   };
-  t.notThrows(() => validateObject(obj, "Instructions"));
+  t.notThrows(() => validateObject(obj, "instructions"));
 });

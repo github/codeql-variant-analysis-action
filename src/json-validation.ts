@@ -1,16 +1,23 @@
-import * as fs from "fs";
-
 import Ajv from "ajv";
 
-export const ALL_SCHEMAS = ["RepoArray", "Instructions"] as const;
-type Schema = typeof ALL_SCHEMAS[number];
+import { Instructions, RepoArray } from "./inputs";
+import instructionsSchema from "./json-schemas/Instructions.json";
+import repoArraySchema from "./json-schemas/RepoArray.json";
+
+type SchemaTypes = {
+  repoArray: RepoArray;
+  instructions: Instructions;
+};
+export type Schema = keyof SchemaTypes;
+
+export const schemas: Record<Schema, any> = {
+  repoArray: repoArraySchema,
+  instructions: instructionsSchema,
+};
 
 export function validateObject<T>(obj: unknown, schema: Schema): T {
-  const schemaContents = fs.readFileSync(
-    `${__dirname}/../src/json-schemas/${schema}.json`
-  );
   const ajv = new Ajv();
-  const validate = ajv.compile<T>(schemaContents);
+  const validate = ajv.compile<T>(schemas[schema]);
   if (!validate(obj)) {
     for (const error of validate.errors || []) {
       console.error(error.message);
