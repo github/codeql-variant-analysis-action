@@ -1,4 +1,4 @@
-import Ajv from "ajv";
+import Ajv, { ValidateFunction } from "ajv";
 
 import { Instructions, RepoArray } from "./inputs";
 import instructionsSchema from "./json-schemas/Instructions.json";
@@ -10,19 +10,30 @@ type SchemaTypes = {
 };
 export type Schema = keyof SchemaTypes;
 
-export const schemas: Record<Schema, any> = {
-  repoArray: repoArraySchema,
-  instructions: instructionsSchema,
+const ajv = new Ajv();
+const validators: Record<Schema, () => ValidateFunction> = {
+  repoArray: memoize(() => ajv.compile(repoArraySchema)),
+  instructions: memoize(() => ajv.compile(instructionsSchema)),
 };
+export const schemaNames = Object.keys(validators) as Schema[];
 
-export function validateObject<T>(obj: unknown, schema: Schema): T {
-  const ajv = new Ajv();
-  const validate = ajv.compile<T>(schemas[schema]);
-  if (!validate(obj)) {
-    for (const error of validate.errors || []) {
+function memoize<T>(generator: () => T): () => T {
+  let schema: T | undefined = undefined;
+  return () => {
+    return (schema = schema ?? generator());
+  };
+}
+
+export function validateObject<T extends keyof SchemaTypes>(
+  obj: unknown,
+  schema: T
+): SchemaTypes[T] {
+  const validator = validators[schema]();
+  if (!validator(obj)) {
+    for (const error of validator.errors || []) {
       console.error(error.message);
     }
     throw new Error(`Object does not match the "${schema}" schema`);
   }
-  return obj;
+  return obj as SchemaTypes[T];
 }

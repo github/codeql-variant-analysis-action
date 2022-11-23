@@ -1,11 +1,10 @@
 import anyTest, { TestInterface } from "ava";
 
 import { Instructions, RepoArray } from "./inputs";
-import { Schema, schemas, validateObject } from "./json-validation";
+import { schemaNames, validateObject } from "./json-validation";
 
 const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
 
-const schemaNames = Object.keys(schemas) as Schema[];
 for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
     const obj = JSON.parse(
