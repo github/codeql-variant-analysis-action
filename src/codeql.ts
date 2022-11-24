@@ -23,6 +23,9 @@ export interface RunQueryResult {
   sarifFileSize?: number;
 }
 
+// Must be a valid value for "-t=kind" when doing "codeql bqrs interpret"
+type SarifOutputType = "problem" | "path-problem";
+
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
  * - query/    (query.ql and any other supporting files)
@@ -77,16 +80,16 @@ export async function runQuery(
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
+  const sarifOutputType = getSarifOutputType(compatibleQueryKinds);
   let resultCount: number;
   let sarifFilePath: string | undefined;
   let sarifFileSize: number | undefined;
-  if (isSarif) {
+  if (sarifOutputType !== undefined) {
     const sarif = await generateSarif(
       codeql,
       bqrsFilePath,
       nwo,
-      compatibleQueryKinds,
+      sarifOutputType,
       databaseName,
       sourceLocationPrefix,
       dbMetadata.creationMetadata?.sha
@@ -192,11 +195,16 @@ async function getSourceLocationPrefix(codeql: string) {
 /**
  * Checks if the query kind is compatible with SARIF output.
  */
-function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
-  return (
-    compatibleQueryKinds.includes("Problem") ||
-    compatibleQueryKinds.includes("PathProblem")
-  );
+function getSarifOutputType(
+  compatibleQueryKinds: string[]
+): SarifOutputType | undefined {
+  if (compatibleQueryKinds.includes("PathProblem")) {
+    return "path-problem";
+  } else if (compatibleQueryKinds.includes("Problem")) {
+    return "problem";
+  } else {
+    return undefined;
+  }
 }
 
 // Generates sarif from the given bqrs file, if query kind supports it
@@ -204,28 +212,18 @@ export async function generateSarif(
   codeql: string,
   bqrs: string,
   nwo: string,
-  compatibleQueryKinds: string[],
+  sarifOutputType: SarifOutputType,
   databaseName: string,
   sourceLocationPrefix: string,
   databaseSHA?: string
 ): Promise<string[]> {
-  let kind: string;
-  if (compatibleQueryKinds.includes("Problem")) {
-    kind = "problem";
-  } else if (compatibleQueryKinds.includes("PathProblem")) {
-    kind = "path-problem";
-  } else {
-    // Cannot generate sarif for this query kind
-    return [];
-  }
-
   const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
     "interpret",
     "--format=sarif-latest",
     `--output=${sarifFile}`,
-    `-t=kind=${kind}`,
+    `-t=kind=${sarifOutputType}`,
     "-t=id=remote-query",
     "--sarif-add-snippets",
     "--no-group-results",
