@@ -1,9 +1,7 @@
-import anyTest, { TestInterface } from "ava";
+import test from "ava";
 
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
-
-const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
 
 for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
