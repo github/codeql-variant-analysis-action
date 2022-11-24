@@ -1,6 +1,6 @@
 import test from "ava";
 
-import { BQRSInfo, Sarif } from "./codeql";
+import { BQRSInfo, ResolvedQueries, Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
 import { QueryRunMetadata } from "./query-run-metadata";
@@ -74,6 +74,11 @@ test("can successfully validate BQRSInfo", (t) => {
     compatibleQueryKinds: ["problem"],
   };
   t.notThrows(() => validateObject(obj, "bqrsInfo"));
+});
+
+test("can successfully validate ResolvedQueries", (t) => {
+  const obj: ResolvedQueries = ["foo"];
+  t.notThrows(() => validateObject(obj, "resolvedQueries"));
 });
 
 test("can successfully validate QueryRunMetadata", (t) => {

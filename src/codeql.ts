@@ -330,6 +330,9 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
   }
 }
 
+// The expected output from "codeql resolve queries" in getRemoteQueryPackDefaultQuery
+export type ResolvedQueries = [string];
+
 /**
  * Gets the query for a pack, assuming there is a single query in that pack's default suite.
  *
@@ -350,15 +353,7 @@ export async function getRemoteQueryPackDefaultQuery(
     REMOTE_QUERY_PACK_NAME,
   ]);
 
-  const queries = JSON.parse(output.stdout) as string[];
-  if (
-    !Array.isArray(queries) ||
-    queries.length !== 1 ||
-    typeof queries[0] !== "string"
-  ) {
-    throw new Error("Unexpected output from codeql resolve queries");
-  }
-
+  const queries = validateObject(JSON.parse(output.stdout), "resolvedQueries");
   return queries[0];
 }
 
