@@ -34,7 +34,6 @@ jobs:
       matrix:
         repoNwos: ${{ fromJSON(needs.setup.outputs.repoNwoChunks) }}
     permissions:
-      security-events: write # This permission can be removed soon
       contents: write
 
     steps:
