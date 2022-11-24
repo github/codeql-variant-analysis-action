@@ -3,6 +3,7 @@ import test from "ava";
 import { Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
+import { QueryRunMetadata } from "./query-run-metadata";
 
 for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
@@ -60,4 +61,14 @@ test("can successfully validate Sarif", (t) => {
     ],
   };
   t.notThrows(() => validateObject(obj, "sarif"));
+});
+
+test("can successfully validate QueryRunMetadata", (t) => {
+  const obj: QueryRunMetadata = {
+    nwo: "foo/bar",
+    resultCount: 123,
+    sha: "abc",
+    sourceLocationPrefix: "/path",
+  };
+  t.notThrows(() => validateObject(obj, "queryRunMetadata"));
 });

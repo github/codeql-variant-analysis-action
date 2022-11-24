@@ -3,13 +3,16 @@ import Ajv, { ValidateFunction } from "ajv";
 import { Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import instructionsSchema from "./json-schemas/Instructions.json";
+import queryRunMetadataSchema from "./json-schemas/QueryRunMetadata.json";
 import repoArraySchema from "./json-schemas/RepoArray.json";
 import sarifSchema from "./json-schemas/Sarif.json";
+import { QueryRunMetadata } from "./query-run-metadata";
 
 type SchemaTypes = {
   repoArray: RepoArray;
   instructions: Instructions;
   sarif: Sarif;
+  queryRunMetadata: QueryRunMetadata;
 };
 export type Schema = keyof SchemaTypes;
 
@@ -18,6 +21,7 @@ const validators: Record<Schema, ValidateFunction> = {
   repoArray: ajv.compile(repoArraySchema),
   instructions: ajv.compile(instructionsSchema),
   sarif: ajv.compile(sarifSchema),
+  queryRunMetadata: ajv.compile(queryRunMetadataSchema),
 };
 export const schemaNames = Object.keys(validators) as Schema[];
 
