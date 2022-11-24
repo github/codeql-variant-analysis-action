@@ -4,7 +4,7 @@ import path from "path";
 import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
-import { deserialize } from "./deserialize";
+import { camelize } from "./deserialize";
 import { download } from "./download";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
@@ -189,7 +189,10 @@ export async function getBqrsInfo(
       `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
     );
   }
-  return deserialize(bqrsInfoOutput.stdout);
+  return validateObject(
+    JSON.parse(bqrsInfoOutput.stdout, camelize),
+    "bqrsInfo"
+  );
 }
 
 async function getSourceLocationPrefix(codeql: string) {

@@ -1,6 +1,4 @@
-export { deserialize };
-
-function camelize(_: string, value: any) {
+export function camelize(_: string, value: any) {
   if (value && typeof value === "object") {
     for (const k in value) {
       if (k.match(/-./)) {
@@ -11,8 +9,4 @@ function camelize(_: string, value: any) {
     }
   }
   return value;
-}
-
-function deserialize<T>(s: string): T {
-  return JSON.parse(s, camelize);
 }
