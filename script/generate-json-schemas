@@ -18,6 +18,7 @@ $(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type Instructions -
 $(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type Sarif --out json-schemas-tmp/Sarif.json --tsconfig tsconfig.json --additional-properties true
 $(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type BQRSInfo --out json-schemas-tmp/BQRSInfo.json --tsconfig tsconfig.json --additional-properties true
 $(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type ResolvedQueries --out json-schemas-tmp/ResolvedQueries.json --tsconfig tsconfig.json --additional-properties true
+$(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type ResolvedDatabase --out json-schemas-tmp/ResolvedDatabase.json --tsconfig tsconfig.json --additional-properties true
 $(npm bin)/ts-json-schema-generator --path ./src/query-run-metadata.ts --type QueryRunMetadata --out json-schemas-tmp/QueryRunMetadata.json --tsconfig tsconfig.json --additional-properties true
 
 rm -rf src/json-schemas/*

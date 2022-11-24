@@ -1,6 +1,6 @@
 import test from "ava";
 
-import { BQRSInfo, ResolvedQueries, Sarif } from "./codeql";
+import { BQRSInfo, ResolvedDatabase, ResolvedQueries, Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
 import { QueryRunMetadata } from "./query-run-metadata";
@@ -79,6 +79,13 @@ test("can successfully validate BQRSInfo", (t) => {
 test("can successfully validate ResolvedQueries", (t) => {
   const obj: ResolvedQueries = ["foo"];
   t.notThrows(() => validateObject(obj, "resolvedQueries"));
+});
+
+test("can successfully validate ResolvedDatabase", (t) => {
+  const obj: ResolvedDatabase = {
+    sourceLocationPrefix: "foo",
+  };
+  t.notThrows(() => validateObject(obj, "resolvedDatabase"));
 });
 
 test("can successfully validate QueryRunMetadata", (t) => {

@@ -195,13 +195,22 @@ export async function getBqrsInfo(
   );
 }
 
+// The expected output from "codeql resolve database" in getSourceLocationPrefix
+export interface ResolvedDatabase {
+  sourceLocationPrefix: string;
+}
+
 async function getSourceLocationPrefix(codeql: string) {
   const resolveDbOutput = await getExecOutput(codeql, [
     "resolve",
     "database",
     "db",
   ]);
-  return JSON.parse(resolveDbOutput.stdout).sourceLocationPrefix;
+  const resolvedDatabase = validateObject(
+    JSON.parse(resolveDbOutput.stdout),
+    "resolvedDatabase"
+  );
+  return resolvedDatabase.sourceLocationPrefix;
 }
 
 /**
