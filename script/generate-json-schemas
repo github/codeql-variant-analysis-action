@@ -13,8 +13,8 @@ cd "$(dirname "$0")/.."
 rm -rf json-schemas-tmp
 mkdir json-schemas-tmp
 
-$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type RepoArray --out json-schemas-tmp/RepoArray.json --tsconfig tsconfig.json
-$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type Instructions --out json-schemas-tmp/Instructions.json --tsconfig tsconfig.json
+$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type RepoArray --out json-schemas-tmp/RepoArray.json --tsconfig tsconfig.json --additional-properties true
+$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type Instructions --out json-schemas-tmp/Instructions.json --tsconfig tsconfig.json --additional-properties true
 
 rm -rf src/json-schemas/*
 mv json-schemas-tmp/* src/json-schemas
