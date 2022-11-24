@@ -11,24 +11,17 @@ type SchemaTypes = {
 export type Schema = keyof SchemaTypes;
 
 const ajv = new Ajv();
-const validators: Record<Schema, () => ValidateFunction> = {
-  repoArray: memoize(() => ajv.compile(repoArraySchema)),
-  instructions: memoize(() => ajv.compile(instructionsSchema)),
+const validators: Record<Schema, ValidateFunction> = {
+  repoArray: ajv.compile(repoArraySchema),
+  instructions: ajv.compile(instructionsSchema),
 };
 export const schemaNames = Object.keys(validators) as Schema[];
-
-function memoize<T>(generator: () => T): () => T {
-  let schema: T | undefined = undefined;
-  return () => {
-    return (schema = schema ?? generator());
-  };
-}
 
 export function validateObject<T extends keyof SchemaTypes>(
   obj: unknown,
   schema: T
 ): SchemaTypes[T] {
-  const validator = validators[schema]();
+  const validator = validators[schema];
   if (!validator(obj)) {
     throw new Error(
       `Object does not match the "${schema}" schema: ${ajv.errorsText(
