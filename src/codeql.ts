@@ -6,6 +6,7 @@ import * as yaml from "js-yaml";
 
 import { deserialize } from "./deserialize";
 import { download } from "./download";
+import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
@@ -25,6 +26,14 @@ export interface RunQueryResult {
 
 // Must be a valid value for "-t=kind" when doing "codeql bqrs interpret"
 type SarifOutputType = "problem" | "path-problem";
+
+// Models just the pieces of the SARIF spec that we need
+export interface Sarif {
+  runs: Array<{
+    versionControlProvenance?: unknown[];
+    results: unknown[];
+  }>;
+}
 
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
@@ -216,7 +225,7 @@ export async function generateSarif(
   databaseName: string,
   sourceLocationPrefix: string,
   databaseSHA?: string
-): Promise<string[]> {
+): Promise<Sarif> {
   const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
@@ -233,7 +242,10 @@ export async function generateSarif(
     `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
-  const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
+  const sarif = validateObject(
+    JSON.parse(fs.readFileSync(sarifFile, "utf8")),
+    "sarif"
+  );
 
   injectVersionControlInfo(sarif, nwo, databaseSHA);
   return sarif;
@@ -244,23 +256,21 @@ export async function generateSarif(
  * SARIF `versionControlProvenance` property.
  */
 export function injectVersionControlInfo(
-  sarif: any,
+  sarif: Sarif,
   nwo: string,
   databaseSHA?: string
 ) {
-  if (Array.isArray(sarif.runs)) {
-    for (const run of sarif.runs) {
-      run.versionControlProvenance = run.versionControlProvenance || [];
-      if (databaseSHA) {
-        run.versionControlProvenance.push({
-          repositoryUri: `https://github.com/${nwo}`,
-          revisionId: databaseSHA,
-        });
-      } else {
-        run.versionControlProvenance.push({
-          repositoryUri: `https://github.com/${nwo}`,
-        });
-      }
+  for (const run of sarif.runs) {
+    run.versionControlProvenance = run.versionControlProvenance || [];
+    if (databaseSHA) {
+      run.versionControlProvenance.push({
+        repositoryUri: `https://github.com/${nwo}`,
+        revisionId: databaseSHA,
+      });
+    } else {
+      run.versionControlProvenance.push({
+        repositoryUri: `https://github.com/${nwo}`,
+      });
     }
   }
 }
@@ -268,14 +278,10 @@ export function injectVersionControlInfo(
 /**
  * Gets the number of results in the given SARIF data.
  */
-export function getSarifResultCount(sarif: any): number {
+export function getSarifResultCount(sarif: Sarif): number {
   let count = 0;
-  if (Array.isArray(sarif.runs)) {
-    for (const run of sarif.runs) {
-      if (Array.isArray(run.results)) {
-        count = count + parseInt(run.results.length);
-      }
-    }
+  for (const run of sarif.runs) {
+    count = count + run.results.length;
   }
   return count;
 }

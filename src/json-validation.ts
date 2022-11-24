@@ -1,12 +1,15 @@
 import Ajv, { ValidateFunction } from "ajv";
 
+import { Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import instructionsSchema from "./json-schemas/Instructions.json";
 import repoArraySchema from "./json-schemas/RepoArray.json";
+import sarifSchema from "./json-schemas/Sarif.json";
 
 type SchemaTypes = {
   repoArray: RepoArray;
   instructions: Instructions;
+  sarif: Sarif;
 };
 export type Schema = keyof SchemaTypes;
 
@@ -14,6 +17,7 @@ const ajv = new Ajv();
 const validators: Record<Schema, ValidateFunction> = {
   repoArray: ajv.compile(repoArraySchema),
   instructions: ajv.compile(instructionsSchema),
+  sarif: ajv.compile(sarifSchema),
 };
 export const schemaNames = Object.keys(validators) as Schema[];
 

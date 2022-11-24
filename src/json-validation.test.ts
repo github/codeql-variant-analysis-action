@@ -1,5 +1,6 @@
 import test from "ava";
 
+import { Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
 
@@ -48,4 +49,15 @@ test("can successfully validate Instructions", (t) => {
     ],
   };
   t.notThrows(() => validateObject(obj, "instructions"));
+});
+
+test("can successfully validate Sarif", (t) => {
+  const obj: Sarif = {
+    runs: [
+      {
+        results: [],
+      },
+    ],
+  };
+  t.notThrows(() => validateObject(obj, "sarif"));
 });
