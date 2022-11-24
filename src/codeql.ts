@@ -9,20 +9,10 @@ import { download } from "./download";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
-export {
-  BQRSInfo,
-  downloadDatabase,
-  runQuery,
-  RunQueryResult,
-  getBqrsInfo,
-  getDatabaseMetadata,
-  getRemoteQueryPackDefaultQuery,
-};
-
 // This name must match that used by the vscode extension when creating the pack.
 const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
 
-interface RunQueryResult {
+export interface RunQueryResult {
   resultCount: number;
   databaseSHA: string | undefined;
   sourceLocationPrefix: string;
@@ -45,7 +35,7 @@ interface RunQueryResult {
  * @returns   Promise<RunQueryResult>   Resolves when the query has finished running. Returns information
  * about the query result and paths to the result files and metadata.json file.
  */
-async function runQuery(
+export async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
@@ -130,7 +120,7 @@ async function runQuery(
   };
 }
 
-async function downloadDatabase(
+export async function downloadDatabase(
   repoId: number,
   repoName: string,
   language: string,
@@ -163,7 +153,7 @@ async function downloadDatabase(
   }
 }
 
-interface BQRSInfo {
+export interface BQRSInfo {
   resultSets: Array<{
     name: string;
     rows: number;
@@ -172,7 +162,10 @@ interface BQRSInfo {
 }
 
 // Calls `bqrs info` for the given bqrs file and returns JSON output
-async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
+export async function getBqrsInfo(
+  codeql: string,
+  bqrs: string
+): Promise<BQRSInfo> {
   const bqrsInfoOutput = await getExecOutput(codeql, [
     "bqrs",
     "info",
@@ -207,7 +200,7 @@ function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
 }
 
 // Generates sarif from the given bqrs file, if query kind supports it
-async function generateSarif(
+export async function generateSarif(
   codeql: string,
   bqrs: string,
   nwo: string,
@@ -319,7 +312,7 @@ interface DatabaseMetadata {
  * @param database The name of the database.
  * @returns The database metadata.
  */
-function getDatabaseMetadata(database: string): DatabaseMetadata {
+export function getDatabaseMetadata(database: string): DatabaseMetadata {
   try {
     return yaml.load(
       fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
@@ -337,7 +330,7 @@ function getDatabaseMetadata(database: string): DatabaseMetadata {
  * @param queryPack The path to the query pack on disk.
  * @returns The path to a query file.
  */
-async function getRemoteQueryPackDefaultQuery(
+export async function getRemoteQueryPackDefaultQuery(
   codeql: string,
   queryPack: string
 ): Promise<string> {
