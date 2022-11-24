@@ -7,8 +7,6 @@ if [ ! -z "$(git status --porcelain)" ]; then
     >&2 echo "Failed: Repo should be clean before testing!"
     exit 1
 fi
-# Wipe the schemas directory incase there are extra unnecessary files in there
-rm -rf src/json-schemas/*
 # Generate the JSON schema files
 ./script/generate-json-schemas
 # Check that repo is still clean
