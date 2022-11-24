@@ -17,7 +17,7 @@ const validators: Record<Schema, ValidateFunction> = {
 };
 export const schemaNames = Object.keys(validators) as Schema[];
 
-export function validateObject<T extends keyof SchemaTypes>(
+export function validateObject<T extends Schema>(
   obj: unknown,
   schema: T
 ): SchemaTypes[T] {
