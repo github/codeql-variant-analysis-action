@@ -23,6 +23,14 @@ jobs:
       - name: Check generated JavaScript
         run: .github/workflows/script/check-js.sh
 
+  check-json-schemas:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check generated JSON schemas
+        run: .github/workflows/script/check-json-schemas.sh
+
   check-node-modules:
     runs-on: ubuntu-latest
 

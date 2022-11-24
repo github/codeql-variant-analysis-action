@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -eu
+
+cd "$(dirname "$0")/.."
+
+# Generate the schemas to a temporary directory and then move them into their
+# canonical positions at the end. This means we can wipe the src/json-schemas
+# directory to ensure that it only contains correct generated files. But also
+# works around the requirement that the schemas must exist during generation,
+# because they are imported by the typescript, so we cannot compile it to
+# generate the schemas unless all imported schemas files exist.
+rm -rf json-schemas-tmp
+mkdir json-schemas-tmp
+
+$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type RepoArray --out json-schemas-tmp/RepoArray.json --tsconfig tsconfig.json --additional-properties true
+$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type Instructions --out json-schemas-tmp/Instructions.json --tsconfig tsconfig.json --additional-properties true
+
+rm -rf src/json-schemas/*
+mv json-schemas-tmp/* src/json-schemas
+rmdir json-schemas-tmp
