@@ -13,13 +13,23 @@ cd "$(dirname "$0")/.."
 rm -rf json-schemas-tmp
 mkdir json-schemas-tmp
 
-$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type RepoArray --out json-schemas-tmp/RepoArray.json --tsconfig tsconfig.json --additional-properties true --no-type-check
-$(npm bin)/ts-json-schema-generator --path ./src/inputs.ts --type Instructions --out json-schemas-tmp/Instructions.json --tsconfig tsconfig.json --additional-properties true --no-type-check
-$(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type Sarif --out json-schemas-tmp/Sarif.json --tsconfig tsconfig.json --additional-properties true --no-type-check
-$(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type BQRSInfo --out json-schemas-tmp/BQRSInfo.json --tsconfig tsconfig.json --additional-properties true --no-type-check
-$(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type ResolvedQueries --out json-schemas-tmp/ResolvedQueries.json --tsconfig tsconfig.json --additional-properties true --no-type-check
-$(npm bin)/ts-json-schema-generator --path ./src/codeql.ts --type ResolvedDatabase --out json-schemas-tmp/ResolvedDatabase.json --tsconfig tsconfig.json --additional-properties true --no-type-check
-$(npm bin)/ts-json-schema-generator --path ./src/query-run-metadata.ts --type QueryRunMetadata --out json-schemas-tmp/QueryRunMetadata.json --tsconfig tsconfig.json --additional-properties true --no-type-check
+generate_schema () {
+    $(npm bin)/ts-json-schema-generator \
+      --path $1 \
+      --type $2 \
+      --out json-schemas-tmp/$2.json \
+      --tsconfig tsconfig.json \
+      --additional-properties true \
+      --no-type-check
+}
+
+generate_schema ./src/inputs.ts RepoArray
+generate_schema ./src/inputs.ts Instructions
+generate_schema ./src/codeql.ts Sarif
+generate_schema ./src/codeql.ts BQRSInfo
+generate_schema ./src/codeql.ts ResolvedQueries
+generate_schema ./src/codeql.ts ResolvedDatabase
+generate_schema ./src/query-run-metadata.ts QueryRunMetadata
 
 rm -rf src/json-schemas/*
 mv json-schemas-tmp/* src/json-schemas
