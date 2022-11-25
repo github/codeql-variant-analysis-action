@@ -5,7 +5,7 @@ import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
 import { camelize } from "./deserialize";
-import { download } from "./download";
+import { download, HTTPError } from "./download";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
@@ -153,6 +153,7 @@ export async function downloadDatabase(
   } catch (error: any) {
     console.log("Error while downloading database");
     if (
+      error instanceof HTTPError &&
       error.httpStatusCode === 404 &&
       error.httpMessage.includes("No database available for")
     ) {
