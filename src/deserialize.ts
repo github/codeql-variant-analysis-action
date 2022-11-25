@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 export function camelize(_: string, value: any): any {
   if (value && typeof value === "object") {
@@ -12,3 +13,4 @@ export function camelize(_: string, value: any): any {
   return value;
 }
 /* eslint-enable @typescript-eslint/explicit-module-boundary-types */
+/* eslint-enable @typescript-eslint/no-unsafe-assignment */

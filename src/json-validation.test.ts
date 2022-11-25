@@ -8,12 +8,10 @@ import { QueryRunMetadata } from "./query-run-metadata";
 
 for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
-    const obj = JSON.parse(
-      JSON.stringify({
-        trash: true,
-      })
-    );
-    const error = t.throws(() => validateObject(obj, schema));
+    const testObj = {
+      trash: true,
+    };
+    const error = t.throws(() => validateObject(testObj, schema));
     t.assert(
       error.message.startsWith(`Object does not match the "${schema}" schema:`),
       `Error message is incorrect: "${error.message}"`
