@@ -3,7 +3,10 @@ import FormData from "form-data";
 import { getApiClient } from "./download";
 import { Policy } from "./gh-api-client";
 
-export async function uploadArtifact(policy: Policy, artifactContents: Buffer) {
+export async function uploadArtifact(
+  policy: Policy,
+  artifactContents: Buffer
+): Promise<void> {
   const data = new FormData();
   for (const [key, value] of Object.entries(policy.form)) {
     data.append(key, value);

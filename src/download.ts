@@ -14,7 +14,7 @@ import * as io from "@actions/io";
 import { userAgent } from "./gh-api-client";
 
 // TODO: replace this with octokit too
-export function getApiClient() {
+export function getApiClient(): httpm.HttpClient {
   return new httpm.HttpClient(userAgent, [], {
     allowRetries: true,
   });

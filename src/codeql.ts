@@ -272,7 +272,7 @@ export function injectVersionControlInfo(
   sarif: Sarif,
   nwo: string,
   databaseSHA?: string
-) {
+): void {
   for (const run of sarif.runs) {
     run.versionControlProvenance = run.versionControlProvenance || [];
     if (databaseSHA) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 export function camelize(_: string, value: any): any {
   if (value && typeof value === "object") {
     for (const k in value) {
@@ -10,3 +11,4 @@ export function camelize(_: string, value: any): any {
   }
   return value;
 }
+/* eslint-enable @typescript-eslint/explicit-module-boundary-types */
