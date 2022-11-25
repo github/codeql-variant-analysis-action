@@ -1,11 +1,13 @@
 import Ajv, { ValidateFunction } from "ajv";
 
 import { BQRSInfo, ResolvedDatabase, ResolvedQueries, Sarif } from "./codeql";
+import { RepoTask } from "./gh-api-client";
 import { Instructions, RepoArray } from "./inputs";
 import BQRSInfoSchema from "./json-schemas/BQRSInfo.json";
 import instructionsSchema from "./json-schemas/Instructions.json";
 import queryRunMetadataSchema from "./json-schemas/QueryRunMetadata.json";
 import repoArraySchema from "./json-schemas/RepoArray.json";
+import repoTaskSchema from "./json-schemas/RepoTask.json";
 import ResolvedDatabaseSchema from "./json-schemas/ResolvedDatabase.json";
 import ResolvedQueriesSchema from "./json-schemas/ResolvedQueries.json";
 import sarifSchema from "./json-schemas/Sarif.json";
@@ -19,6 +21,7 @@ type SchemaTypes = {
   resolvedQueries: ResolvedQueries;
   resolvedDatabase: ResolvedDatabase;
   queryRunMetadata: QueryRunMetadata;
+  repoTask: RepoTask;
 };
 export type Schema = keyof SchemaTypes;
 
@@ -31,6 +34,7 @@ const validators: Record<Schema, ValidateFunction> = {
   resolvedQueries: ajv.compile(ResolvedQueriesSchema),
   resolvedDatabase: ajv.compile(ResolvedDatabaseSchema),
   queryRunMetadata: ajv.compile(queryRunMetadataSchema),
+  repoTask: ajv.compile(repoTaskSchema),
 };
 export const schemaNames = Object.keys(validators) as Schema[];
 

@@ -4,6 +4,7 @@ import { retry } from "@octokit/plugin-retry";
 import { EndpointOptions, RequestInterface } from "@octokit/types";
 
 import { getSignedAuthToken } from "./inputs";
+import { validateObject } from "./json-validation";
 
 export const userAgent = "GitHub multi-repository variant analysis action";
 
@@ -33,7 +34,7 @@ export interface Policy {
   form: Record<string, string>;
 }
 
-interface RepoTask {
+export interface RepoTask {
   analysis_status: AnalysisStatus;
 }
 
@@ -166,7 +167,7 @@ export async function getRepoTask(
   const url = `GET /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
   try {
     const response = await octokitRequest(url);
-    return response.data;
+    return validateObject(response.data, "repoTask");
   } catch (e: any) {
     console.error(`Request to ${url} failed with status code ${e.status}`);
     throw e;

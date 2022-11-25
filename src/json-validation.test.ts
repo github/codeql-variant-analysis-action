@@ -1,6 +1,7 @@
 import test from "ava";
 
 import { BQRSInfo, ResolvedDatabase, ResolvedQueries, Sarif } from "./codeql";
+import { RepoTask } from "./gh-api-client";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
 import { QueryRunMetadata } from "./query-run-metadata";
@@ -96,4 +97,13 @@ test("can successfully validate QueryRunMetadata", (t) => {
     sourceLocationPrefix: "/path",
   };
   t.notThrows(() => validateObject(obj, "queryRunMetadata"));
+});
+
+test("can successfully validate RepoTask", (t) => {
+  /* eslint-disable @typescript-eslint/naming-convention */
+  const obj: RepoTask = {
+    analysis_status: "pending",
+  };
+  /* eslint-enable @typescript-eslint/naming-convention */
+  t.notThrows(() => validateObject(obj, "repoTask"));
 });
