@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-export function camelize(_: string, value: any): any {
+export function camelize(_: string, value: unknown): unknown {
   if (value && typeof value === "object") {
     for (const k in value) {
       if (/-./.exec(k)) {
@@ -12,5 +11,4 @@ export function camelize(_: string, value: any): any {
   }
   return value;
 }
-/* eslint-enable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-enable @typescript-eslint/no-unsafe-assignment */

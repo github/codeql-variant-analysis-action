@@ -150,7 +150,7 @@ export async function downloadDatabase(
       authHeader,
       "application/zip"
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error while downloading database");
     if (
       error instanceof HTTPError &&

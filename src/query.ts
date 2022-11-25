@@ -54,22 +54,24 @@ async function run(): Promise<void> {
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     queryPack = await extractTar(queryPackArchive);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Consider all repos to have failed
-    setFailed(error.message);
+    console.error(error);
+    const errorMessage = error instanceof Error ? error.message : `${error}`;
+    setFailed(errorMessage);
     for (const repo of repos) {
       if (liveResults) {
         await setVariantAnalysisFailed(
           controllerRepoId,
           variantAnalysisId,
           repo.id,
-          error.message
+          errorMessage
         );
       } else {
         const workDir = createTempRepoDir(curDir, repo);
         chdir(workDir);
 
-        await uploadError(error, repo, artifactClient);
+        await uploadError(errorMessage, repo, artifactClient);
 
         chdir(curDir);
         fs.rmdirSync(workDir, { recursive: true });
@@ -116,19 +118,20 @@ async function run(): Promise<void> {
       } else {
         await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      setFailed(error.message);
+      const errorMessage = error instanceof Error ? error.message : `${error}`;
+      setFailed(errorMessage);
 
       if (liveResults) {
         await setVariantAnalysisFailed(
           controllerRepoId,
           variantAnalysisId,
           repo.id,
-          error.message
+          errorMessage
         );
       } else {
-        await uploadError(error, repo, artifactClient);
+        await uploadError(errorMessage, repo, artifactClient);
       }
     }
     // We can now delete the work dir. All required files have already been uploaded.
@@ -211,13 +214,13 @@ async function getDatabase(repo: Repo, language: string) {
 // Write error messages to a file and upload as an artifact,
 // so that the combine-results job "knows" about the failures.
 async function uploadError(
-  error: any,
+  errorMessage: string,
   repo: Repo,
   artifactClient: ArtifactClient
 ) {
   fs.mkdirSync("errors");
   const errorFilePath = path.join("errors", "error.txt");
-  fs.appendFileSync(errorFilePath, error.message);
+  fs.appendFileSync(errorFilePath, errorMessage);
 
   const metadataFilePath = path.join("errors", "metadata.json");
 
