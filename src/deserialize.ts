@@ -1,4 +1,4 @@
-export function camelize(_: string, value: any) {
+export function camelize(_: string, value: any): any {
   if (value && typeof value === "object") {
     for (const k in value) {
       if (k.match(/-./)) {
