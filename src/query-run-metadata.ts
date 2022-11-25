@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 
+import { validateObject } from "./json-validation";
+
 export interface QueryRunMetadata {
   nwo: string;
   resultCount?: number;
@@ -36,19 +38,10 @@ export function writeQueryRunMetadataToFile(
 export function readQueryRunMetadataFromFile(
   downloadPath: string
 ): QueryRunMetadata {
-  try {
-    const metadata = fs.readFileSync(
-      path.join(downloadPath, "metadata.json"),
-      "utf8"
-    );
-    const metadataJson = JSON.parse(metadata);
-    if (!metadataJson.nwo) {
-      console.log(`metadata.json is missing nwo property.`);
-    } else {
-      return metadataJson;
-    }
-  } catch (error) {
-    console.log(`Failed to parse metadata.json: ${error}`);
-  }
-  throw new Error("Unable to read metadata from artifact");
+  const metadataPath = path.join(downloadPath, "metadata.json");
+  const metadata = validateObject(
+    JSON.parse(fs.readFileSync(metadataPath, "utf8")),
+    "queryRunMetadata"
+  );
+  return metadata;
 }

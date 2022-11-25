@@ -1,0 +1,39 @@
+{
+  "$ref": "#/definitions/BQRSInfo",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "BQRSInfo": {
+      "properties": {
+        "compatibleQueryKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "resultSets": {
+          "items": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "rows": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "rows"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "resultSets",
+        "compatibleQueryKinds"
+      ],
+      "type": "object"
+    }
+  }
+}

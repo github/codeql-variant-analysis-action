@@ -4,25 +4,16 @@ import path from "path";
 import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
-import { deserialize } from "./deserialize";
+import { camelize } from "./deserialize";
 import { download } from "./download";
+import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
-
-export {
-  BQRSInfo,
-  downloadDatabase,
-  runQuery,
-  RunQueryResult,
-  getBqrsInfo,
-  getDatabaseMetadata,
-  getRemoteQueryPackDefaultQuery,
-};
 
 // This name must match that used by the vscode extension when creating the pack.
 const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
 
-interface RunQueryResult {
+export interface RunQueryResult {
   resultCount: number;
   databaseSHA: string | undefined;
   sourceLocationPrefix: string;
@@ -31,6 +22,17 @@ interface RunQueryResult {
   bqrsFileSize: number;
   sarifFilePath?: string;
   sarifFileSize?: number;
+}
+
+// Must be a valid value for "-t=kind" when doing "codeql bqrs interpret"
+type SarifOutputType = "problem" | "path-problem";
+
+// Models just the pieces of the SARIF spec that we need
+export interface Sarif {
+  runs: Array<{
+    versionControlProvenance?: unknown[];
+    results: unknown[];
+  }>;
 }
 
 /**
@@ -45,7 +47,7 @@ interface RunQueryResult {
  * @returns   Promise<RunQueryResult>   Resolves when the query has finished running. Returns information
  * about the query result and paths to the result files and metadata.json file.
  */
-async function runQuery(
+export async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
@@ -87,16 +89,16 @@ async function runQuery(
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const isSarif = queryCanHaveSarifOutput(compatibleQueryKinds);
+  const sarifOutputType = getSarifOutputType(compatibleQueryKinds);
   let resultCount: number;
   let sarifFilePath: string | undefined;
   let sarifFileSize: number | undefined;
-  if (isSarif) {
+  if (sarifOutputType !== undefined) {
     const sarif = await generateSarif(
       codeql,
       bqrsFilePath,
       nwo,
-      compatibleQueryKinds,
+      sarifOutputType,
       databaseName,
       sourceLocationPrefix,
       dbMetadata.creationMetadata?.sha
@@ -130,7 +132,7 @@ async function runQuery(
   };
 }
 
-async function downloadDatabase(
+export async function downloadDatabase(
   repoId: number,
   repoName: string,
   language: string,
@@ -163,7 +165,7 @@ async function downloadDatabase(
   }
 }
 
-interface BQRSInfo {
+export interface BQRSInfo {
   resultSets: Array<{
     name: string;
     rows: number;
@@ -172,7 +174,10 @@ interface BQRSInfo {
 }
 
 // Calls `bqrs info` for the given bqrs file and returns JSON output
-async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
+export async function getBqrsInfo(
+  codeql: string,
+  bqrs: string
+): Promise<BQRSInfo> {
   const bqrsInfoOutput = await getExecOutput(codeql, [
     "bqrs",
     "info",
@@ -184,7 +189,15 @@ async function getBqrsInfo(codeql: string, bqrs: string): Promise<BQRSInfo> {
       `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
     );
   }
-  return deserialize(bqrsInfoOutput.stdout);
+  return validateObject(
+    JSON.parse(bqrsInfoOutput.stdout, camelize),
+    "bqrsInfo"
+  );
+}
+
+// The expected output from "codeql resolve database" in getSourceLocationPrefix
+export interface ResolvedDatabase {
+  sourceLocationPrefix: string;
 }
 
 async function getSourceLocationPrefix(codeql: string) {
@@ -193,46 +206,45 @@ async function getSourceLocationPrefix(codeql: string) {
     "database",
     "db",
   ]);
-  return JSON.parse(resolveDbOutput.stdout).sourceLocationPrefix;
+  const resolvedDatabase = validateObject(
+    JSON.parse(resolveDbOutput.stdout),
+    "resolvedDatabase"
+  );
+  return resolvedDatabase.sourceLocationPrefix;
 }
 
 /**
  * Checks if the query kind is compatible with SARIF output.
  */
-function queryCanHaveSarifOutput(compatibleQueryKinds: string[]): boolean {
-  return (
-    compatibleQueryKinds.includes("Problem") ||
-    compatibleQueryKinds.includes("PathProblem")
-  );
+function getSarifOutputType(
+  compatibleQueryKinds: string[]
+): SarifOutputType | undefined {
+  if (compatibleQueryKinds.includes("PathProblem")) {
+    return "path-problem";
+  } else if (compatibleQueryKinds.includes("Problem")) {
+    return "problem";
+  } else {
+    return undefined;
+  }
 }
 
 // Generates sarif from the given bqrs file, if query kind supports it
-async function generateSarif(
+export async function generateSarif(
   codeql: string,
   bqrs: string,
   nwo: string,
-  compatibleQueryKinds: string[],
+  sarifOutputType: SarifOutputType,
   databaseName: string,
   sourceLocationPrefix: string,
   databaseSHA?: string
-): Promise<string[]> {
-  let kind: string;
-  if (compatibleQueryKinds.includes("Problem")) {
-    kind = "problem";
-  } else if (compatibleQueryKinds.includes("PathProblem")) {
-    kind = "path-problem";
-  } else {
-    // Cannot generate sarif for this query kind
-    return [];
-  }
-
+): Promise<Sarif> {
   const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
     "interpret",
     "--format=sarif-latest",
     `--output=${sarifFile}`,
-    `-t=kind=${kind}`,
+    `-t=kind=${sarifOutputType}`,
     "-t=id=remote-query",
     "--sarif-add-snippets",
     "--no-group-results",
@@ -242,7 +254,10 @@ async function generateSarif(
     `--source-location-prefix=${sourceLocationPrefix}`,
     bqrs,
   ]);
-  const sarif = JSON.parse(fs.readFileSync(sarifFile, "utf8"));
+  const sarif = validateObject(
+    JSON.parse(fs.readFileSync(sarifFile, "utf8")),
+    "sarif"
+  );
 
   injectVersionControlInfo(sarif, nwo, databaseSHA);
   return sarif;
@@ -253,23 +268,21 @@ async function generateSarif(
  * SARIF `versionControlProvenance` property.
  */
 export function injectVersionControlInfo(
-  sarif: any,
+  sarif: Sarif,
   nwo: string,
   databaseSHA?: string
 ) {
-  if (Array.isArray(sarif.runs)) {
-    for (const run of sarif.runs) {
-      run.versionControlProvenance = run.versionControlProvenance || [];
-      if (databaseSHA) {
-        run.versionControlProvenance.push({
-          repositoryUri: `https://github.com/${nwo}`,
-          revisionId: databaseSHA,
-        });
-      } else {
-        run.versionControlProvenance.push({
-          repositoryUri: `https://github.com/${nwo}`,
-        });
-      }
+  for (const run of sarif.runs) {
+    run.versionControlProvenance = run.versionControlProvenance || [];
+    if (databaseSHA) {
+      run.versionControlProvenance.push({
+        repositoryUri: `https://github.com/${nwo}`,
+        revisionId: databaseSHA,
+      });
+    } else {
+      run.versionControlProvenance.push({
+        repositoryUri: `https://github.com/${nwo}`,
+      });
     }
   }
 }
@@ -277,14 +290,10 @@ export function injectVersionControlInfo(
 /**
  * Gets the number of results in the given SARIF data.
  */
-export function getSarifResultCount(sarif: any): number {
+export function getSarifResultCount(sarif: Sarif): number {
   let count = 0;
-  if (Array.isArray(sarif.runs)) {
-    for (const run of sarif.runs) {
-      if (Array.isArray(run.results)) {
-        count = count + parseInt(run.results.length);
-      }
-    }
+  for (const run of sarif.runs) {
+    count = count + run.results.length;
   }
   return count;
 }
@@ -319,7 +328,7 @@ interface DatabaseMetadata {
  * @param database The name of the database.
  * @returns The database metadata.
  */
-function getDatabaseMetadata(database: string): DatabaseMetadata {
+export function getDatabaseMetadata(database: string): DatabaseMetadata {
   try {
     return yaml.load(
       fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
@@ -330,6 +339,9 @@ function getDatabaseMetadata(database: string): DatabaseMetadata {
   }
 }
 
+// The expected output from "codeql resolve queries" in getRemoteQueryPackDefaultQuery
+export type ResolvedQueries = [string];
+
 /**
  * Gets the query for a pack, assuming there is a single query in that pack's default suite.
  *
@@ -337,7 +349,7 @@ function getDatabaseMetadata(database: string): DatabaseMetadata {
  * @param queryPack The path to the query pack on disk.
  * @returns The path to a query file.
  */
-async function getRemoteQueryPackDefaultQuery(
+export async function getRemoteQueryPackDefaultQuery(
   codeql: string,
   queryPack: string
 ): Promise<string> {
@@ -350,15 +362,7 @@ async function getRemoteQueryPackDefaultQuery(
     REMOTE_QUERY_PACK_NAME,
   ]);
 
-  const queries = JSON.parse(output.stdout) as string[];
-  if (
-    !Array.isArray(queries) ||
-    queries.length !== 1 ||
-    typeof queries[0] !== "string"
-  ) {
-    throw new Error("Unexpected output from codeql resolve queries");
-  }
-
+  const queries = validateObject(JSON.parse(output.stdout), "resolvedQueries");
   return queries[0];
 }
 

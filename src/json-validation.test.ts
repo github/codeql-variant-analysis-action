@@ -1,7 +1,9 @@
 import test from "ava";
 
+import { BQRSInfo, ResolvedDatabase, ResolvedQueries, Sarif } from "./codeql";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
+import { QueryRunMetadata } from "./query-run-metadata";
 
 for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
@@ -48,4 +50,50 @@ test("can successfully validate Instructions", (t) => {
     ],
   };
   t.notThrows(() => validateObject(obj, "instructions"));
+});
+
+test("can successfully validate Sarif", (t) => {
+  const obj: Sarif = {
+    runs: [
+      {
+        results: [],
+      },
+    ],
+  };
+  t.notThrows(() => validateObject(obj, "sarif"));
+});
+
+test("can successfully validate BQRSInfo", (t) => {
+  const obj: BQRSInfo = {
+    resultSets: [
+      {
+        name: "aaa",
+        rows: 13,
+      },
+    ],
+    compatibleQueryKinds: ["problem"],
+  };
+  t.notThrows(() => validateObject(obj, "bqrsInfo"));
+});
+
+test("can successfully validate ResolvedQueries", (t) => {
+  const obj: ResolvedQueries = ["foo"];
+  t.notThrows(() => validateObject(obj, "resolvedQueries"));
+});
+
+test("can successfully validate ResolvedDatabase", (t) => {
+  const obj: ResolvedDatabase = {
+    sourceLocationPrefix: "foo",
+  };
+  t.notThrows(() => validateObject(obj, "resolvedDatabase"));
+});
+
+test("can successfully validate QueryRunMetadata", (t) => {
+  const obj: QueryRunMetadata = {
+    nwo: "foo/bar",
+    resultCount: 123,
+    sha: "abc",
+    sourceLocationPrefix: "/path",
+  };
+  t.notThrows(() => validateObject(obj, "queryRunMetadata"));
 });

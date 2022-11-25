@@ -1,0 +1,33 @@
+{
+  "$ref": "#/definitions/Sarif",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Sarif": {
+      "properties": {
+        "runs": {
+          "items": {
+            "properties": {
+              "results": {
+                "items": {},
+                "type": "array"
+              },
+              "versionControlProvenance": {
+                "items": {},
+                "type": "array"
+              }
+            },
+            "required": [
+              "results"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "runs"
+      ],
+      "type": "object"
+    }
+  }
+}
