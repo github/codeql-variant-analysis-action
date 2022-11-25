@@ -34,7 +34,6 @@ jobs:
       matrix:
         repoNwos: ${{ fromJSON(needs.setup.outputs.repoNwoChunks) }}
     permissions:
-      security-events: write # This permission can be removed soon
       contents: write
 
     steps:
@@ -62,7 +61,7 @@ jobs:
       - name: Download and mask tokens
         run: |
           curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
-          jq '.repositories | [.[].token , .[].pat] | map( select( . != null ) ) | .[]' --raw-output instructions.json | \
+          jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
             xargs -I {} echo "::add-mask::{}"
 
       # Extract the subset of the repositories input that we'll be analysing for this
@@ -186,7 +185,7 @@ jobs:
       - name: Download and mask tokens
         run: |
           curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
-          jq '.repositories | [.[].token , .[].pat] | map( select( . != null ) ) | .[]' --raw-output instructions.json | \
+          jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
             xargs -I {} echo "::add-mask::{}"
 
       # Extract the repositories that were analyzed in this workflow from the instructions file.
@@ -236,7 +235,7 @@ jobs:
       - name: Download and mask tokens
         run: |
           curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
-          jq '.repositories | [.[].token , .[].pat] | map( select( . != null ) ) | .[]' --raw-output instructions.json | \
+          jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
             xargs -I {} echo "::add-mask::{}"
 
       - name: Handle workflow cancelled
