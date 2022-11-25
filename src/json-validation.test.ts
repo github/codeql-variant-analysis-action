@@ -1,7 +1,7 @@
 import test from "ava";
 
 import { BQRSInfo, ResolvedDatabase, ResolvedQueries, Sarif } from "./codeql";
-import { RepoTask } from "./gh-api-client";
+import { Policy, RepoTask } from "./gh-api-client";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
 import { QueryRunMetadata } from "./query-run-metadata";
@@ -106,4 +106,19 @@ test("can successfully validate RepoTask", (t) => {
   };
   /* eslint-enable @typescript-eslint/naming-convention */
   t.notThrows(() => validateObject(obj, "repoTask"));
+});
+
+test("can successfully validate Policy", (t) => {
+  /* eslint-disable @typescript-eslint/naming-convention */
+  const obj: Policy = {
+    upload_url: "https://example.com",
+    header: {
+      foo: "bar",
+    },
+    form: {
+      baz: "qux",
+    },
+  };
+  /* eslint-enable @typescript-eslint/naming-convention */
+  t.notThrows(() => validateObject(obj, "policy"));
 });

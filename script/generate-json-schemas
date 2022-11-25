@@ -31,6 +31,7 @@ generate_schema ./src/codeql.ts ResolvedQueries
 generate_schema ./src/codeql.ts ResolvedDatabase
 generate_schema ./src/query-run-metadata.ts QueryRunMetadata
 generate_schema ./src/gh-api-client.ts RepoTask
+generate_schema ./src/gh-api-client.ts Policy
 
 rm -rf src/json-schemas/*
 mv json-schemas-tmp/* src/json-schemas

@@ -190,7 +190,7 @@ export async function getPolicyForRepoArtifact(
   const url = `PUT /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   try {
     const response = await octokitRequest(url, { data });
-    return response.data;
+    return validateObject(response.data, "policy");
   } catch (e: any) {
     console.error(`Request to ${url} failed with status code ${e.status}`);
     throw e;

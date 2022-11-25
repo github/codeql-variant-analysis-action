@@ -1,0 +1,31 @@
+{
+    "$ref": "#/definitions/Policy",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "Policy": {
+            "properties": {
+                "form": {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                },
+                "header": {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "upload_url",
+                "header",
+                "form"
+            ],
+            "type": "object"
+        }
+    }
+}
