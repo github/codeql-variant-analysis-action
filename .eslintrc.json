@@ -52,7 +52,8 @@
             {
                 "allow": [
                     "eslint-disable",
-                    "eslint-enable"
+                    "eslint-enable",
+                    "eslint-disable-next-line"
                 ]
             }
         ],
