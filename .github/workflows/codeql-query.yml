@@ -1,5 +1,8 @@
 name: CodeQL query
 
+env:
+  CODEQL_ENABLE_EXPERIMENTAL_FEATURES_SWIFT: true
+
 on:
   workflow_call:
     secrets:
