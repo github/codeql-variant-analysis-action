@@ -27,6 +27,11 @@ jobs:
           curl --fail --show-error --location --retry 10 "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")" | \
             jq --raw-output '"repoNwoChunks=\(.repoNwoChunks)"' >> $GITHUB_OUTPUT
 
+      - name: Output error
+        if: failure()
+        run: |
+          echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
+
   run:
     runs-on: ubuntu-latest
     needs:
@@ -62,10 +67,16 @@ jobs:
       # performance issue, we may as well mask all tokens to be extra safe.
       # Note that masking does not persist to other/future jobs in the same workflow.
       - name: Download and mask tokens
+        id: download-mask-tokens
         run: |
           curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
           jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
             xargs -I {} echo "::add-mask::{}"
+
+      - name: Output error
+        if: failure() && steps.download-mask-tokens.outcome == 'failure'
+        run: |
+          echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
 
       # Extract the subset of the repositories input that we'll be analysing for this
       # job, using the repoNwos matrix input.
