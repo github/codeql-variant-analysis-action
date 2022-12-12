@@ -12,7 +12,7 @@ import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
 import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
-import { download } from "./download";
+import { download, HTTPError } from "./download";
 import {
   getPolicyForRepoArtifact,
   setVariantAnalysisFailed,
@@ -55,8 +55,14 @@ async function run(): Promise<void> {
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     queryPack = await extractTar(queryPackArchive);
   } catch (error: any) {
+    if (error instanceof HTTPError && error.httpStatusCode === 403) {
+      setFailed(
+        `${error.message}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`
+      );
+    } else {
+      setFailed(error.message);
+    }
     // Consider all repos to have failed
-    setFailed(error.message);
     for (const repo of repos) {
       if (liveResults) {
         await setVariantAnalysisFailed(
@@ -118,7 +124,13 @@ async function run(): Promise<void> {
       }
     } catch (error: any) {
       console.error(error);
-      setFailed(error.message);
+      if (error instanceof HTTPError && error.httpStatusCode === 403) {
+        setFailed(
+          `${error.message}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`
+        );
+      } else {
+        setFailed(error.message);
+      }
 
       if (liveResults) {
         await setVariantAnalysisFailed(
