@@ -52,7 +52,8 @@
             {
                 "allow": [
                     "eslint-disable",
-                    "eslint-enable"
+                    "eslint-enable",
+                    "eslint-disable-next-line"
                 ]
             }
         ],
@@ -62,22 +63,7 @@
         "one-var": [
             "error",
             "never"
-        ]
-    },
-    "overrides": [
-        {
-            // "temporarily downgraded during transition to eslint
-            "files": "**",
-            "rules": {
-                "@typescript-eslint/explicit-module-boundary-types": "off",
-                "@typescript-eslint/no-explicit-any": "off",
-                "@typescript-eslint/no-unsafe-assignment": "off",
-                "@typescript-eslint/no-unsafe-call": "off",
-                "@typescript-eslint/no-unsafe-member-access": "off",
-                "@typescript-eslint/no-unsafe-return": "off",
-                "@typescript-eslint/prefer-regexp-exec": "off",
-                "@typescript-eslint/restrict-template-expressions": "off"
-            }
-        }
-    ]
+        ],
+        "@typescript-eslint/restrict-template-expressions": "off"
+    }
 }

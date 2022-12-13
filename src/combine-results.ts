@@ -26,8 +26,12 @@ async function run(): Promise<void> {
 
     await mkdirP("results");
     await uploadResultIndex(resultArtifacts, errorArtifacts, artifactClient);
-  } catch (error: any) {
-    setFailed(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      setFailed(error.message);
+    } else {
+      setFailed(`Action failed with an unexpected error: ${error}`);
+    }
   }
 }
 

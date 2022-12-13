@@ -32,8 +32,10 @@ export function getSignedAuthToken(): string {
 }
 
 export function getRepos(): Repo[] {
-  const repos = JSON.parse(getInput("repositories", { required: true }));
-  return validateObject(repos, "repoArray");
+  return validateObject(
+    JSON.parse(getInput("repositories", { required: true })),
+    "repoArray"
+  );
 }
 
 export function getWorkflowStatus(): string {
@@ -42,8 +44,8 @@ export function getWorkflowStatus(): string {
 
 export async function getInstructions(): Promise<Instructions> {
   const filePath = getInput("instructions_path", { required: true });
-  const instructions = JSON.parse(
-    await fs.promises.readFile(filePath, "utf-8")
+  return validateObject(
+    JSON.parse(await fs.promises.readFile(filePath, "utf-8")),
+    "instructions"
   );
-  return validateObject(instructions, "instructions");
 }

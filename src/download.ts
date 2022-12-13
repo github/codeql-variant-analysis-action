@@ -14,7 +14,7 @@ import * as io from "@actions/io";
 import { userAgent } from "./gh-api-client";
 
 // TODO: replace this with octokit too
-export function getApiClient() {
+export function getApiClient(): httpm.HttpClient {
   return new httpm.HttpClient(userAgent, [], {
     allowRetries: true,
   });
@@ -123,8 +123,12 @@ async function downloadAttempt(
       core.debug("download failed");
       try {
         await io.rmRF(dest);
-      } catch (err: any) {
-        core.debug(`Failed to delete '${dest}'. ${err.message}`);
+      } catch (err: unknown) {
+        core.debug(
+          `Failed to delete '${dest}'. ${
+            err instanceof Error ? err.message : err
+          }`
+        );
       }
     }
   }
@@ -156,15 +160,15 @@ class RetryHelper {
 
   async execute<T>(
     action: () => Promise<T>,
-    isRetryable?: (e: Error) => boolean
+    isRetryable: (e: Error) => boolean
   ): Promise<T> {
     let attempt = 1;
     while (attempt < this.maxAttempts) {
       // Try
       try {
         return await action();
-      } catch (err: any) {
-        if (isRetryable && !isRetryable(err)) {
+      } catch (err: unknown) {
+        if (!(err instanceof Error) || !isRetryable(err)) {
           throw err;
         }
 

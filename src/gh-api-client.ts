@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Octokit } from "@octokit/action";
 import { retry } from "@octokit/plugin-retry";
-import { EndpointOptions, RequestInterface } from "@octokit/types";
+import {
+  EndpointOptions,
+  RequestError,
+  RequestInterface,
+} from "@octokit/types";
 
 import { getSignedAuthToken } from "./inputs";
+import { validateObject } from "./json-validation";
 
 export const userAgent = "GitHub multi-repository variant analysis action";
 
@@ -33,7 +38,7 @@ export interface Policy {
   form: Record<string, string>;
 }
 
-interface RepoTask {
+export interface RepoTask {
   analysis_status: AnalysisStatus;
 }
 
@@ -139,6 +144,10 @@ export async function setVariantAnalysisCanceled(
   );
 }
 
+function isRequestError(obj: unknown): obj is RequestError {
+  return typeof obj?.["status"] === "number";
+}
+
 async function updateVariantAnalysisStatus(
   controllerRepoId: number,
   variantAnalysisId: number,
@@ -150,8 +159,10 @@ async function updateVariantAnalysisStatus(
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
   try {
     await octokitRequest(url, { data });
-  } catch (e: any) {
-    console.error(`Request to ${url} failed with status code ${e.status}`);
+  } catch (e: unknown) {
+    if (isRequestError(e)) {
+      console.error(`Request to ${url} failed with status code ${e.status}`);
+    }
     throw e;
   }
 }
@@ -166,9 +177,11 @@ export async function getRepoTask(
   const url = `GET /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
   try {
     const response = await octokitRequest(url);
-    return response.data;
-  } catch (e: any) {
-    console.error(`Request to ${url} failed with status code ${e.status}`);
+    return validateObject(response.data, "repoTask");
+  } catch (e: unknown) {
+    if (isRequestError(e)) {
+      console.error(`Request to ${url} failed with status code ${e.status}`);
+    }
     throw e;
   }
 }
@@ -189,9 +202,11 @@ export async function getPolicyForRepoArtifact(
   const url = `PUT /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   try {
     const response = await octokitRequest(url, { data });
-    return response.data;
-  } catch (e: any) {
-    console.error(`Request to ${url} failed with status code ${e.status}`);
+    return validateObject(response.data, "policy");
+  } catch (e: unknown) {
+    if (isRequestError(e)) {
+      console.error(`Request to ${url} failed with status code ${e.status}`);
+    }
     throw e;
   }
 }

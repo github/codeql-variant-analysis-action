@@ -54,13 +54,15 @@ async function run(): Promise<void> {
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     queryPack = await extractTar(queryPackArchive);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error(error);
+    const errorMessage = error instanceof Error ? error.message : `${error}`;
     if (error instanceof HTTPError && error.httpStatusCode === 403) {
       setFailed(
-        `${error.message}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`
+        `${errorMessage}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`
       );
     } else {
-      setFailed(error.message);
+      setFailed(errorMessage);
     }
     // Consider all repos to have failed
     for (const repo of repos) {
@@ -69,13 +71,13 @@ async function run(): Promise<void> {
           controllerRepoId,
           variantAnalysisId,
           repo.id,
-          error.message
+          errorMessage
         );
       } else {
         const workDir = createTempRepoDir(curDir, repo);
         chdir(workDir);
 
-        await uploadError(error, repo, artifactClient);
+        await uploadError(errorMessage, repo, artifactClient);
 
         chdir(curDir);
         fs.rmdirSync(workDir, { recursive: true });
@@ -122,14 +124,15 @@ async function run(): Promise<void> {
       } else {
         await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
+      const errorMessage = error instanceof Error ? error.message : `${error}`;
       if (error instanceof HTTPError && error.httpStatusCode === 403) {
         setFailed(
-          `${error.message}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`
+          `${errorMessage}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`
         );
       } else {
-        setFailed(error.message);
+        setFailed(errorMessage);
       }
 
       if (liveResults) {
@@ -137,10 +140,10 @@ async function run(): Promise<void> {
           controllerRepoId,
           variantAnalysisId,
           repo.id,
-          error.message
+          errorMessage
         );
       } else {
-        await uploadError(error, repo, artifactClient);
+        await uploadError(errorMessage, repo, artifactClient);
       }
     }
     // We can now delete the work dir. All required files have already been uploaded.
@@ -223,13 +226,13 @@ async function getDatabase(repo: Repo, language: string) {
 // Write error messages to a file and upload as an artifact,
 // so that the combine-results job "knows" about the failures.
 async function uploadError(
-  error: any,
+  errorMessage: string,
   repo: Repo,
   artifactClient: ArtifactClient
 ) {
   fs.mkdirSync("errors");
   const errorFilePath = path.join("errors", "error.txt");
-  fs.appendFileSync(errorFilePath, error.message);
+  fs.appendFileSync(errorFilePath, errorMessage);
 
   const metadataFilePath = path.join("errors", "metadata.json");
 

@@ -5,7 +5,7 @@ import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
 import { camelize } from "./deserialize";
-import { download } from "./download";
+import { download, HTTPError } from "./download";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
@@ -150,9 +150,10 @@ export async function downloadDatabase(
       authHeader,
       "application/zip"
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error while downloading database");
     if (
+      error instanceof HTTPError &&
       error.httpStatusCode === 404 &&
       error.httpMessage.includes("No database available for")
     ) {
@@ -271,7 +272,7 @@ export function injectVersionControlInfo(
   sarif: Sarif,
   nwo: string,
   databaseSHA?: string
-) {
+): void {
   for (const run of sarif.runs) {
     run.versionControlProvenance = run.versionControlProvenance || [];
     if (databaseSHA) {
