@@ -12,7 +12,7 @@ import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
 import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
-import { download } from "./download";
+import { download, HTTPError } from "./download";
 import {
   getPolicyForRepoArtifact,
   setVariantAnalysisFailed,
@@ -55,10 +55,16 @@ async function run(): Promise<void> {
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     queryPack = await extractTar(queryPackArchive);
   } catch (error: unknown) {
-    // Consider all repos to have failed
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : `${error}`;
-    setFailed(errorMessage);
+    if (error instanceof HTTPError && error.httpStatusCode === 403) {
+      setFailed(
+        `${errorMessage}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`
+      );
+    } else {
+      setFailed(errorMessage);
+    }
+    // Consider all repos to have failed
     for (const repo of repos) {
       if (liveResults) {
         await setVariantAnalysisFailed(
@@ -121,7 +127,13 @@ async function run(): Promise<void> {
     } catch (error: unknown) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : `${error}`;
-      setFailed(errorMessage);
+      if (error instanceof HTTPError && error.httpStatusCode === 403) {
+        setFailed(
+          `${errorMessage}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`
+        );
+      } else {
+        setFailed(errorMessage);
+      }
 
       if (liveResults) {
         await setVariantAnalysisFailed(

@@ -1,5 +1,8 @@
 name: CodeQL query
 
+env:
+  CODEQL_ENABLE_EXPERIMENTAL_FEATURES_SWIFT: true
+
 on:
   workflow_call:
     secrets:
@@ -14,6 +17,11 @@ jobs:
     permissions: {}
 
     steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
       - name: Mask download URL
         run: |
           echo "::add-mask::$(jq .inputs.instructions_url "$GITHUB_EVENT_PATH")"
@@ -23,6 +31,11 @@ jobs:
         run: |
           curl --fail --show-error --location --retry 10 "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")" | \
             jq --raw-output '"repoNwoChunks=\(.repoNwoChunks)"' >> $GITHUB_OUTPUT
+
+      - name: Output error
+        if: failure()
+        run: |
+          echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
 
   run:
     runs-on: ubuntu-latest
@@ -37,10 +50,14 @@ jobs:
       contents: write
 
     steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
       # To use the action in this repository, we need to check out the repository
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
-        if: always()
         with:
           repository: "github/codeql-variant-analysis-action"
           ref: ${{ github.event.inputs.action_repo_ref }}
@@ -59,10 +76,16 @@ jobs:
       # performance issue, we may as well mask all tokens to be extra safe.
       # Note that masking does not persist to other/future jobs in the same workflow.
       - name: Download and mask tokens
+        id: download-mask-tokens
         run: |
           curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
           jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
             xargs -I {} echo "::add-mask::{}"
+
+      - name: Output error
+        if: failure() && steps.download-mask-tokens.outcome == 'failure'
+        run: |
+          echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
 
       # Extract the subset of the repositories input that we'll be analysing for this
       # job, using the repoNwos matrix input.
@@ -111,7 +134,7 @@ jobs:
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
 
       - name: Handle workflow failed
-        if: failure() && github.event.inputs.variant_analysis_id != ''
+        if: failure() && github.event.inputs.variant_analysis_id != '' && github.run_attempt == 1
         uses: ./update-repo-task-status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -129,6 +152,11 @@ jobs:
     permissions: {}
 
     steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
       # To use the action in this repository, we need to check out the repository
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
@@ -164,6 +192,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
       # To use the action in this repository, we need to check out the repository
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
@@ -214,6 +247,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
       # To use the action in this repository, we need to check out the repository
       - name: Checkout codeql-variant-analysis-action repository
         uses: actions/checkout@v3
