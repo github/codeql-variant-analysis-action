@@ -1,10 +1,6 @@
-// All states that indicate the repository has been scanned and cannot
-// change status anymore.
 import {
-  AnalysisStatus,
-  getRepoTask,
-  setVariantAnalysisCanceled,
-  setVariantAnalysisFailed,
+  setVariantAnalysesCanceled,
+  setVariantAnalysesFailed,
 } from "./gh-api-client";
 import {
   getControllerRepoId,
@@ -12,16 +8,6 @@ import {
   getWorkflowStatus,
   Repo,
 } from "./inputs";
-
-const PENDING_STATES = ["pending", "in_progress"];
-
-/**
- * @param repoTaskstatus
- * @returns whether the repo is in a completed state, i.e. it cannot normally change state anymore
- */
-function isCompleted(repoTaskstatus: AnalysisStatus): boolean {
-  return !PENDING_STATES.includes(repoTaskstatus);
-}
 
 /**
  * If the overall variant analysis workflow failed or was canceled,
@@ -32,33 +18,22 @@ export async function setRepoTaskStatuses(repos: Repo[]): Promise<void> {
   const variantAnalysisId = getVariantAnalysisId();
   const workflowStatus = getWorkflowStatus();
 
-  for (const repo of repos) {
-    const repoTask = await getRepoTask(
+  const repoIds = repos.map((repo) => repo.id);
+
+  if (workflowStatus === "failed") {
+    await setVariantAnalysesFailed(
       controllerRepoId,
       variantAnalysisId,
-      repo.id
+      repoIds,
+      "The GitHub Actions workflow failed."
     );
-    const repoTaskStatus = repoTask.analysis_status;
+  }
 
-    if (isCompleted(repoTaskStatus)) {
-      continue;
-    }
-
-    if (workflowStatus === "failed") {
-      await setVariantAnalysisFailed(
-        controllerRepoId,
-        variantAnalysisId,
-        repo.id,
-        "The GitHub Actions workflow failed."
-      );
-    }
-
-    if (workflowStatus === "canceled") {
-      await setVariantAnalysisCanceled(
-        controllerRepoId,
-        variantAnalysisId,
-        repo.id
-      );
-    }
+  if (workflowStatus === "canceled") {
+    await setVariantAnalysesCanceled(
+      controllerRepoId,
+      variantAnalysisId,
+      repoIds
+    );
   }
 }

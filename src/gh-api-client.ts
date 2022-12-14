@@ -76,6 +76,10 @@ type UpdateVariantAnalysis =
   | FailedAnalysis
   | CanceledAnalysis;
 
+type UpdateVariantAnalyses = {
+  repository_ids: number[];
+} & (FailedAnalysis | CanceledAnalysis);
+
 export async function setVariantAnalysisRepoInProgress(
   controllerRepoId: number,
   variantAnalysisId: number,
@@ -129,19 +133,28 @@ export async function setVariantAnalysisFailed(
   );
 }
 
-export async function setVariantAnalysisCanceled(
+export async function setVariantAnalysesFailed(
   controllerRepoId: number,
   variantAnalysisId: number,
-  repoId: number
+  repoIds: number[],
+  failureMessage: string
 ): Promise<void> {
-  await updateVariantAnalysisStatus(
-    controllerRepoId,
-    variantAnalysisId,
-    repoId,
-    {
-      status: "canceled",
-    }
-  );
+  await updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, {
+    repository_ids: repoIds,
+    status: "failed",
+    failure_message: failureMessage,
+  });
+}
+
+export async function setVariantAnalysesCanceled(
+  controllerRepoId: number,
+  variantAnalysisId: number,
+  repoIds: number[]
+): Promise<void> {
+  await updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, {
+    repository_ids: repoIds,
+    status: "canceled",
+  });
 }
 
 function isRequestError(obj: unknown): obj is RequestError {
@@ -157,6 +170,24 @@ async function updateVariantAnalysisStatus(
   const octokitRequest = getOctokitRequestInterface();
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
+  try {
+    await octokitRequest(url, { data });
+  } catch (e: unknown) {
+    if (isRequestError(e)) {
+      console.error(`Request to ${url} failed with status code ${e.status}`);
+    }
+    throw e;
+  }
+}
+
+async function updateVariantAnalysisStatuses(
+  controllerRepoId: number,
+  variantAnalysisId: number,
+  data: UpdateVariantAnalyses
+): Promise<void> {
+  const octokitRequest = getOctokitRequestInterface();
+
+  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories`;
   try {
     await octokitRequest(url, { data });
   } catch (e: unknown) {
