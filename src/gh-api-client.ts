@@ -198,25 +198,6 @@ async function updateVariantAnalysisStatuses(
   }
 }
 
-export async function getRepoTask(
-  controllerRepoId: number,
-  variantAnalysisId: number,
-  repoId: number
-): Promise<RepoTask> {
-  const octokitRequest = getOctokitRequestInterface();
-
-  const url = `GET /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
-  try {
-    const response = await octokitRequest(url);
-    return validateObject(response.data, "repoTask");
-  } catch (e: unknown) {
-    if (isRequestError(e)) {
-      console.error(`Request to ${url} failed with status code ${e.status}`);
-    }
-    throw e;
-  }
-}
-
 export async function getPolicyForRepoArtifact(
   controllerRepoId: number,
   variantAnalysisId: number,
