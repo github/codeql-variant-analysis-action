@@ -18,6 +18,11 @@ inputs:
     description: "The ID of the variant analysis"
     required: true
 
+  signed_auth_token:
+    description: "The signed auth token to authenticate against the GitHub API"
+    # This will eventually be required once this is fully rolled out
+    # required: true
+
 runs:
   using: "node16"
   main: "../lib/update-repo-task-status.js"
