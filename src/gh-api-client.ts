@@ -169,7 +169,7 @@ async function updateVariantAnalysisStatus(
 ): Promise<void> {
   const octokitRequest = getOctokitRequestInterface();
 
-  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}`;
+  const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/status`;
   try {
     await octokitRequest(url, { data });
   } catch (e: unknown) {
