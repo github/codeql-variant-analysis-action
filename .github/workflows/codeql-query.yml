@@ -135,7 +135,7 @@ jobs:
           signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
 
       - name: Handle workflow failed
-        if: failure() && github.event.inputs.variant_analysis_id != '' && github.run_attempt == 1
+        if: failure() && github.run_attempt == 1
         uses: ./update-repo-task-status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -146,47 +146,9 @@ jobs:
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
           signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
 
-  combine-results:
-    runs-on: ubuntu-latest
-    if: always() && github.event.inputs.variant_analysis_id == ''
-    needs:
-      - run
-    permissions: {}
-
-    steps:
-      - name: Do not allow reruns
-        if: github.run_attempt != 1
-        run: |
-          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
-          exit 1
-      # To use the action in this repository, we need to check out the repository
-      - name: Checkout codeql-variant-analysis-action repository
-        uses: actions/checkout@v3
-        with:
-          repository: "github/codeql-variant-analysis-action"
-          ref: ${{ github.event.inputs.action_repo_ref }}
-
-      # NOTE: this is only expected to work on github.com hosted runnners.
-      # It will not work on any self-hosted runners.
-      - name: Initialize CodeQL
-        id: init
-        run: |
-          # Take the most modern version
-          VERSION="$(find "${{ runner.tool_cache }}/CodeQL/" -maxdepth 1 -mindepth 1 -type d -print0 \
-                      | sort --zero-terminated \
-                      | tail --zero-terminated --lines 1 \
-                      | tr -d '\0')"
-
-          CODEQL="$VERSION/x64/codeql/codeql"
-          "${CODEQL}" version --format=json
-          echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
-
-      - name: Combine results
-        uses: ./combine-results
-
   update-repo-tasks-statuses-cancelled:
     runs-on: ubuntu-latest
-    if: cancelled() && github.event.inputs.variant_analysis_id != ''
+    if: cancelled()
     needs:
       - run
     permissions:
@@ -242,7 +204,7 @@ jobs:
 
   update-repo-tasks-statuses-failure:
     runs-on: ubuntu-latest
-    if: failure() && github.event.inputs.variant_analysis_id != ''
+    if: failure()
     needs:
       - run
     permissions:
