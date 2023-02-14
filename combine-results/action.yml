@@ -1,6 +1,0 @@
-name: "CodeQL: Combine query results"
-description: "Combine the results of a batch query run into a single index file"
-author: "GitHub"
-runs:
-  using: "node16"
-  main: "../lib/combine-results.js"
