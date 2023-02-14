@@ -24,11 +24,11 @@ export function getControllerRepoId(): number {
 }
 
 export function getVariantAnalysisId(): number {
-  return parseInt(getInput("variant_analysis_id"));
+  return parseInt(getInput("variant_analysis_id", { required: true }));
 }
 
 export function getSignedAuthToken(): string {
-  return getInput("signed_auth_token");
+  return getInput("signed_auth_token", { required: true });
 }
 
 export function getRepos(): Repo[] {

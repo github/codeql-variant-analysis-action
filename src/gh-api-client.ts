@@ -16,18 +16,16 @@ export function getOctokitRequestInterface(): RequestInterface {
   const octokit = new Octokit({ userAgent, retry });
 
   const signedAuthToken = getSignedAuthToken();
-  if (signedAuthToken) {
-    return octokit.request.defaults({
-      request: {
-        hook: (request: RequestInterface, options: EndpointOptions) => {
-          if (options.headers) {
-            options.headers.authorization = `RemoteAuth ${signedAuthToken}`;
-          }
-          return request(options);
-        },
+  return octokit.request.defaults({
+    request: {
+      hook: (request: RequestInterface, options: EndpointOptions) => {
+        if (options.headers) {
+          options.headers.authorization = `RemoteAuth ${signedAuthToken}`;
+        }
+        return request(options);
       },
-    });
-  }
+    },
+  });
 
   return octokit.request;
 }

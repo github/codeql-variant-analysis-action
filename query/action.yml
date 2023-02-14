@@ -24,13 +24,11 @@ inputs:
 
   variant_analysis_id:
     description: "The ID of the variant analysis"
-    # This will eventually be required once live results is fully rolled out
-    # required: true
+    required: true
 
   signed_auth_token:
     description: "The signed auth token to authenticate against the GitHub API"
-    # This will eventually be required once this is fully rolled out
-    # required: true
+    required: true
 
 runs:
   using: "node16"
