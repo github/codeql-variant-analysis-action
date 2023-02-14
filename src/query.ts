@@ -2,10 +2,6 @@ import fs from "fs";
 import path from "path";
 import { chdir, cwd } from "process";
 
-import {
-  ArtifactClient,
-  create as createArtifactClient,
-} from "@actions/artifact";
 import { getInput, setSecret, setFailed } from "@actions/core";
 import { extractTar } from "@actions/tool-cache";
 import JSZip from "jszip";
@@ -25,17 +21,14 @@ import {
   getVariantAnalysisId,
   Repo,
 } from "./inputs";
-import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
 async function run(): Promise<void> {
-  const artifactClient = createArtifactClient();
   const controllerRepoId = getControllerRepoId();
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
   const repos: Repo[] = getRepos();
   const codeql = getInput("codeql", { required: true });
   const variantAnalysisId = getVariantAnalysisId();
-  const liveResults = !!variantAnalysisId;
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -66,22 +59,12 @@ async function run(): Promise<void> {
     }
     // Consider all repos to have failed
     for (const repo of repos) {
-      if (liveResults) {
-        await setVariantAnalysisFailed(
-          controllerRepoId,
-          variantAnalysisId,
-          repo.id,
-          errorMessage
-        );
-      } else {
-        const workDir = createTempRepoDir(curDir, repo);
-        chdir(workDir);
-
-        await uploadError(errorMessage, repo, artifactClient);
-
-        chdir(curDir);
-        fs.rmdirSync(workDir, { recursive: true });
-      }
+      await setVariantAnalysisFailed(
+        controllerRepoId,
+        variantAnalysisId,
+        repo.id,
+        errorMessage
+      );
     }
     return;
   }
@@ -93,37 +76,31 @@ async function run(): Promise<void> {
     chdir(workDir);
 
     try {
-      if (liveResults) {
-        await setVariantAnalysisRepoInProgress(
-          controllerRepoId,
-          variantAnalysisId,
-          repo.id
-        );
-      }
+      await setVariantAnalysisRepoInProgress(
+        controllerRepoId,
+        variantAnalysisId,
+        repo.id
+      );
 
       const dbZip = await getDatabase(repo, language);
 
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
-      if (liveResults) {
-        await uploadRepoResult(
-          controllerRepoId,
-          variantAnalysisId,
-          repo,
-          runQueryResult
-        );
-        await setVariantAnalysisRepoSucceeded(
-          controllerRepoId,
-          variantAnalysisId,
-          repo.id,
-          runQueryResult.sourceLocationPrefix,
-          runQueryResult.resultCount,
-          runQueryResult.databaseSHA || "HEAD"
-        );
-      } else {
-        await uploadRepoResultToActions(runQueryResult, artifactClient, repo);
-      }
+      await uploadRepoResult(
+        controllerRepoId,
+        variantAnalysisId,
+        repo,
+        runQueryResult
+      );
+      await setVariantAnalysisRepoSucceeded(
+        controllerRepoId,
+        variantAnalysisId,
+        repo.id,
+        runQueryResult.sourceLocationPrefix,
+        runQueryResult.resultCount,
+        runQueryResult.databaseSHA || "HEAD"
+      );
     } catch (error: unknown) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : `${error}`;
@@ -135,42 +112,17 @@ async function run(): Promise<void> {
         setFailed(errorMessage);
       }
 
-      if (liveResults) {
-        await setVariantAnalysisFailed(
-          controllerRepoId,
-          variantAnalysisId,
-          repo.id,
-          errorMessage
-        );
-      } else {
-        await uploadError(errorMessage, repo, artifactClient);
-      }
+      await setVariantAnalysisFailed(
+        controllerRepoId,
+        variantAnalysisId,
+        repo.id,
+        errorMessage
+      );
     }
     // We can now delete the work dir. All required files have already been uploaded.
     chdir(curDir);
     fs.rmdirSync(workDir, { recursive: true });
   }
-}
-
-async function uploadRepoResultToActions(
-  runQueryResult: RunQueryResult,
-  artifactClient: ArtifactClient,
-  repo: Repo
-) {
-  const filesToUpload = [
-    runQueryResult.bqrsFilePath,
-    runQueryResult.metadataFilePath,
-  ];
-  if (runQueryResult.sarifFilePath) {
-    filesToUpload.push(runQueryResult.sarifFilePath);
-  }
-  console.log("Uploading artifact");
-  await artifactClient.uploadArtifact(
-    repo.id.toString(),
-    filesToUpload,
-    "results",
-    { continueOnError: false }
-  );
 }
 
 async function uploadRepoResult(
@@ -221,29 +173,6 @@ async function getDatabase(repo: Repo, language: string) {
     // Use the GitHub API to download the database using token
     return await downloadDatabase(repo.id, repo.nwo, language, repo.pat);
   }
-}
-
-// Write error messages to a file and upload as an artifact,
-// so that the combine-results job "knows" about the failures.
-async function uploadError(
-  errorMessage: string,
-  repo: Repo,
-  artifactClient: ArtifactClient
-) {
-  fs.mkdirSync("errors");
-  const errorFilePath = path.join("errors", "error.txt");
-  fs.appendFileSync(errorFilePath, errorMessage);
-
-  const metadataFilePath = path.join("errors", "metadata.json");
-
-  writeQueryRunMetadataToFile(metadataFilePath, repo.nwo);
-
-  await artifactClient.uploadArtifact(
-    `${repo.id.toString()}-error`, // name
-    [errorFilePath, metadataFilePath], // files
-    "errors", // rootdirectory
-    { continueOnError: false }
-  );
 }
 
 /**

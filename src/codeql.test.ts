@@ -15,7 +15,6 @@ import {
   getSarifResultCount,
   Sarif,
 } from "./codeql";
-import { createResultIndex } from "./interpret";
 
 const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
 
@@ -137,47 +136,6 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
   try {
     t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
   } finally {
-    await rmRF(tmpDir);
-  }
-});
-
-test("creating a result index", async (t) => {
-  const queryPack = path.resolve("testdata/test_pack");
-  const responsePath = path.resolve("testdata/test_download_response");
-  const tmpDir = fs.mkdtempSync("tmp");
-  const cwd = process.cwd();
-  process.chdir(tmpDir);
-  try {
-    const output = await runQuery("codeql", t.context.db, "a/b", queryPack);
-    const outputDir = path.dirname(output.bqrsFilePath); // We know that all output files are in the same directory.
-    const downloadResponse = {
-      artifactName: "123",
-      downloadPath: outputDir,
-    };
-
-    const downloadResponse2 = {
-      artifactName: "124-error",
-      downloadPath: responsePath,
-    };
-    const resultIndex = createResultIndex(
-      [downloadResponse],
-      [downloadResponse2]
-    );
-
-    t.is(resultIndex.successes.length, 1);
-    t.is(resultIndex.failures.length, 1);
-    const successItem = resultIndex.successes[0];
-    t.is(successItem.nwo, "a/b");
-    t.is(successItem.id, "123");
-    t.true(successItem.source_location_prefix.length > 0);
-    t.is(successItem.results_count, 3);
-    t.true(successItem.bqrs_file_size > 0);
-    const failureItem = resultIndex.failures[0];
-    t.is(failureItem.nwo, "a/c");
-    t.is(failureItem.id, "124");
-    t.is(failureItem.error, "Ceci n'est pas un error message.");
-  } finally {
-    process.chdir(cwd);
     await rmRF(tmpDir);
   }
 });
