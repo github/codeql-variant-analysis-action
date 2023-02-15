@@ -63,7 +63,6 @@ jobs:
           ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask signed auth token
-        if: github.event.inputs.signed_auth_token != ''
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
 
@@ -169,7 +168,6 @@ jobs:
           ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask signed auth token
-        if: github.event.inputs.signed_auth_token != ''
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
 
@@ -225,7 +223,6 @@ jobs:
           ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask signed auth token
-        if: github.event.inputs.signed_auth_token != ''
         run: |
           echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
 
