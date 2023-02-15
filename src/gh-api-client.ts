@@ -26,8 +26,6 @@ export function getOctokitRequestInterface(): RequestInterface {
       },
     },
   });
-
-  return octokit.request;
 }
 
 export interface Policy {
