@@ -3,12 +3,12 @@ import path from "path";
 import { chdir, cwd } from "process";
 
 import { getInput, setSecret, setFailed } from "@actions/core";
-import { extractTar } from "@actions/tool-cache";
+import { extractTar, HTTPError } from "@actions/tool-cache";
 import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
 import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
-import { download, HTTPError } from "./download";
+import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
   setVariantAnalysisFailed,

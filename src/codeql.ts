@@ -5,7 +5,8 @@ import { exec, getExecOutput } from "@actions/exec";
 import * as yaml from "js-yaml";
 
 import { camelize } from "./deserialize";
-import { download, HTTPError } from "./download";
+import { download } from "./download";
+import { HTTPError } from "./http-error";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";

@@ -11,24 +11,9 @@ import * as core from "@actions/core";
 import * as httpm from "@actions/http-client";
 import * as io from "@actions/io";
 
-import { userAgent } from "./gh-api-client";
-
-// TODO: replace this with octokit too
-export function getApiClient(): httpm.HttpClient {
-  return new httpm.HttpClient(userAgent, [], {
-    allowRetries: true,
-  });
-}
-
-export class HTTPError extends Error {
-  httpStatusCode: number | undefined;
-  httpMessage: string;
-  constructor(httpStatusCode: number | undefined, httpMessage: string) {
-    super(`Unexpected HTTP response: ${httpStatusCode}. ${httpMessage}`);
-    this.httpStatusCode = httpStatusCode;
-    this.httpMessage = httpMessage;
-  }
-}
+import { getApiClient } from "./api-client";
+import { HTTPError } from "./http-error";
+import { RetryHelper } from "./retry-helper";
 
 /**
  * Download a file from an url and stream it into a local file
@@ -131,69 +116,5 @@ async function downloadAttempt(
         );
       }
     }
-  }
-}
-
-/**
- * Internal class for retries.
- * Borrowed from https://github.com/actions/toolkit/blob/main/packages/tool-cache/src/retry-helper.ts.
- */
-class RetryHelper {
-  private maxAttempts: number;
-  private minSeconds: number;
-  private maxSeconds: number;
-
-  constructor(maxAttempts: number, minSeconds: number, maxSeconds: number) {
-    if (maxAttempts < 1) {
-      throw new Error("max attempts should be greater than or equal to 1");
-    }
-
-    this.maxAttempts = maxAttempts;
-    this.minSeconds = Math.floor(minSeconds);
-    this.maxSeconds = Math.floor(maxSeconds);
-    if (this.minSeconds > this.maxSeconds) {
-      throw new Error(
-        "min seconds should be less than or equal to max seconds"
-      );
-    }
-  }
-
-  async execute<T>(
-    action: () => Promise<T>,
-    isRetryable: (e: Error) => boolean
-  ): Promise<T> {
-    let attempt = 1;
-    while (attempt < this.maxAttempts) {
-      // Try
-      try {
-        return await action();
-      } catch (err: unknown) {
-        if (!(err instanceof Error) || !isRetryable(err)) {
-          throw err;
-        }
-
-        core.info(err.message);
-      }
-
-      // Sleep
-      const seconds = this.getSleepAmount();
-      core.info(`Waiting ${seconds} seconds before trying again`);
-      await this.sleep(seconds);
-      attempt++;
-    }
-
-    // Last attempt
-    return await action();
-  }
-
-  private getSleepAmount(): number {
-    return (
-      Math.floor(Math.random() * (this.maxSeconds - this.minSeconds + 1)) +
-      this.minSeconds
-    );
-  }
-
-  private async sleep(seconds: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
   }
 }
