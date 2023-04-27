@@ -14,7 +14,7 @@ rm -rf json-schemas-tmp
 mkdir json-schemas-tmp
 
 generate_schema () {
-    $(npm bin)/ts-json-schema-generator \
+    npx ts-json-schema-generator \
       --path $1 \
       --type $2 \
       --out json-schemas-tmp/$2.json \
