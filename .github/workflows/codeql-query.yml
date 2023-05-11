@@ -46,8 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         repoNwos: ${{ fromJSON(needs.setup.outputs.repoNwoChunks) }}
-    permissions:
-      contents: write
+    permissions: {}
 
     steps:
       - name: Do not allow reruns
@@ -150,9 +149,7 @@ jobs:
     if: cancelled()
     needs:
       - run
-    permissions:
-      security-events: write # This permission can be removed soon
-      contents: write
+    permissions: {}
 
     steps:
       - name: Do not allow reruns
@@ -205,9 +202,7 @@ jobs:
     if: failure()
     needs:
       - run
-    permissions:
-      security-events: write # This permission can be removed soon
-      contents: write
+    permissions: {}
 
     steps:
       - name: Do not allow reruns
