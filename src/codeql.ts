@@ -11,9 +11,6 @@ import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 
-// This name must match that used by the vscode extension when creating the pack.
-const REMOTE_QUERY_PACK_NAME = "codeql-remote/query";
-
 export interface RunQueryResult {
   resultCount: number;
   databaseSHA: string | undefined;
@@ -69,6 +66,8 @@ export async function runQuery(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
 
+  const queryPackName = getQueryPackName(queryPack);
+
   await exec(codeql, [
     "database",
     "run-queries",
@@ -77,7 +76,7 @@ export async function runQuery(
     queryPack,
     "--",
     databaseName,
-    REMOTE_QUERY_PACK_NAME,
+    queryPackName,
   ]);
 
   const bqrsFilePath = path.join("results", "results.bqrs");
@@ -361,7 +360,7 @@ export async function getRemoteQueryPackDefaultQuery(
     "--format=json",
     "--additional-packs",
     queryPack,
-    REMOTE_QUERY_PACK_NAME,
+    getQueryPackName(queryPack),
   ]);
 
   const queries = validateObject(JSON.parse(output.stdout), "resolvedQueries");
@@ -399,4 +398,19 @@ function getBqrsFile(databaseName: string): string {
   }
 
   return path.join(dbResultsFolder, entry.name);
+}
+
+function getQueryPackName(queryPackPath: string) {
+  const qlpackFile = path.join(queryPackPath, "qlpack.yml");
+  const codeqlpackFile = path.join(queryPackPath, "codeql-pack.yml");
+  let packFile;
+  if (fs.statSync(qlpackFile).isFile()) {
+    packFile = qlpackFile
+  } else if (fs.statSync(codeqlpackFile).isFile()) {
+    packFile = codeqlpackFile;
+  } else {
+    throw new Error(`Path '${queryPackPath}' is missing a qlpack file.`);
+  }
+  const packContents = yaml.load(fs.readFileSync(packFile, "utf8")) as { name: string };
+  return packContents.name;
 }
