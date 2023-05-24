@@ -405,12 +405,14 @@ function getQueryPackName(queryPackPath: string) {
   const codeqlpackFile = path.join(queryPackPath, "codeql-pack.yml");
   let packFile;
   if (fs.statSync(qlpackFile).isFile()) {
-    packFile = qlpackFile
+    packFile = qlpackFile;
   } else if (fs.statSync(codeqlpackFile).isFile()) {
     packFile = codeqlpackFile;
   } else {
     throw new Error(`Path '${queryPackPath}' is missing a qlpack file.`);
   }
-  const packContents = yaml.load(fs.readFileSync(packFile, "utf8")) as { name: string };
+  const packContents = yaml.load(fs.readFileSync(packFile, "utf8")) as {
+    name: string;
+  };
   return packContents.name;
 }

@@ -1,5 +1,5 @@
 library: false
-name: codeql-remote/query
+name: codeql/queries
 version: 1.0.0
 buildMetadata:
   creationTime: 2021-11-23T16:09:11.452312400Z
