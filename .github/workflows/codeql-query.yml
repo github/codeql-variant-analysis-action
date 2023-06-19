@@ -38,7 +38,7 @@ jobs:
           echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
 
   run:
-    runs-on: ${{ vars.RUNNER_OS == 'macos' && 'macos-latest' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.MRVA_RUNNER_OS && fromJSON(vars.MRVA_RUNNER_OS) || 'ubuntu-latest' }}
     needs:
       - setup
     continue-on-error: true
