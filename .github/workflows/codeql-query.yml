@@ -38,7 +38,7 @@ jobs:
           echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
 
   run:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.MRVA_RUNNER_OS && fromJSON(vars.MRVA_RUNNER_OS) || 'ubuntu-latest' }}
     needs:
       - setup
     continue-on-error: true
@@ -110,10 +110,10 @@ jobs:
         id: init
         run: |
           # Take the most modern version
-          VERSION="$(find "${{ runner.tool_cache }}/CodeQL/" -maxdepth 1 -mindepth 1 -type d -print0 \
-                      | sort --zero-terminated \
-                      | tail --zero-terminated --lines 1 \
-                      | tr -d '\0')"
+          VERSION="$(find "${{ runner.tool_cache }}/CodeQL/" -maxdepth 1 -mindepth 1 -type d -print \
+                      | sort \
+                      | tail -n 1 \
+                      | tr -d '\n')"
 
           CODEQL="$VERSION/x64/codeql/codeql"
           "${CODEQL}" version --format=json
