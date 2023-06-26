@@ -38,7 +38,7 @@
   ],
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
-    "@octokit/types": "^6.25.0",
+    "@octokit/types": "^10.0.0",
     "@types/archiver": "^5.1.1",
     "@types/js-yaml": "^4.0.5",
     "@types/node": "^12.0.4",
