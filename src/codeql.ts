@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
-import * as yaml from "js-yaml";
 
 import { camelize } from "./deserialize";
 import { download } from "./download";
@@ -10,6 +9,7 @@ import { HTTPError } from "./http-error";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
+import { parseYamlFromFile } from "./yaml";
 
 export interface RunQueryResult {
   resultCount: number;
@@ -370,9 +370,9 @@ interface DatabaseMetadata {
  */
 export function getDatabaseMetadata(database: string): DatabaseMetadata {
   try {
-    return yaml.load(
-      fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
-    ) as DatabaseMetadata;
+    return parseYamlFromFile<DatabaseMetadata>(
+      path.join(database, "codeql-database.yml")
+    );
   } catch (error) {
     console.log(`Unable to read codeql-database.yml: ${error}`);
     return {};
@@ -450,8 +450,6 @@ function getQueryPackName(queryPackPath: string) {
   } else {
     throw new Error(`Path '${queryPackPath}' is missing a qlpack file.`);
   }
-  const packContents = yaml.load(fs.readFileSync(packFile, "utf8")) as {
-    name: string;
-  };
+  const packContents = parseYamlFromFile<{ name: string }>(packFile);
   return packContents.name;
 }
