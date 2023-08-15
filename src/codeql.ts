@@ -65,6 +65,7 @@ export async function runQuery(
   console.log(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
+  const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
   const queryPackName = getQueryPackName(queryPack);
 
@@ -108,7 +109,7 @@ export async function runQuery(
       sarifOutputType,
       databaseName,
       sourceLocationPrefix,
-      dbMetadata.creationMetadata?.sha
+      databaseSHA
     );
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = path.join("results", "results.sarif");
@@ -123,13 +124,13 @@ export async function runQuery(
     metadataFilePath,
     nwo,
     resultCount,
-    dbMetadata.creationMetadata?.sha,
+    databaseSHA,
     sourceLocationPrefix
   );
 
   return {
     resultCount,
-    databaseSHA: dbMetadata.creationMetadata?.sha,
+    databaseSHA,
     sourceLocationPrefix,
     metadataFilePath,
     bqrsFilePath,
@@ -353,7 +354,7 @@ function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
 
 interface DatabaseMetadata {
   creationMetadata?: {
-    sha?: string;
+    sha?: string | BigInt;
     cliVersion?: string;
   };
 }

@@ -25,7 +25,9 @@ export function parseYaml<T>(src: string): T {
   return parse(src, {
     version: "1.1", // CodeQL CLI uses YAML 1.1
     schema: "yaml-1.1",
+    intAsBigInt: true, // We want to retrieve the complete original commit SHA, which we can't do if it's parsed as a float
     customTags: (tags) => {
+      // Remove the original float EXP tag, and add our custom one
       const tagsWithoutFloatExp = tags.filter((tag) => {
         if (typeof tag !== "object" || !tag.tag) {
           return true;
