@@ -13,7 +13,7 @@ declare module 'path/win32' {
  * ```js
  * const path = require('path');
  * ```
- * @see [source](https://github.com/nodejs/node/blob/v18.0.0/lib/path.js)
+ * @see [source](https://github.com/nodejs/node/blob/v16.9.0/lib/path.js)
  */
 declare module 'path' {
     namespace path {
@@ -90,7 +90,7 @@ declare module 'path' {
              * the current working directory is used as well. The resulting path is normalized,
              * and trailing slashes are removed unless the path gets resolved to the root directory.
              *
-             * @param paths A sequence of paths or path segments.
+             * @param paths string paths to join.
              * @throws {TypeError} if any of the arguments is not a string.
              */
             resolve(...paths: string[]): string;
@@ -122,10 +122,10 @@ declare module 'path' {
              * Often used to extract the file name from a fully qualified path.
              *
              * @param path the path to evaluate.
-             * @param suffix optionally, an extension to remove from the result.
+             * @param ext optionally, an extension to remove from the result.
              * @throws {TypeError} if `path` is not a string or if `ext` is given and is not a string.
              */
-            basename(path: string, suffix?: string): string;
+            basename(path: string, ext?: string): string;
             /**
              * Return the extension of the path, from the last '.' to end of string in the last portion of the path.
              * If there is no '.' in the last portion of the path or the first character of it is '.', then it returns an empty string.

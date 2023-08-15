@@ -26,7 +26,7 @@
  *   performance.measure('A to B', 'A', 'B');
  * });
  * ```
- * @see [source](https://github.com/nodejs/node/blob/v18.0.0/lib/perf_hooks.js)
+ * @see [source](https://github.com/nodejs/node/blob/v16.9.0/lib/perf_hooks.js)
  */
 declare module 'perf_hooks' {
     import { AsyncResource } from 'node:async_hooks';
@@ -85,14 +85,6 @@ declare module 'perf_hooks' {
          * @since v16.0.0
          */
         readonly detail?: NodeGCPerformanceDetail | unknown | undefined; // TODO: Narrow this based on entry type.
-        toJSON(): any;
-    }
-    class PerformanceMark extends PerformanceEntry {
-        readonly duration: 0;
-        readonly entryType: 'mark';
-    }
-    class PerformanceMeasure extends PerformanceEntry {
-        readonly entryType: 'measure';
     }
     /**
      * _This property is an extension by Node.js. It is not available in Web browsers._
@@ -234,9 +226,8 @@ declare module 'perf_hooks' {
          * and whose performanceEntry.duration is always 0.
          * Performance marks are used to mark specific significant moments in the Performance Timeline.
          * @param name
-         * @return The PerformanceMark entry that was created
          */
-        mark(name?: string, options?: MarkOptions): PerformanceMark;
+        mark(name?: string, options?: MarkOptions): void;
         /**
          * Creates a new PerformanceMeasure entry in the Performance Timeline.
          * A PerformanceMeasure is a subclass of PerformanceEntry whose performanceEntry.entryType is always 'measure',
@@ -251,10 +242,9 @@ declare module 'perf_hooks' {
          * @param name
          * @param startMark
          * @param endMark
-         * @return The PerformanceMeasure entry that was created
          */
-        measure(name: string, startMark?: string, endMark?: string): PerformanceMeasure;
-        measure(name: string, options: MeasureOptions): PerformanceMeasure;
+        measure(name: string, startMark?: string, endMark?: string): void;
+        measure(name: string, options: MeasureOptions): void;
         /**
          * An instance of the PerformanceNodeTiming class that provides performance metrics for specific Node.js operational milestones.
          */
@@ -309,9 +299,6 @@ declare module 'perf_hooks' {
          *    *   }
          *    * ]
          *
-         *
-         *   performance.clearMarks();
-         *   performance.clearMeasures();
          *   observer.disconnect();
          * });
          * obs.observe({ type: 'mark' });
@@ -359,9 +346,6 @@ declare module 'perf_hooks' {
          *    * ]
          *
          *   console.log(perfObserverList.getEntriesByName('test', 'measure')); // []
-         *
-         *   performance.clearMarks();
-         *   performance.clearMeasures();
          *   observer.disconnect();
          * });
          * obs.observe({ entryTypes: ['mark', 'measure'] });
@@ -400,8 +384,6 @@ declare module 'perf_hooks' {
          *    *   }
          *    * ]
          *
-         *   performance.clearMarks();
-         *   performance.clearMeasures();
          *   observer.disconnect();
          * });
          * obs.observe({ type: 'mark' });
@@ -431,7 +413,7 @@ declare module 'perf_hooks' {
          * } = require('perf_hooks');
          *
          * const obs = new PerformanceObserver((list, observer) => {
-         *   // Called once asynchronously. `list` contains three items.
+         *   // Called three times synchronously. `list` contains one item.
          * });
          * obs.observe({ type: 'mark' });
          *
@@ -534,7 +516,7 @@ declare module 'perf_hooks' {
     }
     interface RecordableHistogram extends Histogram {
         /**
-         * @since v15.9.0, v14.18.0
+         * @since v15.9.0
          * @param val The amount to record in the histogram.
          */
         record(val: number | bigint): void;
@@ -543,15 +525,9 @@ declare module 'perf_hooks' {
          * previous call to `recordDelta()` and records that amount in the histogram.
          *
          * ## Examples
-         * @since v15.9.0, v14.18.0
+         * @since v15.9.0
          */
         recordDelta(): void;
-        /**
-         * Adds the values from other to this histogram.
-         * @since v17.4.0, v16.14.0
-         * @param other Recordable Histogram to combine with
-         */
-         add(other: RecordableHistogram): void;
     }
     /**
      * _This property is an extension by Node.js. It is not available in Web browsers._
@@ -601,24 +577,9 @@ declare module 'perf_hooks' {
     }
     /**
      * Returns a `RecordableHistogram`.
-     * @since v15.9.0, v14.18.0
+     * @since v15.9.0
      */
     function createHistogram(options?: CreateHistogramOptions): RecordableHistogram;
-
-    import { performance as _performance } from 'perf_hooks';
-    global {
-        /**
-         * `performance` is a global reference for `require('perf_hooks').performance`
-         * https://nodejs.org/api/globals.html#performance
-         * @since v16.0.0
-         */
-        var performance: typeof globalThis extends {
-            onmessage: any;
-            performance: infer T;
-        }
-            ? T
-            : typeof _performance;
-    }
 }
 declare module 'node:perf_hooks' {
     export * from 'perf_hooks';

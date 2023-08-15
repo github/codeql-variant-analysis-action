@@ -23,7 +23,7 @@
  * server.bind(41234);
  * // Prints: server listening 0.0.0.0:41234
  * ```
- * @see [source](https://github.com/nodejs/node/blob/v18.0.0/lib/dgram.js)
+ * @see [source](https://github.com/nodejs/node/blob/v16.9.0/lib/dgram.js)
  */
 declare module 'dgram' {
     import { AddressInfo } from 'node:net';
@@ -260,7 +260,7 @@ declare module 'dgram' {
          *
          * The `address` argument is a string. If the value of `address` is a host name,
          * DNS will be used to resolve the address of the host. If `address` is not
-         * provided or otherwise nullish, `'127.0.0.1'` (for `udp4` sockets) or `'::1'`(for `udp6` sockets) will be used by default.
+         * provided or otherwise falsy, `'127.0.0.1'` (for `udp4` sockets) or `'::1'`(for `udp6` sockets) will be used by default.
          *
          * If the socket has not been previously bound with a call to `bind`, the socket
          * is assigned a random port number and is bound to the "all interfaces" address
@@ -451,7 +451,7 @@ declare module 'dgram' {
          * TTL. If the TTL is decremented to 0 by a router, it will not be forwarded.
          * Changing TTL values is typically done for network probes or when multicasting.
          *
-         * The `ttl` argument may be between 1 and 255\. The default on most systems
+         * The `ttl` argument may be between between 1 and 255\. The default on most systems
          * is 64.
          *
          * This method throws `EBADF` if called on an unbound socket.
