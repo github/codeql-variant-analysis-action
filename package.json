@@ -58,7 +58,7 @@
     "prettier": "^2.7.1",
     "removeNPMAbsolutePaths": "3.0.1",
     "ts-json-schema-generator": "1.1.2",
-    "typescript": "^4.4.3"
+    "typescript": "^5.1.6"
   },
   "resolutions": {
     "glob-parent": ">=5.1.2",
