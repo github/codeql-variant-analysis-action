@@ -56,7 +56,7 @@
     "js-yaml": "^4.1.0",
     "micromatch": "^4.0.4",
     "prettier": "^2.7.1",
-    "removeNPMAbsolutePaths": "2.0.0",
+    "removeNPMAbsolutePaths": "3.0.1",
     "ts-json-schema-generator": "1.1.2",
     "typescript": "^4.4.3"
   },
