@@ -251,10 +251,15 @@ export function getSarifOutputType(
 ): SarifOutputType | undefined {
   const queryKind = queryMetadata.kind;
   if (
-    (queryKind === "problem" || queryKind === "path-problem") &&
-    compatibleQueryKinds.includes(queryKind)
+    queryKind === "path-problem" &&
+    compatibleQueryKinds.includes("PathProblem")
   ) {
-    return queryKind;
+    return "path-problem";
+  } else if (
+    queryKind === "problem" &&
+    compatibleQueryKinds.includes("Problem")
+  ) {
+    return "problem";
   } else {
     return undefined;
   }

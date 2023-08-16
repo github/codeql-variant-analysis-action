@@ -196,10 +196,10 @@ test("getting the SARIF output type when there is no `@kind` metadata", (t) => {
   const queryMetadata: QueryMetadata = {};
 
   const compatibleQueryKinds = [
-    "problem",
-    "path-problem",
-    "table",
-    "diagnostic",
+    "Problem",
+    "PathProblem",
+    "Table",
+    "Diagnostic",
   ];
 
   t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), undefined);
@@ -211,7 +211,7 @@ test("getting the SARIF output type when the `@kind` metadata is not compatible 
     someOtherKey: "someOtherValue",
   };
 
-  const compatibleQueryKinds = ["problem", "table", "diagnostic"];
+  const compatibleQueryKinds = ["Problem", "Table", "Diagnostic"];
 
   t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), undefined);
 });
@@ -223,10 +223,10 @@ test("getting the SARIF output type when the `@kind` metadata is compatible with
   };
 
   const compatibleQueryKinds = [
-    "problem",
-    "path-problem",
-    "table",
-    "diagnostic",
+    "Problem",
+    "PathProblem",
+    "Table",
+    "Diagnostic",
   ];
 
   t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
