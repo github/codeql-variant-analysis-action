@@ -1,6 +1,12 @@
 import test from "ava";
 
-import { BQRSInfo, ResolvedDatabase, ResolvedQueries, Sarif } from "./codeql";
+import {
+  BQRSInfo,
+  QueryMetadata,
+  ResolvedDatabase,
+  ResolvedQueries,
+  Sarif,
+} from "./codeql";
 import { Policy, RepoTask } from "./gh-api-client";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
@@ -86,6 +92,13 @@ test("can successfully validate ResolvedDatabase", (t) => {
     sourceLocationPrefix: "foo",
   };
   t.notThrows(() => validateObject(obj, "resolvedDatabase"));
+});
+
+test("can successfully validate QueryMetadata", (t) => {
+  const obj: QueryMetadata = {
+    kind: "problem",
+  };
+  t.notThrows(() => validateObject(obj, "queryMetadata"));
 });
 
 test("can successfully validate QueryRunMetadata", (t) => {
