@@ -180,18 +180,21 @@ async function getQueryMetadata(
   codeql: string,
   query: string
 ): Promise<QueryMetadata> {
-  const queryMetadata = await getExecOutput(codeql, [
+  const queryMetadataOutput = await getExecOutput(codeql, [
     "resolve",
     "metadata",
     "--format=json",
     query,
   ]);
-  if (queryMetadata.exitCode !== 0) {
+  if (queryMetadataOutput.exitCode !== 0) {
     throw new Error(
-      `Unable to run codeql resolve metadata. Exit code: ${queryMetadata.exitCode}`
+      `Unable to run codeql resolve metadata. Exit code: ${queryMetadataOutput.exitCode}`
     );
   }
-  return JSON.parse(queryMetadata.stdout) as QueryMetadata;
+  return validateObject(
+    JSON.parse(queryMetadataOutput.stdout, camelize),
+    "queryMetadata"
+  );
 }
 
 export interface BQRSInfo {
