@@ -10,6 +10,7 @@ for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
     const testObj = {
       trash: true,
+      kind: 123,
     };
     const error = t.throws(() => validateObject(testObj, schema));
     t.assert(
