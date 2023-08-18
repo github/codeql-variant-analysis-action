@@ -14,6 +14,8 @@ import {
   injectVersionControlInfo,
   getSarifResultCount,
   Sarif,
+  getSarifOutputType,
+  QueryMetadata,
 } from "./codeql";
 
 const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
@@ -188,4 +190,42 @@ test("counting the number of results in a SARIF file)", (t) => {
 
   const resultCount = getSarifResultCount(sarif);
   t.is(resultCount, 3);
+});
+
+test("getting the SARIF output type when there is no `@kind` metadata", (t) => {
+  const queryMetadata: QueryMetadata = {};
+
+  const compatibleQueryKinds = [
+    "Problem",
+    "PathProblem",
+    "Table",
+    "Diagnostic",
+  ];
+
+  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), undefined);
+});
+
+test("getting the SARIF output type when the `@kind` metadata is not compatible with output", (t) => {
+  const queryMetadata: QueryMetadata = {
+    kind: "path-problem",
+  };
+
+  const compatibleQueryKinds = ["Problem", "Table", "Diagnostic"];
+
+  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), undefined);
+});
+
+test("getting the SARIF output type when the `@kind` metadata is compatible with output", (t) => {
+  const queryMetadata: QueryMetadata = {
+    kind: "problem",
+  };
+
+  const compatibleQueryKinds = [
+    "Problem",
+    "PathProblem",
+    "Table",
+    "Diagnostic",
+  ];
+
+  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
 });

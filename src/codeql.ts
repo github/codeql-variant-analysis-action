@@ -87,9 +87,16 @@ export async function runQuery(
 
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
+  const queryMetadata = await getQueryMetadata(
+    codeql,
+    await getRemoteQueryPackDefaultQuery(codeql, queryPack)
+  );
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const sarifOutputType = getSarifOutputType(compatibleQueryKinds);
+  const sarifOutputType = getSarifOutputType(
+    queryMetadata,
+    compatibleQueryKinds
+  );
   let resultCount: number;
   let sarifFilePath: string | undefined;
   let sarifFileSize: number | undefined;
@@ -166,6 +173,27 @@ export async function downloadDatabase(
   }
 }
 
+export type QueryMetadata = { kind?: string };
+
+// Calls `resolve metadata` for the given query file and returns JSON output
+async function getQueryMetadata(
+  codeql: string,
+  query: string
+): Promise<QueryMetadata> {
+  const queryMetadata = await getExecOutput(codeql, [
+    "resolve",
+    "metadata",
+    "--format=json",
+    query,
+  ]);
+  if (queryMetadata.exitCode !== 0) {
+    throw new Error(
+      `Unable to run codeql resolve metadata. Exit code: ${queryMetadata.exitCode}`
+    );
+  }
+  return JSON.parse(queryMetadata.stdout) as QueryMetadata;
+}
+
 export interface BQRSInfo {
   resultSets: Array<{
     name: string;
@@ -217,12 +245,20 @@ async function getSourceLocationPrefix(codeql: string) {
 /**
  * Checks if the query kind is compatible with SARIF output.
  */
-function getSarifOutputType(
+export function getSarifOutputType(
+  queryMetadata: QueryMetadata,
   compatibleQueryKinds: string[]
 ): SarifOutputType | undefined {
-  if (compatibleQueryKinds.includes("PathProblem")) {
+  const queryKind = queryMetadata.kind;
+  if (
+    queryKind === "path-problem" &&
+    compatibleQueryKinds.includes("PathProblem")
+  ) {
     return "path-problem";
-  } else if (compatibleQueryKinds.includes("Problem")) {
+  } else if (
+    queryKind === "problem" &&
+    compatibleQueryKinds.includes("Problem")
+  ) {
     return "problem";
   } else {
     return undefined;
