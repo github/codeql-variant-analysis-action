@@ -173,7 +173,7 @@ export async function downloadDatabase(
   }
 }
 
-export type QueryMetadata = Record<string, unknown> & { kind?: string };
+export type QueryMetadata = { kind?: string };
 
 // Calls `resolve metadata` for the given query file and returns JSON output
 async function getQueryMetadata(

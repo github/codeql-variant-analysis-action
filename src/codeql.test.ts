@@ -208,7 +208,6 @@ test("getting the SARIF output type when there is no `@kind` metadata", (t) => {
 test("getting the SARIF output type when the `@kind` metadata is not compatible with output", (t) => {
   const queryMetadata: QueryMetadata = {
     kind: "path-problem",
-    someOtherKey: "someOtherValue",
   };
 
   const compatibleQueryKinds = ["Problem", "Table", "Diagnostic"];
@@ -218,7 +217,6 @@ test("getting the SARIF output type when the `@kind` metadata is not compatible 
 
 test("getting the SARIF output type when the `@kind` metadata is compatible with output", (t) => {
   const queryMetadata: QueryMetadata = {
-    name: "Hello world",
     kind: "problem",
   };
 
