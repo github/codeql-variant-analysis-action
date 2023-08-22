@@ -60316,12 +60316,14 @@ async function run() {
       const dbZip = await getDatabase(repo, language);
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
-      await uploadRepoResult(
-        controllerRepoId,
-        variantAnalysisId,
-        repo,
-        runQueryResult
-      );
+      if (runQueryResult.resultCount > 0) {
+        await uploadRepoResult(
+          controllerRepoId,
+          variantAnalysisId,
+          repo,
+          runQueryResult
+        );
+      }
       await setVariantAnalysisRepoSucceeded(
         controllerRepoId,
         variantAnalysisId,
