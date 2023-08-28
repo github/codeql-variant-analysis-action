@@ -37,7 +37,7 @@
     "micromatch is an unspecified dependency of ava"
   ],
   "devDependencies": {
-    "@ava/typescript": "^1.1.1",
+    "@ava/typescript": "^4.1.0",
     "@octokit/types": "^6.25.0",
     "@types/archiver": "^5.1.1",
     "@types/js-yaml": "^4.0.5",
