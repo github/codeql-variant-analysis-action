@@ -31,7 +31,10 @@
         "import/no-commonjs": "error",
         "import/no-dynamic-require": "error",
         "import/no-extraneous-dependencies": [
-            "error"
+            "error",
+            {
+                "devDependencies": true
+            }
         ],
         "import/no-namespace": "off",
         "import/no-unresolved": "error",
