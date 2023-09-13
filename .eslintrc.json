@@ -20,6 +20,7 @@
     ],
     "rules": {
         "sort-imports": "off",
+        "i18n-text/no-en": "off",
         "filenames/match-regex": [
             "error",
             "^[a-z0-9-]+(\\.test)?$"
