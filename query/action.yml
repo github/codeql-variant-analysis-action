@@ -32,4 +32,4 @@ inputs:
 
 runs:
   using: "node20"
-  main: "../lib/query.js"
+  main: "../dist/query.js"

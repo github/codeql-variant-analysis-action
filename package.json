@@ -4,8 +4,8 @@
   "private": true,
   "description": "CodeQL query action",
   "scripts": {
-    "build": "tsc --build",
-    "watch": "tsc --watch",
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
     "test": "ava src/** --serial --verbose --timeout=1m",
     "test-debug": "ava src/** --serial --verbose --timeout=20m",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts",
@@ -51,6 +51,7 @@
     "@typescript-eslint/parser": "^6.7.0",
     "archiver": "^5.3.0",
     "ava": "^5.3.1",
+    "esbuild": "^0.19.3",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-import-resolver-typescript": "^3.6.0",
