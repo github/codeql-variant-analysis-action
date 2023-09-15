@@ -62,4 +62,7 @@ async function uploadArtifactImpl(policy: Policy, artifactContents: Buffer) {
     );
     throw new HTTPError(response.message.statusCode, responseBody);
   }
+
+  // We need to read the response body to make sure the connection is closed
+  await response.readBody();
 }
