@@ -17,7 +17,7 @@
       "rewritePaths": {
         "src/": "lib/"
       },
-      "compile": false
+      "compile": "tsc"
     },
     "workerThreads": false
   },
