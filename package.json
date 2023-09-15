@@ -9,8 +9,7 @@
     "test": "ava src/** --serial --verbose --timeout=1m",
     "test-debug": "ava src/** --serial --verbose --timeout=20m",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts",
-    "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix",
-    "removeNPMAbsolutePaths": "removeNPMAbsolutePaths . --force"
+    "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix"
   },
   "ava": {
     "typescript": {
@@ -62,7 +61,6 @@
     "eslint-plugin-prettier": "^5.0.0",
     "micromatch": "^4.0.5",
     "prettier": "^3.0.3",
-    "removeNPMAbsolutePaths": "3.0.1",
     "ts-json-schema-generator": "1.1.2",
     "typescript": "^5.2.2"
   },
