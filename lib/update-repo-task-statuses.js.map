@@ -1,1 +1,0 @@
-{"version":3,"file":"update-repo-task-statuses.js","sourceRoot":"","sources":["../src/update-repo-task-statuses.ts"],"names":[],"mappings":";;AAAA,qCAA2C;AAC3C,qEAA+D;AAE/D;;;GAGG;AACH,KAAK,UAAU,sBAAsB;IACnC,MAAM,YAAY,GAAG,MAAM,IAAA,wBAAe,GAAE,CAAC;IAC7C,MAAM,IAAA,4CAAmB,EAAC,YAAY,CAAC,YAAY,CAAC,CAAC;AACvD,CAAC;AAED,KAAK,sBAAsB,EAAE,CAAC"}
