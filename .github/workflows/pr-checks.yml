@@ -31,16 +31,8 @@ jobs:
       - name: Check generated JSON schemas
         run: .github/workflows/script/check-json-schemas.sh
 
-  check-node-modules:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check node modules up to date
-        run: .github/workflows/script/check-node-modules.sh
-
   npm-test:
-    needs: [check-js, check-node-modules]
+    needs: [check-js]
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]

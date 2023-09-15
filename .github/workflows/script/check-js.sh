@@ -7,8 +7,8 @@ if [ ! -z "$(git status --porcelain)" ]; then
     >&2 echo "Failed: Repo should be clean before testing!"
     exit 1
 fi
-# Wipe the lib directory incase there are extra unnecessary files in there
-rm -rf lib/*.js
+# Wipe the dist directory incase there are extra unnecessary files in there
+rm -rf dist/*.js
 # Generate the JavaScript files
 npm run-script build
 # Check that repo is still clean
