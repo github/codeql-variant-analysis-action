@@ -20,8 +20,10 @@ for (const schema of schemaNames) {
     };
     const error = t.throws(() => validateObject(testObj, schema));
     t.assert(
-      error.message.startsWith(`Object does not match the "${schema}" schema:`),
-      `Error message is incorrect: "${error.message}"`
+      error?.message.startsWith(
+        `Object does not match the "${schema}" schema:`
+      ),
+      `Error message is incorrect: "${error?.message}"`
     );
   });
 }

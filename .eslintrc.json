@@ -25,7 +25,9 @@
             "error",
             "^[a-z0-9-]+(\\.test)?$"
         ],
-        "import/extensions": "error",
+        "import/extensions": ["error", {
+            "json": "always"
+        }],
         "import/named": "off",
         "import/no-amd": "error",
         "import/no-commonjs": "error",
@@ -71,5 +73,13 @@
             "never"
         ],
         "@typescript-eslint/restrict-template-expressions": "off"
+    },
+    "settings": {
+        "import/parsers": {
+            "@typescript-eslint/parser": [".ts", ".tsx"]
+        },
+        "import/resolver": {
+            "typescript": {}
+        }
     }
 }

@@ -3,7 +3,7 @@ import path from "path";
 
 import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
-import anyTest, { TestInterface } from "ava";
+import anyTest, { TestFn } from "ava";
 
 import {
   runQuery,
@@ -18,7 +18,7 @@ import {
   QueryMetadata,
 } from "./codeql";
 
-const test = anyTest as TestInterface<{ db: string; tmpDir: string }>;
+const test = anyTest as TestFn<{ db: string; tmpDir: string }>;
 
 test.before(async (t) => {
   const tmpDir = path.resolve(fs.mkdtempSync("tmp"));

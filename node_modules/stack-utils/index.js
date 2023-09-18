@@ -2,6 +2,10 @@
 
 const escapeStringRegexp = require('escape-string-regexp');
 
+const cwd = typeof process === 'object' && process && typeof process.cwd === 'function'
+  ? process.cwd()
+  : '.'
+
 const natives = [].concat(
   require('module').builtinModules,
   'bootstrap_node',
@@ -26,7 +30,7 @@ class StackUtils {
     }
 
     if ('cwd' in opts === false) {
-      opts.cwd = process.cwd()
+      opts.cwd = cwd
     }
 
     this._cwd = opts.cwd.replace(/\\/g, '/');
@@ -157,7 +161,10 @@ class StackUtils {
     setFile(res, site.getFileName(), this._cwd);
 
     if (site.isConstructor()) {
-      res.constructor = true;
+      Object.defineProperty(res, 'constructor', {
+        value: true,
+        configurable: true,
+      });
     }
 
     if (site.isEval()) {
@@ -256,7 +263,10 @@ class StackUtils {
     setFile(res, file, this._cwd);
 
     if (ctor) {
-      res.constructor = true;
+      Object.defineProperty(res, 'constructor', {
+        value: true,
+        configurable: true,
+      });
     }
 
     if (evalOrigin) {

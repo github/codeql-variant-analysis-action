@@ -16,8 +16,10 @@
     "typescript": {
       "rewritePaths": {
         "src/": "lib/"
-      }
-    }
+      },
+      "compile": false
+    },
+    "workerThreads": false
   },
   "license": "MIT",
   "engines": {
@@ -41,16 +43,17 @@
     "micromatch is an unspecified dependency of ava"
   ],
   "devDependencies": {
-    "@ava/typescript": "^1.1.1",
+    "@ava/typescript": "^4.1.0",
     "@octokit/types": "^6.25.0",
     "@types/archiver": "^5.1.1",
     "@types/node": "^16.18.40",
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
     "archiver": "^5.3.0",
-    "ava": "^3.15.0",
+    "ava": "^5.3.1",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^8.3.0",
+    "eslint-import-resolver-typescript": "^3.6.0",
     "eslint-plugin-filenames": "^1.3.2",
     "eslint-plugin-github": "^4.10.0",
     "eslint-plugin-import": "^2.28.1",
