@@ -354,7 +354,7 @@ function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
 
 interface DatabaseMetadata {
   creationMetadata?: {
-    sha?: string | BigInt;
+    sha?: string | bigint;
     cliVersion?: string;
   };
 }
