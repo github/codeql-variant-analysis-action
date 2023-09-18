@@ -8,7 +8,7 @@ import { RetryHelper } from "./retry-helper";
 
 export async function uploadArtifact(
   policy: Policy,
-  artifactContents: Buffer
+  artifactContents: Buffer,
 ): Promise<void> {
   const maxAttempts = 3;
   const minSeconds = 10;
@@ -26,7 +26,7 @@ export async function uploadArtifact(
 
       // Otherwise abort
       return false;
-    }
+    },
   );
 }
 
@@ -52,13 +52,13 @@ async function uploadArtifactImpl(policy: Policy, artifactContents: Buffer) {
     "POST",
     policy.upload_url,
     data,
-    additionalHeaders
+    additionalHeaders,
   );
 
   if (!response.message.statusCode || response.message.statusCode > 299) {
     const responseBody = await response.readBody();
     core.warning(
-      `Request to ${policy.upload_url} returned status code ${response.message.statusCode}: ${responseBody}`
+      `Request to ${policy.upload_url} returned status code ${response.message.statusCode}: ${responseBody}`,
     );
     throw new HTTPError(response.message.statusCode, responseBody);
   }

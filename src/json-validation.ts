@@ -52,14 +52,14 @@ export const schemaNames = Object.keys(validators) as Schema[];
 
 export function validateObject<T extends Schema>(
   obj: unknown,
-  schema: T
+  schema: T,
 ): SchemaTypes[T] {
   const validator = validators[schema];
   if (!validator(obj)) {
     throw new Error(
       `Object does not match the "${schema}" schema: ${ajv.errorsText(
-        validator.errors
-      )}`
+        validator.errors,
+      )}`,
     );
   }
   return obj as SchemaTypes[T];

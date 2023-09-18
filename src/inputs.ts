@@ -34,7 +34,7 @@ export function getSignedAuthToken(): string {
 export function getRepos(): Repo[] {
   return validateObject(
     JSON.parse(getInput("repositories", { required: true })),
-    "repoArray"
+    "repoArray",
   );
 }
 
@@ -46,6 +46,6 @@ export async function getInstructions(): Promise<Instructions> {
   const filePath = getInput("instructions_path", { required: true });
   return validateObject(
     JSON.parse(await fs.promises.readFile(filePath, "utf-8")),
-    "instructions"
+    "instructions",
   );
 }

@@ -25,7 +25,7 @@ export async function setRepoTaskStatuses(repos: Repo[]): Promise<void> {
       controllerRepoId,
       variantAnalysisId,
       repoIds,
-      "The GitHub Actions workflow failed."
+      "The GitHub Actions workflow failed.",
     );
   }
 
@@ -33,7 +33,7 @@ export async function setRepoTaskStatuses(repos: Repo[]): Promise<void> {
     await setVariantAnalysesCanceled(
       controllerRepoId,
       variantAnalysisId,
-      repoIds
+      repoIds,
     );
   }
 }

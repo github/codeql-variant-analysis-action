@@ -28,7 +28,7 @@ creationMetadata:
   cliVersion: 2.14.1
   creationTime: 2023-08-03T18:19:44.622274245Z
 finalised: true
-`)
+`),
   );
 });
 
@@ -58,6 +58,6 @@ creationMetadata:
   cliVersion: 2.14.1
   creationTime: 2023-08-03T18:19:44.622274245Z
 finalised: true
-`)
+`),
   );
 });

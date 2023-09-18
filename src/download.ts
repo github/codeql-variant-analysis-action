@@ -27,7 +27,7 @@ export async function download(
   url: string,
   dest: string,
   auth?: string,
-  accept?: string
+  accept?: string,
 ): Promise<string> {
   await io.mkdirP(path.dirname(dest));
   core.debug(`Downloading ${url}`);
@@ -55,7 +55,7 @@ export async function download(
 
       // Otherwise retry
       return true;
-    }
+    },
   );
 }
 
@@ -63,7 +63,7 @@ async function downloadAttempt(
   url: string,
   dest: string,
   auth?: string,
-  accept?: string
+  accept?: string,
 ): Promise<string> {
   if (fs.existsSync(dest)) {
     throw new Error(`Destination file path ${dest} already exists`);
@@ -86,10 +86,10 @@ async function downloadAttempt(
   if (response.message.statusCode !== 200) {
     const err = new HTTPError(
       response.message.statusCode,
-      await response.readBody()
+      await response.readBody(),
     );
     core.debug(
-      `Failed to download from "${url}". Code(${err.httpStatusCode}) Message(${err.httpMessage})`
+      `Failed to download from "${url}". Code(${err.httpStatusCode}) Message(${err.httpMessage})`,
     );
     throw err;
   }
@@ -112,7 +112,7 @@ async function downloadAttempt(
         core.debug(
           `Failed to delete '${dest}'. ${
             err instanceof Error ? err.message : err
-          }`
+          }`,
         );
       }
     }

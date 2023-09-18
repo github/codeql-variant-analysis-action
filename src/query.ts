@@ -52,7 +52,7 @@ async function run(): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : `${error}`;
     if (error instanceof HTTPError && error.httpStatusCode === 403) {
       setFailed(
-        `${errorMessage}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`
+        `${errorMessage}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`,
       );
     } else {
       setFailed(errorMessage);
@@ -63,7 +63,7 @@ async function run(): Promise<void> {
         controllerRepoId,
         variantAnalysisId,
         repo.id,
-        errorMessage
+        errorMessage,
       );
     }
     return;
@@ -79,7 +79,7 @@ async function run(): Promise<void> {
       await setVariantAnalysisRepoInProgress(
         controllerRepoId,
         variantAnalysisId,
-        repo.id
+        repo.id,
       );
 
       const dbZip = await getDatabase(repo, language);
@@ -91,7 +91,7 @@ async function run(): Promise<void> {
         controllerRepoId,
         variantAnalysisId,
         repo,
-        runQueryResult
+        runQueryResult,
       );
       await setVariantAnalysisRepoSucceeded(
         controllerRepoId,
@@ -99,14 +99,14 @@ async function run(): Promise<void> {
         repo.id,
         runQueryResult.sourceLocationPrefix,
         runQueryResult.resultCount,
-        runQueryResult.databaseSHA || "HEAD"
+        runQueryResult.databaseSHA || "HEAD",
       );
     } catch (error: unknown) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : `${error}`;
       if (error instanceof HTTPError && error.httpStatusCode === 403) {
         setFailed(
-          `${errorMessage}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`
+          `${errorMessage}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`,
         );
       } else {
         setFailed(errorMessage);
@@ -116,7 +116,7 @@ async function run(): Promise<void> {
         controllerRepoId,
         variantAnalysisId,
         repo.id,
-        errorMessage
+        errorMessage,
       );
     }
     // We can now delete the work dir. All required files have already been uploaded.
@@ -129,7 +129,7 @@ async function uploadRepoResult(
   controllerRepoId: number,
   variantAnalysisId: number,
   repo: Repo,
-  runQueryResult: RunQueryResult
+  runQueryResult: RunQueryResult,
 ) {
   const artifactContents = await getArtifactContentsForUpload(runQueryResult);
 
@@ -138,7 +138,7 @@ async function uploadRepoResult(
     controllerRepoId,
     variantAnalysisId,
     repo.id,
-    artifactContents.length
+    artifactContents.length,
   );
 
   // Use Azure client for uploading to Azure Blob Storage
@@ -146,7 +146,7 @@ async function uploadRepoResult(
 }
 
 async function getArtifactContentsForUpload(
-  runQueryResult: RunQueryResult
+  runQueryResult: RunQueryResult,
 ): Promise<Buffer> {
   const zip = new JSZip();
 

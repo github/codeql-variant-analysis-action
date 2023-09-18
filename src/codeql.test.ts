@@ -61,7 +61,7 @@ test("running a query in a pack", async (t) => {
 
     const bqrsInfo: BQRSInfo = await getBqrsInfo(
       "codeql",
-      path.join("results", "results.bqrs")
+      path.join("results", "results.bqrs"),
     );
     t.is(1, bqrsInfo.resultSets.length);
     t.is("#select", bqrsInfo.resultSets[0].name);
@@ -87,11 +87,11 @@ creationMetadata:
   sha: "ccf1e13626d97b009b4da78f719f028d9f7cdf80"
   cliVersion: "2.7.2"
   creationTime: "2021-11-08T12:58:40.345998Z"
-`
+`,
     );
     t.is(
       getDatabaseMetadata(tmpDir).creationMetadata?.sha,
-      "ccf1e13626d97b009b4da78f719f028d9f7cdf80"
+      "ccf1e13626d97b009b4da78f719f028d9f7cdf80",
     );
     t.is(getDatabaseMetadata(tmpDir).creationMetadata?.cliVersion, "2.7.2");
   } finally {
@@ -110,7 +110,7 @@ baselineLinesOfCode: 17442
 unicodeNewlines: true
 columnKind: "utf16"
 primaryLanguage: "javascript"
-`
+`,
     );
     t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
   } finally {
@@ -125,7 +125,7 @@ test("getting the commit SHA when codeql-database.yml exists, but is invalid", a
       path.join(tmpDir, "codeql-database.yml"),
       `    foo:"
 bar
-`
+`,
     );
     t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
   } finally {
@@ -145,7 +145,7 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
 test("getting the default query from a pack", async (t) => {
   t.is(
     await getRemoteQueryPackDefaultQuery("codeql", "testdata/test_pack"),
-    path.resolve("testdata/test_pack/x/query.ql")
+    path.resolve("testdata/test_pack/x/query.ql"),
   );
 });
 
