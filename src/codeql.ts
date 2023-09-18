@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 
 import { exec, getExecOutput } from "@actions/exec";
-import * as yaml from "js-yaml";
 
 import { camelize } from "./deserialize";
 import { download } from "./download";
@@ -10,6 +9,7 @@ import { HTTPError } from "./http-error";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
 import { writeQueryRunMetadataToFile } from "./query-run-metadata";
+import { parseYamlFromFile } from "./yaml";
 
 export interface RunQueryResult {
   resultCount: number;
@@ -65,6 +65,7 @@ export async function runQuery(
   console.log(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
+  const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
   const queryPackName = getQueryPackName(queryPack);
 
@@ -108,7 +109,7 @@ export async function runQuery(
       sarifOutputType,
       databaseName,
       sourceLocationPrefix,
-      dbMetadata.creationMetadata?.sha
+      databaseSHA
     );
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = path.join("results", "results.sarif");
@@ -123,13 +124,13 @@ export async function runQuery(
     metadataFilePath,
     nwo,
     resultCount,
-    dbMetadata.creationMetadata?.sha,
+    databaseSHA,
     sourceLocationPrefix
   );
 
   return {
     resultCount,
-    databaseSHA: dbMetadata.creationMetadata?.sha,
+    databaseSHA,
     sourceLocationPrefix,
     metadataFilePath,
     bqrsFilePath,
@@ -353,7 +354,7 @@ function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
 
 interface DatabaseMetadata {
   creationMetadata?: {
-    sha?: string;
+    sha?: string | bigint;
     cliVersion?: string;
   };
 }
@@ -370,9 +371,9 @@ interface DatabaseMetadata {
  */
 export function getDatabaseMetadata(database: string): DatabaseMetadata {
   try {
-    return yaml.load(
-      fs.readFileSync(path.join(database, "codeql-database.yml"), "utf8")
-    ) as DatabaseMetadata;
+    return parseYamlFromFile<DatabaseMetadata>(
+      path.join(database, "codeql-database.yml")
+    );
   } catch (error) {
     console.log(`Unable to read codeql-database.yml: ${error}`);
     return {};
@@ -450,8 +451,6 @@ function getQueryPackName(queryPackPath: string) {
   } else {
     throw new Error(`Path '${queryPackPath}' is missing a qlpack file.`);
   }
-  const packContents = yaml.load(fs.readFileSync(packFile, "utf8")) as {
-    name: string;
-  };
+  const packContents = parseYamlFromFile<{ name: string }>(packFile);
   return packContents.name;
 }
