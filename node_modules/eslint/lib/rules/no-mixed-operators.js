@@ -58,13 +58,13 @@ function normalizeOptions(options = {}) {
 
 /**
  * Checks whether any group which includes both given operator exists or not.
- * @param {Array.<string[]>} groups A list of groups to check.
+ * @param {Array<string[]>} groups A list of groups to check.
  * @param {string} left An operator.
  * @param {string} right Another operator.
  * @returns {boolean} `true` if such group existed.
  */
 function includesBothInAGroup(groups, left, right) {
-    return groups.some(group => group.indexOf(left) !== -1 && group.indexOf(right) !== -1);
+    return groups.some(group => group.includes(left) && group.includes(right));
 }
 
 /**
@@ -82,15 +82,15 @@ function getChildNode(node) {
 // Rule Definition
 //------------------------------------------------------------------------------
 
+/** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
         type: "suggestion",
 
         docs: {
-            description: "disallow mixed binary operators",
-            category: "Stylistic Issues",
+            description: "Disallow mixed binary operators",
             recommended: false,
-            url: "https://eslint.org/docs/rules/no-mixed-operators"
+            url: "https://eslint.org/docs/latest/rules/no-mixed-operators"
         },
 
         schema: [
@@ -122,7 +122,7 @@ module.exports = {
     },
 
     create(context) {
-        const sourceCode = context.getSourceCode();
+        const sourceCode = context.sourceCode;
         const options = normalizeOptions(context.options[0]);
 
         /**

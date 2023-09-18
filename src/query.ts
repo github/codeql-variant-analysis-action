@@ -121,7 +121,7 @@ async function run(): Promise<void> {
     }
     // We can now delete the work dir. All required files have already been uploaded.
     chdir(curDir);
-    fs.rmdirSync(workDir, { recursive: true });
+    fs.rmSync(workDir, { recursive: true });
   }
 }
 
