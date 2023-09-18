@@ -19,14 +19,14 @@ export class RetryHelper {
     this.maxSeconds = Math.floor(maxSeconds);
     if (this.minSeconds > this.maxSeconds) {
       throw new Error(
-        "min seconds should be less than or equal to max seconds"
+        "min seconds should be less than or equal to max seconds",
       );
     }
   }
 
   async execute<T>(
     action: () => Promise<T>,
-    isRetryable: (e: Error) => boolean
+    isRetryable: (e: Error) => boolean,
   ): Promise<T> {
     let attempt = 1;
     while (attempt < this.maxAttempts) {

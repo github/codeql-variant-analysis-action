@@ -79,7 +79,7 @@ type UpdateVariantAnalyses = {
 export async function setVariantAnalysisRepoInProgress(
   controllerRepoId: number,
   variantAnalysisId: number,
-  repoId: number
+  repoId: number,
 ): Promise<void> {
   await updateVariantAnalysisStatus(
     controllerRepoId,
@@ -87,7 +87,7 @@ export async function setVariantAnalysisRepoInProgress(
     repoId,
     {
       status: "in_progress",
-    }
+    },
   );
 }
 
@@ -97,7 +97,7 @@ export async function setVariantAnalysisRepoSucceeded(
   repoId: number,
   sourceLocationPrefix: string,
   resultCount: number,
-  databaseCommitSha: string
+  databaseCommitSha: string,
 ): Promise<void> {
   await updateVariantAnalysisStatus(
     controllerRepoId,
@@ -108,7 +108,7 @@ export async function setVariantAnalysisRepoSucceeded(
       source_location_prefix: sourceLocationPrefix,
       result_count: resultCount,
       database_commit_sha: databaseCommitSha,
-    }
+    },
   );
 }
 
@@ -116,7 +116,7 @@ export async function setVariantAnalysisFailed(
   controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
-  failureMessage: string
+  failureMessage: string,
 ): Promise<void> {
   await updateVariantAnalysisStatus(
     controllerRepoId,
@@ -125,7 +125,7 @@ export async function setVariantAnalysisFailed(
     {
       status: "failed",
       failure_message: failureMessage,
-    }
+    },
   );
 }
 
@@ -133,7 +133,7 @@ export async function setVariantAnalysesFailed(
   controllerRepoId: number,
   variantAnalysisId: number,
   repoIds: number[],
-  failureMessage: string
+  failureMessage: string,
 ): Promise<void> {
   await updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, {
     repository_ids: repoIds,
@@ -145,7 +145,7 @@ export async function setVariantAnalysesFailed(
 export async function setVariantAnalysesCanceled(
   controllerRepoId: number,
   variantAnalysisId: number,
-  repoIds: number[]
+  repoIds: number[],
 ): Promise<void> {
   await updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, {
     repository_ids: repoIds,
@@ -161,7 +161,7 @@ async function updateVariantAnalysisStatus(
   controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
-  data: UpdateVariantAnalysis
+  data: UpdateVariantAnalysis,
 ): Promise<void> {
   const octokitRequest = getOctokitRequestInterface();
 
@@ -179,7 +179,7 @@ async function updateVariantAnalysisStatus(
 async function updateVariantAnalysisStatuses(
   controllerRepoId: number,
   variantAnalysisId: number,
-  data: UpdateVariantAnalyses
+  data: UpdateVariantAnalyses,
 ): Promise<void> {
   const octokitRequest = getOctokitRequestInterface();
 
@@ -198,7 +198,7 @@ export async function getPolicyForRepoArtifact(
   controllerRepoId: number,
   variantAnalysisId: number,
   repoId: number,
-  artifactSize: number
+  artifactSize: number,
 ): Promise<Policy> {
   const data = {
     name: "results.zip",

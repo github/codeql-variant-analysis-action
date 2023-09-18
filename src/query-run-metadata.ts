@@ -18,7 +18,7 @@ export function writeQueryRunMetadataToFile(
   nwo: string,
   resultCount?: number,
   sha?: string,
-  sourceLocationPrefix?: string
+  sourceLocationPrefix?: string,
 ): void {
   const queryRunMetadata: QueryRunMetadata = {
     nwo,
@@ -36,12 +36,12 @@ export function writeQueryRunMetadataToFile(
  * as a `QueryRunMetadata` object.
  */
 export function readQueryRunMetadataFromFile(
-  downloadPath: string
+  downloadPath: string,
 ): QueryRunMetadata {
   const metadataPath = path.join(downloadPath, "metadata.json");
   const metadata = validateObject(
     JSON.parse(fs.readFileSync(metadataPath, "utf8")),
-    "queryRunMetadata"
+    "queryRunMetadata",
   );
   return metadata;
 }

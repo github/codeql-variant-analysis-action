@@ -49,7 +49,7 @@ export async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
-  queryPack: string
+  queryPack: string,
 ): Promise<RunQueryResult> {
   fs.mkdirSync("results");
 
@@ -63,7 +63,7 @@ export async function runQuery(
 
   const dbMetadata = getDatabaseMetadata(databaseName);
   console.log(
-    `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
+    `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`,
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
@@ -90,13 +90,13 @@ export async function runQuery(
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
   const queryMetadata = await getQueryMetadata(
     codeql,
-    await getRemoteQueryPackDefaultQuery(codeql, queryPack)
+    await getRemoteQueryPackDefaultQuery(codeql, queryPack),
   );
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const sarifOutputType = getSarifOutputType(
     queryMetadata,
-    compatibleQueryKinds
+    compatibleQueryKinds,
   );
   let resultCount: number;
   let sarifFilePath: string | undefined;
@@ -109,7 +109,7 @@ export async function runQuery(
       sarifOutputType,
       databaseName,
       sourceLocationPrefix,
-      databaseSHA
+      databaseSHA,
     );
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = path.join("results", "results.sarif");
@@ -125,7 +125,7 @@ export async function runQuery(
     nwo,
     resultCount,
     databaseSHA,
-    sourceLocationPrefix
+    sourceLocationPrefix,
   );
 
   return {
@@ -144,7 +144,7 @@ export async function downloadDatabase(
   repoId: number,
   repoName: string,
   language: string,
-  pat?: string
+  pat?: string,
 ): Promise<string> {
   let authHeader: string | undefined = undefined;
   if (pat) {
@@ -156,7 +156,7 @@ export async function downloadDatabase(
       `https://api.github.com/repos/${repoName}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
       authHeader,
-      "application/zip"
+      "application/zip",
     );
   } catch (error: unknown) {
     console.log("Error while downloading database");
@@ -166,7 +166,7 @@ export async function downloadDatabase(
       error.httpMessage.includes("No database available for")
     ) {
       throw new Error(
-        `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`
+        `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`,
       );
     } else {
       throw error;
@@ -179,7 +179,7 @@ export type QueryMetadata = { kind?: string };
 // Calls `resolve metadata` for the given query file and returns JSON output
 async function getQueryMetadata(
   codeql: string,
-  query: string
+  query: string,
 ): Promise<QueryMetadata> {
   const queryMetadataOutput = await getExecOutput(codeql, [
     "resolve",
@@ -189,12 +189,12 @@ async function getQueryMetadata(
   ]);
   if (queryMetadataOutput.exitCode !== 0) {
     throw new Error(
-      `Unable to run codeql resolve metadata. Exit code: ${queryMetadataOutput.exitCode}`
+      `Unable to run codeql resolve metadata. Exit code: ${queryMetadataOutput.exitCode}`,
     );
   }
   return validateObject(
     JSON.parse(queryMetadataOutput.stdout, camelize),
-    "queryMetadata"
+    "queryMetadata",
   );
 }
 
@@ -209,7 +209,7 @@ export interface BQRSInfo {
 // Calls `bqrs info` for the given bqrs file and returns JSON output
 export async function getBqrsInfo(
   codeql: string,
-  bqrs: string
+  bqrs: string,
 ): Promise<BQRSInfo> {
   const bqrsInfoOutput = await getExecOutput(codeql, [
     "bqrs",
@@ -219,12 +219,12 @@ export async function getBqrsInfo(
   ]);
   if (bqrsInfoOutput.exitCode !== 0) {
     throw new Error(
-      `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
+      `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`,
     );
   }
   return validateObject(
     JSON.parse(bqrsInfoOutput.stdout, camelize),
-    "bqrsInfo"
+    "bqrsInfo",
   );
 }
 
@@ -241,7 +241,7 @@ async function getSourceLocationPrefix(codeql: string) {
   ]);
   const resolvedDatabase = validateObject(
     JSON.parse(resolveDbOutput.stdout),
-    "resolvedDatabase"
+    "resolvedDatabase",
   );
   return resolvedDatabase.sourceLocationPrefix;
 }
@@ -251,7 +251,7 @@ async function getSourceLocationPrefix(codeql: string) {
  */
 export function getSarifOutputType(
   queryMetadata: QueryMetadata,
-  compatibleQueryKinds: string[]
+  compatibleQueryKinds: string[],
 ): SarifOutputType | undefined {
   const queryKind = queryMetadata.kind;
   if (
@@ -277,7 +277,7 @@ export async function generateSarif(
   sarifOutputType: SarifOutputType,
   databaseName: string,
   sourceLocationPrefix: string,
-  databaseSHA?: string
+  databaseSHA?: string,
 ): Promise<Sarif> {
   const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
@@ -297,7 +297,7 @@ export async function generateSarif(
   ]);
   const sarif = validateObject(
     JSON.parse(fs.readFileSync(sarifFile, "utf8")),
-    "sarif"
+    "sarif",
   );
 
   injectVersionControlInfo(sarif, nwo, databaseSHA);
@@ -311,7 +311,7 @@ export async function generateSarif(
 export function injectVersionControlInfo(
   sarif: Sarif,
   nwo: string,
-  databaseSHA?: string
+  databaseSHA?: string,
 ): void {
   for (const run of sarif.runs) {
     run.versionControlProvenance = run.versionControlProvenance || [];
@@ -344,7 +344,7 @@ export function getSarifResultCount(sarif: Sarif): number {
  */
 function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
   const selectResultSet = bqrsInfo.resultSets.find(
-    (resultSet) => resultSet.name === "#select"
+    (resultSet) => resultSet.name === "#select",
   );
   if (!selectResultSet) {
     throw new Error("No result set named #select");
@@ -372,7 +372,7 @@ interface DatabaseMetadata {
 export function getDatabaseMetadata(database: string): DatabaseMetadata {
   try {
     return parseYamlFromFile<DatabaseMetadata>(
-      path.join(database, "codeql-database.yml")
+      path.join(database, "codeql-database.yml"),
     );
   } catch (error) {
     console.log(`Unable to read codeql-database.yml: ${error}`);
@@ -392,7 +392,7 @@ export type ResolvedQueries = [string];
  */
 export async function getRemoteQueryPackDefaultQuery(
   codeql: string,
-  queryPack: string
+  queryPack: string,
 ): Promise<string> {
   const output = await getExecOutput(codeql, [
     "resolve",
@@ -428,7 +428,7 @@ function getBqrsFile(databaseName: string): string {
 
   if (entries.length !== 1) {
     throw new Error(
-      `Expected a single file in ${dbResultsFolder}, found: ${entries}`
+      `Expected a single file in ${dbResultsFolder}, found: ${entries}`,
     );
   }
 
