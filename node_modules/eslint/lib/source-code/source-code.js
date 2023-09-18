@@ -9,10 +9,16 @@
 //------------------------------------------------------------------------------
 
 const
-    { isCommentToken } = require("eslint-utils"),
+    { isCommentToken } = require("@eslint-community/eslint-utils"),
     TokenStore = require("./token-store"),
     astUtils = require("../shared/ast-utils"),
     Traverser = require("../shared/traverser");
+
+//------------------------------------------------------------------------------
+// Type Definitions
+//------------------------------------------------------------------------------
+
+/** @typedef {import("eslint-scope").Variable} Variable */
 
 //------------------------------------------------------------------------------
 // Private
@@ -143,10 +149,14 @@ function isSpaceBetween(sourceCode, first, second, checkInsideOfJSXText) {
 // Public Interface
 //------------------------------------------------------------------------------
 
+const caches = Symbol("caches");
+
+/**
+ * Represents parsed source code.
+ */
 class SourceCode extends TokenStore {
 
     /**
-     * Represents parsed source code.
      * @param {string|Object} textOrConfig The source code text or config object.
      * @param {string} textOrConfig.text The source code text.
      * @param {ASTNode} textOrConfig.ast The Program node of the AST representing the code. This AST should be created from the text that BOM was stripped.
@@ -174,21 +184,28 @@ class SourceCode extends TokenStore {
         super(ast.tokens, ast.comments);
 
         /**
+         * General purpose caching for the class.
+         */
+        this[caches] = new Map([
+            ["scopes", new WeakMap()]
+        ]);
+
+        /**
          * The flag to indicate that the source code has Unicode BOM.
-         * @type boolean
+         * @type {boolean}
          */
         this.hasBOM = (text.charCodeAt(0) === 0xFEFF);
 
         /**
          * The original text source code.
          * BOM was stripped from this text.
-         * @type string
+         * @type {string}
          */
         this.text = (this.hasBOM ? text.slice(1) : text);
 
         /**
          * The parsed AST for the source code.
-         * @type ASTNode
+         * @type {ASTNode}
          */
         this.ast = ast;
 
@@ -223,7 +240,7 @@ class SourceCode extends TokenStore {
         /**
          * The source code split into lines according to ECMA-262 specification.
          * This is done to avoid each rule needing to do so separately.
-         * @type string[]
+         * @type {string[]}
          */
         this.lines = [];
         this.lineStartIndices = [0];
@@ -506,6 +523,7 @@ class SourceCode extends TokenStore {
     /**
      * Converts a source text index into a (line, column) pair.
      * @param {number} index The index of a character in a file
+     * @throws {TypeError} If non-numeric index or index out of range.
      * @returns {Object} A {line, column} location object with a 0-indexed column
      * @public
      */
@@ -545,6 +563,9 @@ class SourceCode extends TokenStore {
      * @param {Object} loc A line/column location
      * @param {number} loc.line The line number of the location (1-indexed)
      * @param {number} loc.column The column number of the location (0-indexed)
+     * @throws {TypeError|RangeError} If `loc` is not an object with a numeric
+     *   `line` and `column`, if the `line` is less than or equal to zero or
+     *   the line or column is out of the expected range.
      * @returns {number} The range index of the location in the file.
      * @public
      */
@@ -582,6 +603,127 @@ class SourceCode extends TokenStore {
 
         return positionIndex;
     }
+
+    /**
+     * Gets the scope for the given node
+     * @param {ASTNode} currentNode The node to get the scope of
+     * @returns {eslint-scope.Scope} The scope information for this node
+     * @throws {TypeError} If the `currentNode` argument is missing.
+     */
+    getScope(currentNode) {
+
+        if (!currentNode) {
+            throw new TypeError("Missing required argument: node.");
+        }
+
+        // check cache first
+        const cache = this[caches].get("scopes");
+        const cachedScope = cache.get(currentNode);
+
+        if (cachedScope) {
+            return cachedScope;
+        }
+
+        // On Program node, get the outermost scope to avoid return Node.js special function scope or ES modules scope.
+        const inner = currentNode.type !== "Program";
+
+        for (let node = currentNode; node; node = node.parent) {
+            const scope = this.scopeManager.acquire(node, inner);
+
+            if (scope) {
+                if (scope.type === "function-expression-name") {
+                    cache.set(currentNode, scope.childScopes[0]);
+                    return scope.childScopes[0];
+                }
+
+                cache.set(currentNode, scope);
+                return scope;
+            }
+        }
+
+        cache.set(currentNode, this.scopeManager.scopes[0]);
+        return this.scopeManager.scopes[0];
+    }
+
+    /**
+     * Get the variables that `node` defines.
+     * This is a convenience method that passes through
+     * to the same method on the `scopeManager`.
+     * @param {ASTNode} node The node for which the variables are obtained.
+     * @returns {Array<Variable>} An array of variable nodes representing
+     *      the variables that `node` defines.
+     */
+    getDeclaredVariables(node) {
+        return this.scopeManager.getDeclaredVariables(node);
+    }
+
+    /* eslint-disable class-methods-use-this -- node is owned by SourceCode */
+    /**
+     * Gets all the ancestors of a given node
+     * @param {ASTNode} node The node
+     * @returns {Array<ASTNode>} All the ancestor nodes in the AST, not including the provided node, starting
+     * from the root node at index 0 and going inwards to the parent node.
+     * @throws {TypeError} When `node` is missing.
+     */
+    getAncestors(node) {
+
+        if (!node) {
+            throw new TypeError("Missing required argument: node.");
+        }
+
+        const ancestorsStartingAtParent = [];
+
+        for (let ancestor = node.parent; ancestor; ancestor = ancestor.parent) {
+            ancestorsStartingAtParent.push(ancestor);
+        }
+
+        return ancestorsStartingAtParent.reverse();
+    }
+    /* eslint-enable class-methods-use-this -- node is owned by SourceCode */
+
+    /**
+     * Marks a variable as used in the current scope
+     * @param {string} name The name of the variable to mark as used.
+     * @param {ASTNode} [refNode] The closest node to the variable reference.
+     * @returns {boolean} True if the variable was found and marked as used, false if not.
+     */
+    markVariableAsUsed(name, refNode = this.ast) {
+
+        const currentScope = this.getScope(refNode);
+        let initialScope = currentScope;
+
+        /*
+         * When we are in an ESM or CommonJS module, we need to start searching
+         * from the top-level scope, not the global scope. For ESM the top-level
+         * scope is the module scope; for CommonJS the top-level scope is the
+         * outer function scope.
+         *
+         * Without this check, we might miss a variable declared with `var` at
+         * the top-level because it won't exist in the global scope.
+         */
+        if (
+            currentScope.type === "global" &&
+            currentScope.childScopes.length > 0 &&
+
+            // top-level scopes refer to a `Program` node
+            currentScope.childScopes[0].block === this.ast
+        ) {
+            initialScope = currentScope.childScopes[0];
+        }
+
+        for (let scope = initialScope; scope; scope = scope.upper) {
+            const variable = scope.variables.find(scopeVar => scopeVar.name === name);
+
+            if (variable) {
+                variable.eslintUsed = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
 }
 
 module.exports = SourceCode;
