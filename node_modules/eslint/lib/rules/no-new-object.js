@@ -15,29 +15,32 @@ const astUtils = require("./utils/ast-utils");
 // Rule Definition
 //------------------------------------------------------------------------------
 
+/** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
         type: "suggestion",
 
         docs: {
-            description: "disallow `Object` constructors",
-            category: "Stylistic Issues",
+            description: "Disallow `Object` constructors",
             recommended: false,
-            url: "https://eslint.org/docs/rules/no-new-object"
+            url: "https://eslint.org/docs/latest/rules/no-new-object"
         },
 
         schema: [],
 
         messages: {
-            preferLiteral: "The object literal notation {} is preferrable."
+            preferLiteral: "The object literal notation {} is preferable."
         }
     },
 
     create(context) {
+
+        const sourceCode = context.sourceCode;
+
         return {
             NewExpression(node) {
                 const variable = astUtils.getVariableByName(
-                    context.getScope(),
+                    sourceCode.getScope(node),
                     node.callee.name
                 );
 
