@@ -442,7 +442,7 @@ function getBqrsFile(databaseName: string): string {
 function getQueryPackName(queryPackPath: string) {
   const qlpackFile = path.join(queryPackPath, "qlpack.yml");
   const codeqlpackFile = path.join(queryPackPath, "codeql-pack.yml");
-  let packFile;
+  let packFile: string;
   if (fs.statSync(qlpackFile).isFile()) {
     packFile = qlpackFile;
   } else if (fs.statSync(codeqlpackFile).isFile()) {
