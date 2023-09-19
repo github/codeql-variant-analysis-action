@@ -2,3 +2,4 @@
 /runner/node_modules/
 /lib/
 /node_modules/
+/dist/*.js.map
