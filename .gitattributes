@@ -1,4 +1,4 @@
-lib/*.js linguist-generated=true
+dist/*.js linguist-generated=true
 
 # Reduce incidence of needless merge conflicts on CHANGELOG.md
 # The man page at

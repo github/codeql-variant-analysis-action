@@ -24,4 +24,4 @@ inputs:
 
 runs:
   using: "node20"
-  main: "../lib/update-repo-task-statuses.js"
+  main: "../dist/update-repo-task-statuses.js"
