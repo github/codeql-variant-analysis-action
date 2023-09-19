@@ -4,7 +4,7 @@ import { parse, ScalarTag } from "yaml";
 
 // Use a custom tag for floats in exponential notation, to make the +/- mandatory
 // This fixes commit SHAs consisting only of numbers with a single "e" in them
-export const floatExp: ScalarTag = {
+const floatExp: ScalarTag = {
   identify: (value) => typeof value === "number",
   default: true,
   tag: "tag:yaml.org,2002:float",

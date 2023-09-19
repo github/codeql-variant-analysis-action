@@ -270,7 +270,7 @@ export function getSarifOutputType(
 }
 
 // Generates sarif from the given bqrs file, if query kind supports it
-export async function generateSarif(
+async function generateSarif(
   codeql: string,
   bqrs: string,
   nwo: string,

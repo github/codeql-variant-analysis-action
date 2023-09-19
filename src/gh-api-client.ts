@@ -12,7 +12,7 @@ import { validateObject } from "./json-validation";
 
 export const userAgent = "GitHub multi-repository variant analysis action";
 
-export function getOctokitRequestInterface(): RequestInterface {
+function getOctokitRequestInterface(): RequestInterface {
   const octokit = new Octokit({ userAgent, retry });
 
   const signedAuthToken = getSignedAuthToken();
@@ -38,7 +38,7 @@ export interface RepoTask {
   analysis_status: AnalysisStatus;
 }
 
-export type AnalysisStatus =
+type AnalysisStatus =
   | "pending"
   | "in_progress"
   | "succeeded"
