@@ -9,7 +9,8 @@
     "test": "ava src/** --serial --verbose --timeout=1m",
     "test-debug": "ava src/** --serial --verbose --timeout=20m",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts",
-    "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix"
+    "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix",
+    "find-deadcode": "ts-node script/find-deadcode.ts"
   },
   "ava": {
     "typescript": {
@@ -62,6 +63,8 @@
     "micromatch": "^4.0.5",
     "prettier": "^3.0.3",
     "ts-json-schema-generator": "1.1.2",
+    "ts-node": "^10.9.1",
+    "ts-unused-exports": "^10.0.1",
     "typescript": "^5.2.2"
   },
   "resolutions": {
