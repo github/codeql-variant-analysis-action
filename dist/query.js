@@ -61691,21 +61691,18 @@ var RepoTask_default = {
   $ref: "#/definitions/RepoTask",
   $schema: "http://json-schema.org/draft-07/schema#",
   definitions: {
-    AnalysisStatus: {
-      enum: [
-        "pending",
-        "in_progress",
-        "succeeded",
-        "failed",
-        "canceled",
-        "timed_out"
-      ],
-      type: "string"
-    },
     RepoTask: {
       properties: {
         analysis_status: {
-          $ref: "#/definitions/AnalysisStatus"
+          enum: [
+            "pending",
+            "in_progress",
+            "succeeded",
+            "failed",
+            "canceled",
+            "timed_out"
+          ],
+          type: "string"
         }
       },
       required: [

@@ -33,7 +33,7 @@ type SchemaTypes = {
   repoTask: RepoTask;
   policy: Policy;
 };
-export type Schema = keyof SchemaTypes;
+type Schema = keyof SchemaTypes;
 
 const ajv = new Ajv();
 const validators: Record<Schema, ValidateFunction> = {
