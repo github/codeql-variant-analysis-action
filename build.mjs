@@ -31,7 +31,9 @@ const context = await esbuild.context({
   outdir: "dist",
   platform: "node",
   format: "cjs",
-  sourcemap: "external",
+  sourcemap: !!process.env.CODEQL_VARIANT_ANALYSIS_ACTION_GENERATE_SOURCEMAPS
+    ? "external"
+    : false,
   chunkNames: "chunks/[name]-[hash]",
   plugins: [onEndPlugin],
 });
