@@ -164,7 +164,7 @@ async function getArtifactContentsForUpload(
 }
 
 async function getDatabase(repo: Repo, language: string) {
-  console.log("Getting database");
+  console.log(`Getting database for ${repo.nwo}`);
   if (repo.downloadUrl) {
     // Use the provided signed URL to download the database
     return await download(repo.downloadUrl, `${repo.id}.zip`);
