@@ -62563,7 +62563,7 @@ async function getArtifactContentsForUpload(runQueryResult) {
   });
 }
 async function getDatabase(repo, language) {
-  console.log("Getting database");
+  console.log(`Getting database for ${repo.nwo}`);
   if (repo.downloadUrl) {
     return await download(repo.downloadUrl, `${repo.id}.zip`);
   } else {
