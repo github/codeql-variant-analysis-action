@@ -32134,6 +32134,9 @@ var QueryMetadata_default = {
   definitions: {
     QueryMetadata: {
       properties: {
+        id: {
+          type: "string"
+        },
         kind: {
           type: "string"
         }

@@ -61587,6 +61587,9 @@ var QueryMetadata_default = {
   definitions: {
     QueryMetadata: {
       properties: {
+        id: {
+          type: "string"
+        },
         kind: {
           type: "string"
         }
@@ -62204,6 +62207,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
       codeql,
       bqrsFilePath,
       nwo,
+      queryMetadata,
       sarifOutputType,
       databaseName,
       sourceLocationPrefix,
@@ -62314,7 +62318,13 @@ function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
     return void 0;
   }
 }
-async function generateSarif(codeql, bqrs, nwo, sarifOutputType, databaseName, sourceLocationPrefix, databaseSHA) {
+async function generateSarif(codeql, bqrs, nwo, queryMetadata, sarifOutputType, databaseName, sourceLocationPrefix, databaseSHA) {
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- we are explicitly excluding this since it's calculated separately
+    kind,
+    id: queryId,
+    ...passthroughQueryMetadata
+  } = queryMetadata;
   const sarifFile = import_path.default.join("results", "results.sarif");
   await (0, import_exec.exec)(codeql, [
     "bqrs",
@@ -62322,7 +62332,11 @@ async function generateSarif(codeql, bqrs, nwo, sarifOutputType, databaseName, s
     "--format=sarif-latest",
     `--output=${sarifFile}`,
     `-t=kind=${sarifOutputType}`,
-    "-t=id=remote-query",
+    `-t=id=${queryId || "remote-query"}`,
+    // Forward all of the query metadata.
+    ...Object.entries(passthroughQueryMetadata).map(
+      ([key, value]) => `-t=${key}=${value}`
+    ),
     "--sarif-add-snippets",
     "--no-group-results",
     // Hard-coded the source archive as src.zip inside the database, since that's
