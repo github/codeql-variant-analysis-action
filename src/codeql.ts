@@ -106,6 +106,7 @@ export async function runQuery(
       codeql,
       bqrsFilePath,
       nwo,
+      queryMetadata,
       sarifOutputType,
       databaseName,
       sourceLocationPrefix,
@@ -174,7 +175,10 @@ export async function downloadDatabase(
   }
 }
 
-export type QueryMetadata = { kind?: string };
+export type QueryMetadata = {
+  id?: string;
+  kind?: string;
+};
 
 // Calls `resolve metadata` for the given query file and returns JSON output
 async function getQueryMetadata(
@@ -274,11 +278,19 @@ async function generateSarif(
   codeql: string,
   bqrs: string,
   nwo: string,
+  queryMetadata: QueryMetadata,
   sarifOutputType: SarifOutputType,
   databaseName: string,
   sourceLocationPrefix: string,
   databaseSHA?: string,
 ): Promise<Sarif> {
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- we are explicitly excluding this since it's calculated separately
+    kind,
+    id: queryId,
+    ...passthroughQueryMetadata
+  } = queryMetadata;
+
   const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
     "bqrs",
@@ -286,7 +298,11 @@ async function generateSarif(
     "--format=sarif-latest",
     `--output=${sarifFile}`,
     `-t=kind=${sarifOutputType}`,
-    "-t=id=remote-query",
+    `-t=id=${queryId || "remote-query"}`,
+    // Forward all of the query metadata.
+    ...Object.entries(passthroughQueryMetadata).map(
+      ([key, value]) => `-t=${key}=${value}`,
+    ),
     "--sarif-add-snippets",
     "--no-group-results",
     // Hard-coded the source archive as src.zip inside the database, since that's
