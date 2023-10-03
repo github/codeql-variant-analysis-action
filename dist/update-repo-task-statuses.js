@@ -31973,7 +31973,7 @@ var require_dist_node13 = __commonJS({
       }
       return response;
     }
-    var VERSION = "6.0.0";
+    var VERSION = "6.0.1";
     function retry2(octokit, octokitOptions) {
       const state = Object.assign(
         {
