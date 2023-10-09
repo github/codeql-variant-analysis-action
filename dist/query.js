@@ -55624,7 +55624,7 @@ ${indent}${body}`;
     function plainString(item, ctx, onComment, onChompKeep) {
       const { type, value } = item;
       const { actualString, implicitKey, indent, indentStep, inFlow } = ctx;
-      if (implicitKey && /[\n[\]{},]/.test(value) || inFlow && /[[\]{},]/.test(value)) {
+      if (implicitKey && value.includes("\n") || inFlow && /[[\]{},]/.test(value)) {
         return quotedString(value, ctx);
       }
       if (!value || /^[\n\t ,[\]{}#&*!|>'"%@`]|^[?-]$|^[?-][ \t]|[\n:][ \t]|[ \t]\n|[\n\t ]#|[\n\t :]$/.test(value)) {
@@ -56032,7 +56032,7 @@ var require_addPairToJSMap = __commonJS({
         return "";
       if (typeof jsKey !== "object")
         return String(jsKey);
-      if (identity.isNode(key) && ctx && ctx.doc) {
+      if (identity.isNode(key) && ctx?.doc) {
         const strCtx = stringify2.createStringifyContext(ctx.doc, {});
         strCtx.anchors = /* @__PURE__ */ new Set();
         for (const node of ctx.anchors.keys())
@@ -56192,7 +56192,7 @@ ${indent}${line}` : "\n";
               comment2 = iv.comment;
             if (iv.commentBefore)
               reqNewline = true;
-          } else if (item.value == null && ik && ik.comment) {
+          } else if (item.value == null && ik?.comment) {
             comment2 = ik.comment;
           }
         }
@@ -56943,8 +56943,9 @@ ${cn.comment}` : item.comment;
             if (keys.length === 1) {
               key = keys[0];
               value = it[key];
-            } else
-              throw new TypeError(`Expected { key: value } tuple: ${it}`);
+            } else {
+              throw new TypeError(`Expected tuple with one key, not ${keys.length} keys`);
+            }
           } else {
             key = it;
           }
