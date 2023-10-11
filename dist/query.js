@@ -62444,9 +62444,13 @@ function getQueryPackName(queryPackPath) {
   const qlpackFile = import_path.default.join(queryPackPath, "qlpack.yml");
   const codeqlpackFile = import_path.default.join(queryPackPath, "codeql-pack.yml");
   let packFile;
-  if (import_fs3.default.statSync(qlpackFile).isFile()) {
+  if (import_fs3.default.statSync(qlpackFile, {
+    throwIfNoEntry: false
+  })?.isFile()) {
     packFile = qlpackFile;
-  } else if (import_fs3.default.statSync(codeqlpackFile).isFile()) {
+  } else if (import_fs3.default.statSync(codeqlpackFile, {
+    throwIfNoEntry: false
+  })?.isFile()) {
     packFile = codeqlpackFile;
   } else {
     throw new Error(`Path '${queryPackPath}' is missing a qlpack file.`);
