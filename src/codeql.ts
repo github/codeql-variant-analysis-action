@@ -460,9 +460,21 @@ function getQueryPackName(queryPackPath: string) {
   const qlpackFile = path.join(queryPackPath, "qlpack.yml");
   const codeqlpackFile = path.join(queryPackPath, "codeql-pack.yml");
   let packFile: string;
-  if (fs.statSync(qlpackFile).isFile()) {
+  if (
+    fs
+      .statSync(qlpackFile, {
+        throwIfNoEntry: false,
+      })
+      ?.isFile()
+  ) {
     packFile = qlpackFile;
-  } else if (fs.statSync(codeqlpackFile).isFile()) {
+  } else if (
+    fs
+      .statSync(codeqlpackFile, {
+        throwIfNoEntry: false,
+      })
+      ?.isFile()
+  ) {
     packFile = codeqlpackFile;
   } else {
     throw new Error(`Path '${queryPackPath}' is missing a qlpack file.`);
