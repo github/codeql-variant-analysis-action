@@ -1,0 +1,241 @@
+name: ${{ github.event.inputs.workflow_name }}
+
+env:
+  CODEQL_ENABLE_EXPERIMENTAL_FEATURES_SWIFT: true
+
+on: dynamic
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      repoNwoChunks: ${{ steps.split.outputs.repoNwoChunks }}
+    permissions: {}
+
+    steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
+      - name: Mask download URL
+        run: |
+          echo "::add-mask::$(jq .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+
+      - name: Output matrix elements
+        id: split
+        run: |
+          curl --fail --show-error --location --retry 10 "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")" | \
+            jq --raw-output '"repoNwoChunks=\(.repoNwoChunks)"' >> $GITHUB_OUTPUT
+
+      - name: Output error
+        if: failure()
+        run: |
+          echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
+
+  run:
+    runs-on: ${{ vars.MRVA_RUNNER_OS && fromJSON(vars.MRVA_RUNNER_OS) || 'ubuntu-latest' }}
+    needs:
+      - setup
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        repoNwos: ${{ fromJSON(needs.setup.outputs.repoNwoChunks) }}
+    permissions: {}
+
+    steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v4
+        with:
+          repository: "github/codeql-variant-analysis-action"
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
+      - name: Mask signed auth token
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
+      - name: Mask download URL
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+
+      # Download and use ::add::mask for all tokens.
+      # Theoretically we'll only output a subset of the tokens. Unless it causes a
+      # performance issue, we may as well mask all tokens to be extra safe.
+      # Note that masking does not persist to other/future jobs in the same workflow.
+      - name: Download and mask tokens
+        id: download-mask-tokens
+        run: |
+          curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
+            xargs -I {} echo "::add-mask::{}"
+
+      - name: Output error
+        if: failure() && steps.download-mask-tokens.outcome == 'failure'
+        run: |
+          echo "::error title=Error downloading instructions file::The instructions file could not be downloaded. The instructions file URL is only valid for 24 hours, please create a new variant analysis to retry."
+
+      # Extract the subset of the repositories input that we'll be analysing for this
+      # job, using the repoNwos matrix input.
+      - name: Compute subset of repos
+        id: repos
+        shell: node {0}
+        run: |
+          const fs = require('fs');
+          const process = require('process');
+
+          const allRepos = JSON.parse(fs.readFileSync("instructions.json")).repositories;
+          const repoNwos = new Set(${{ toJSON(matrix.repoNwos) }});
+          const repositories = allRepos.filter(r => repoNwos.has(r.nwo));
+          if ("${{ secrets.TEST_PAT }}") {
+            allRepos.forEach(r => r.pat = "${{ secrets.TEST_PAT }}")
+          }
+
+          const githubOutput = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(githubOutput, `repositories=${JSON.stringify(repositories)}`);
+
+      # NOTE: this is only expected to work on github.com hosted runnners.
+      # It will not work on any self-hosted runners.
+      - name: Initialize CodeQL
+        id: init
+        run: |
+          # Take the most modern version
+          VERSION="$(find "${{ runner.tool_cache }}/CodeQL/" -maxdepth 1 -mindepth 1 -type d -print \
+                      | sort \
+                      | tail -n 1 \
+                      | tr -d '\n')"
+
+          CODEQL="$VERSION/x64/codeql/codeql"
+          "${CODEQL}" version --format=json
+          echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
+
+      - name: Run query
+        uses: ./query
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          controller_repo_id: ${{ github.repository_id }}
+          query_pack_url: ${{ github.event.inputs.query_pack_url }}
+          language: ${{ github.event.inputs.language }}
+          repositories: ${{ steps.repos.outputs.repositories }}
+          codeql: ${{ steps.init.outputs.codeql-path }}
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+          signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
+
+      - name: Handle workflow failed
+        if: failure() && github.run_attempt == 1
+        uses: ./update-repo-task-status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          workflow_status: "failed"
+          controller_repo_id: ${{ github.repository_id }}
+          repositories: ${{ steps.repos.outputs.repositories }}
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+          signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
+
+  update-repo-tasks-statuses-cancelled:
+    runs-on: ubuntu-latest
+    if: cancelled()
+    needs:
+      - run
+    permissions: {}
+
+    steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v4
+        with:
+          repository: "github/codeql-variant-analysis-action"
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
+      - name: Mask signed auth token
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
+      - name: Mask download URL
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+
+      # Download and use ::add::mask for all tokens.
+      # Note that masking does not persist to other/future jobs in the same workflow.
+      - name: Download and mask tokens
+        run: |
+          curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
+            xargs -I {} echo "::add-mask::{}"
+
+      # Extract the repositories that were analyzed in this workflow from the instructions file.
+      - name: Extract repos
+        id: repos
+        run: |
+          echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
+
+      - name: Handle workflow cancelled
+        uses: ./update-repo-task-statuses
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          workflow_status: "canceled"
+          controller_repo_id: ${{ github.repository_id }}
+          instructions_path: instructions.json
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+          signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
+
+  update-repo-tasks-statuses-failure:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs:
+      - run
+    permissions: {}
+
+    steps:
+      - name: Do not allow reruns
+        if: github.run_attempt != 1
+        run: |
+          echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
+          exit 1
+      # To use the action in this repository, we need to check out the repository
+      - name: Checkout codeql-variant-analysis-action repository
+        uses: actions/checkout@v4
+        with:
+          repository: "github/codeql-variant-analysis-action"
+          ref: ${{ github.event.inputs.action_repo_ref }}
+
+      - name: Mask signed auth token
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.signed_auth_token "$GITHUB_EVENT_PATH")"
+
+      - name: Mask download URL
+        run: |
+          echo "::add-mask::$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+
+      # Download and use ::add::mask for all tokens.
+      # Note that masking does not persist to other/future jobs in the same workflow.
+      - name: Download and mask tokens
+        run: |
+          curl --fail --show-error --location --retry 10 --output instructions.json "$(jq --raw-output .inputs.instructions_url "$GITHUB_EVENT_PATH")"
+          jq '.repositories | .[].pat | select( . != null )' --raw-output instructions.json | \
+            xargs -I {} echo "::add-mask::{}"
+
+      - name: Handle workflow cancelled
+        uses: ./update-repo-task-statuses
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          workflow_status: "failed"
+          controller_repo_id: ${{ github.repository_id }}
+          instructions_path: instructions.json
+          variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+          signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
