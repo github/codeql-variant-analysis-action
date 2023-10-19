@@ -93,9 +93,6 @@ jobs:
           const allRepos = JSON.parse(fs.readFileSync("instructions.json")).repositories;
           const repoNwos = new Set(${{ toJSON(matrix.repoNwos) }});
           const repositories = allRepos.filter(r => repoNwos.has(r.nwo));
-          if ("${{ secrets.TEST_PAT }}") {
-            allRepos.forEach(r => r.pat = "${{ secrets.TEST_PAT }}")
-          }
 
           const githubOutput = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(githubOutput, `repositories=${JSON.stringify(repositories)}`);
