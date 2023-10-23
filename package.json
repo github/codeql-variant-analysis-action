@@ -37,7 +37,7 @@
     "ajv": "8.12.0",
     "form-data": "^4.0.0",
     "jszip": "3.10.1",
-    "yaml": "^2.3.2"
+    "yaml": "^2.3.3"
   },
   "//": [
     "micromatch is an unspecified dependency of ava"
