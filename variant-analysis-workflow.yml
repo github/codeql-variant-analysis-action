@@ -1,4 +1,6 @@
-name: ${{ github.event.inputs.workflow_name }}
+name: CodeQL Variant Analysis
+# `run-name` can contain expressions, and will override the `name` once the workflow starts running
+run-name: ${{ github.event.inputs.workflow_name }}
 
 env:
   CODEQL_ENABLE_EXPERIMENTAL_FEATURES_SWIFT: true
