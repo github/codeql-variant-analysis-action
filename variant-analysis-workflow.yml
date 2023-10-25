@@ -1,4 +1,4 @@
-name: ${{ github.event.inputs.workflow_name }}
+name: CodeQL Variant Analysis
 
 env:
   CODEQL_ENABLE_EXPERIMENTAL_FEATURES_SWIFT: true
