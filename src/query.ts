@@ -87,12 +87,15 @@ async function run(): Promise<void> {
       console.log("Running query");
       const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
 
-      await uploadRepoResult(
-        controllerRepoId,
-        variantAnalysisId,
-        repo,
-        runQueryResult,
-      );
+      if (runQueryResult.resultCount > 0) {
+        await uploadRepoResult(
+          controllerRepoId,
+          variantAnalysisId,
+          repo,
+          runQueryResult,
+        );
+      }
+
       await setVariantAnalysisRepoSucceeded(
         controllerRepoId,
         variantAnalysisId,
