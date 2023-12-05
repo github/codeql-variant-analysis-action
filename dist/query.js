@@ -22731,7 +22731,7 @@ var require_stream_readable = __commonJS({
       });
       for (var i in stream2) {
         if (this[i] === void 0 && typeof stream2[i] === "function") {
-          this[i] = function(method) {
+          this[i] = /* @__PURE__ */ function(method) {
             return function() {
               return stream2[method].apply(stream2, arguments);
             };
@@ -48527,7 +48527,7 @@ var require_uri_all = __commonJS({
       }
       var URI_PROTOCOL = buildExps(false);
       var IRI_PROTOCOL = buildExps(true);
-      var slicedToArray = function() {
+      var slicedToArray = /* @__PURE__ */ function() {
         function sliceIterator(arr, i) {
           var _arr = [];
           var _n = true;
