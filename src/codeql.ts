@@ -88,35 +88,6 @@ export async function runQuery(
     0,
   );
 
-  const queries: string[] = [];
-  for (const query of await getRemoteQueryPackQueries(codeql, queryPack)) {
-    const bqrsInfo = await getBqrsInfo(codeql, query);
-
-    // Ensure all queries are compatible
-    if (!bqrsInfo.compatibleQueryKinds) {
-      throw new Error(
-        `Query ${query} is not compatible with the database. Please check the query log for more details.`,
-      );
-    }
-
-    const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-    const queryMetadata = await getQueryMetadata(codeql, query);
-
-    const sarifOutputType = getSarifOutputType(
-      queryMetadata,
-      compatibleQueryKinds,
-    );
-
-    if (sarifOutputType !== undefined) {
-      queries.push(query);
-      console.log(`Query ${query} is of type ${sarifOutputType}`);
-    }
-  }
-
-  console.log(
-    `Found ${queries.length} queries of type problem or path-problem`,
-  );
-
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
 
   const sarif = await generateSarif(
@@ -192,28 +163,6 @@ export type QueryMetadata = {
   id?: string;
   kind?: string;
 };
-
-// Calls `resolve metadata` for the given query file and returns JSON output
-async function getQueryMetadata(
-  codeql: string,
-  query: string,
-): Promise<QueryMetadata> {
-  const queryMetadataOutput = await getExecOutput(codeql, [
-    "resolve",
-    "metadata",
-    "--format=json",
-    query,
-  ]);
-  if (queryMetadataOutput.exitCode !== 0) {
-    throw new Error(
-      `Unable to run codeql resolve metadata. Exit code: ${queryMetadataOutput.exitCode}`,
-    );
-  }
-  return validateObject(
-    JSON.parse(queryMetadataOutput.stdout, camelize),
-    "queryMetadata",
-  );
-}
 
 export interface BQRSInfo {
   resultSets: Array<{

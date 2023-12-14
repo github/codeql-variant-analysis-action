@@ -59822,20 +59822,6 @@ var import_fs3 = __toESM(require("fs"));
 var import_path = __toESM(require("path"));
 var import_exec = __toESM(require_exec());
 
-// src/deserialize.ts
-function camelize(_, value) {
-  if (value && typeof value === "object") {
-    for (const k in value) {
-      if (/-./.exec(k)) {
-        const l = k.replace(/-./g, (x) => x[1].toUpperCase());
-        value[l] = value[k];
-        delete value[k];
-      }
-    }
-  }
-  return value;
-}
-
 // src/download.ts
 var fs = __toESM(require("fs"));
 var path = __toESM(require("path"));
@@ -60008,28 +59994,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
     (v, p) => v + import_fs3.default.statSync(p).size,
     0
   );
-  const queries = [];
-  for (const query of await getRemoteQueryPackQueries(codeql, queryPack)) {
-    const bqrsInfo = await getBqrsInfo(codeql, query);
-    if (!bqrsInfo.compatibleQueryKinds) {
-      throw new Error(
-        `Query ${query} is not compatible with the database. Please check the query log for more details.`
-      );
-    }
-    const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-    const queryMetadata = await getQueryMetadata(codeql, query);
-    const sarifOutputType = getSarifOutputType(
-      queryMetadata,
-      compatibleQueryKinds
-    );
-    if (sarifOutputType !== void 0) {
-      queries.push(query);
-      console.log(`Query ${query} is of type ${sarifOutputType}`);
-    }
-  }
-  console.log(
-    `Found ${queries.length} queries of type problem or path-problem`
-  );
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const sarif = await generateSarif(
     codeql,
@@ -60086,40 +60050,6 @@ async function downloadDatabase(repoId, repoName, language, pat) {
     }
   }
 }
-async function getQueryMetadata(codeql, query) {
-  const queryMetadataOutput = await (0, import_exec.getExecOutput)(codeql, [
-    "resolve",
-    "metadata",
-    "--format=json",
-    query
-  ]);
-  if (queryMetadataOutput.exitCode !== 0) {
-    throw new Error(
-      `Unable to run codeql resolve metadata. Exit code: ${queryMetadataOutput.exitCode}`
-    );
-  }
-  return validateObject(
-    JSON.parse(queryMetadataOutput.stdout, camelize),
-    "queryMetadata"
-  );
-}
-async function getBqrsInfo(codeql, bqrs) {
-  const bqrsInfoOutput = await (0, import_exec.getExecOutput)(codeql, [
-    "bqrs",
-    "info",
-    "--format=json",
-    bqrs
-  ]);
-  if (bqrsInfoOutput.exitCode !== 0) {
-    throw new Error(
-      `Unable to run codeql bqrs info. Exit code: ${bqrsInfoOutput.exitCode}`
-    );
-  }
-  return validateObject(
-    JSON.parse(bqrsInfoOutput.stdout, camelize),
-    "bqrsInfo"
-  );
-}
 async function getSourceLocationPrefix(codeql) {
   const resolveDbOutput = await (0, import_exec.getExecOutput)(codeql, [
     "resolve",
@@ -60131,16 +60061,6 @@ async function getSourceLocationPrefix(codeql) {
     "resolvedDatabase"
   );
   return resolvedDatabase.sourceLocationPrefix;
-}
-function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
-  const queryKind = queryMetadata.kind;
-  if (queryKind === "path-problem" && compatibleQueryKinds.includes("PathProblem")) {
-    return "path-problem";
-  } else if (queryKind === "problem" && compatibleQueryKinds.includes("Problem")) {
-    return "problem";
-  } else {
-    return void 0;
-  }
 }
 async function generateSarif(codeql, nwo, databaseName, queryPackName, sourceLocationPrefix, databaseSHA) {
   const sarifFile = import_path.default.join("results", "results.sarif");
@@ -60209,17 +60129,6 @@ function findFilesInDir(startPath, filter) {
     }
   }
   return results;
-}
-async function getRemoteQueryPackQueries(codeql, queryPack) {
-  const output = await (0, import_exec.getExecOutput)(codeql, [
-    "resolve",
-    "queries",
-    "--format=json",
-    "--additional-packs",
-    queryPack,
-    getQueryPackName(queryPack)
-  ]);
-  return validateObject(JSON.parse(output.stdout), "resolvedQueries");
 }
 function getBqrsFiles(databaseName) {
   const dbResultsFolder = `${databaseName}/results`;
