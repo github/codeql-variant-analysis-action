@@ -13,11 +13,12 @@ import { parseYamlFromFile } from "./yaml";
 
 export interface RunQueryResult {
   resultCount: number;
+  databaseName: string;
   databaseSHA: string | undefined;
   sourceLocationPrefix: string;
   metadataFilePath: string;
-  bqrsFilePath: string;
-  bqrsFileSize: number;
+  bqrsFilePaths: string[];
+  totalBqrsFileSize: number;
   sarifFilePath?: string;
   sarifFileSize?: number;
 }
@@ -80,45 +81,56 @@ export async function runQuery(
     queryPackName,
   ]);
 
-  const bqrsFilePath = path.join("results", "results.bqrs");
-  const tempBqrsFilePath = getBqrsFile(databaseName);
-  fs.renameSync(tempBqrsFilePath, bqrsFilePath);
+  const bqrsFilePaths = getBqrsFiles(databaseName);
 
-  const bqrsFileSize = fs.statSync(bqrsFilePath).size;
+  const totalBqrsFileSize = bqrsFilePaths.reduce(
+    (v, p) => v + fs.statSync(p).size,
+    0,
+  );
 
-  const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
-  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-  const queryMetadata = await getQueryMetadata(
-    codeql,
-    await getRemoteQueryPackDefaultQuery(codeql, queryPack),
+  const queries: string[] = [];
+  for (const query of await getRemoteQueryPackQueries(codeql, queryPack)) {
+    const bqrsInfo = await getBqrsInfo(codeql, query);
+
+    // Ensure all queries are compatible
+    if (!bqrsInfo.compatibleQueryKinds) {
+      throw new Error(
+        `Query ${query} is not compatible with the database. Please check the query log for more details.`,
+      );
+    }
+
+    const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
+    const queryMetadata = await getQueryMetadata(codeql, query);
+
+    const sarifOutputType = getSarifOutputType(
+      queryMetadata,
+      compatibleQueryKinds,
+    );
+
+    if (sarifOutputType !== undefined) {
+      queries.push(query);
+      console.log(`Query ${query} is of type ${sarifOutputType}`);
+    }
+  }
+
+  console.log(
+    `Found ${queries.length} queries of type problem or path-problem`,
   );
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const sarifOutputType = getSarifOutputType(
-    queryMetadata,
-    compatibleQueryKinds,
+
+  const sarif = await generateSarif(
+    codeql,
+    nwo,
+    databaseName,
+    queryPackName,
+    sourceLocationPrefix,
+    databaseSHA,
   );
-  let resultCount: number;
-  let sarifFilePath: string | undefined;
-  let sarifFileSize: number | undefined;
-  if (sarifOutputType !== undefined) {
-    const sarif = await generateSarif(
-      codeql,
-      bqrsFilePath,
-      nwo,
-      queryMetadata,
-      sarifOutputType,
-      databaseName,
-      sourceLocationPrefix,
-      databaseSHA,
-    );
-    resultCount = getSarifResultCount(sarif);
-    sarifFilePath = path.join("results", "results.sarif");
-    fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
-    sarifFileSize = fs.statSync(sarifFilePath).size;
-  } else {
-    resultCount = getBqrsResultCount(bqrsInfo);
-  }
+  const resultCount = getSarifResultCount(sarif);
+  const sarifFilePath = path.join("results", "results.sarif");
+  fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
+  const sarifFileSize = fs.statSync(sarifFilePath).size;
   const metadataFilePath = path.join("results", "metadata.json");
 
   writeQueryRunMetadataToFile(
@@ -131,11 +143,12 @@ export async function runQuery(
 
   return {
     resultCount,
+    databaseName,
     databaseSHA,
     sourceLocationPrefix,
     metadataFilePath,
-    bqrsFilePath,
-    bqrsFileSize,
+    bqrsFilePaths,
+    totalBqrsFileSize,
     sarifFilePath,
     sarifFileSize,
   };
@@ -276,40 +289,26 @@ export function getSarifOutputType(
 // Generates sarif from the given bqrs file, if query kind supports it
 async function generateSarif(
   codeql: string,
-  bqrs: string,
   nwo: string,
-  queryMetadata: QueryMetadata,
-  sarifOutputType: SarifOutputType,
   databaseName: string,
+  queryPackName: string,
   sourceLocationPrefix: string,
   databaseSHA?: string,
 ): Promise<Sarif> {
-  const {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- we are explicitly excluding this since it's calculated separately
-    kind,
-    id: queryId,
-    ...passthroughQueryMetadata
-  } = queryMetadata;
-
   const sarifFile = path.join("results", "results.sarif");
   await exec(codeql, [
-    "bqrs",
-    "interpret",
+    "database",
+    "interpret-results",
     "--format=sarif-latest",
     `--output=${sarifFile}`,
-    `-t=kind=${sarifOutputType}`,
-    `-t=id=${queryId || "remote-query"}`,
-    // Forward all of the query metadata.
-    ...Object.entries(passthroughQueryMetadata).map(
-      ([key, value]) => `-t=${key}=${value}`,
-    ),
     "--sarif-add-snippets",
     "--no-group-results",
     // Hard-coded the source archive as src.zip inside the database, since that's
     // where the CLI puts it. If this changes, we need to update this path.
     `--source-archive=${databaseName}/src.zip`,
     `--source-location-prefix=${sourceLocationPrefix}`,
-    bqrs,
+    databaseName,
+    queryPackName,
   ]);
   const sarif = validateObject(
     JSON.parse(fs.readFileSync(sarifFile, "utf8")),
@@ -355,19 +354,6 @@ export function getSarifResultCount(sarif: Sarif): number {
   return count;
 }
 
-/**
- * Gets the number of results in the given BQRS data.
- */
-function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
-  const selectResultSet = bqrsInfo.resultSets.find(
-    (resultSet) => resultSet.name === "#select",
-  );
-  if (!selectResultSet) {
-    throw new Error("No result set named #select");
-  }
-  return selectResultSet.rows;
-}
-
 interface DatabaseMetadata {
   creationMetadata?: {
     sha?: string | bigint;
@@ -396,6 +382,20 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
   }
 }
 
+function findFilesInDir(startPath: string, filter: (path: string) => boolean) {
+  const results: string[] = [];
+  for (const relativePath of fs.readdirSync(startPath)) {
+    const filename = path.join(startPath, relativePath);
+    const stat = fs.lstatSync(filename);
+    if (stat.isDirectory()) {
+      results.push(...findFilesInDir(filename, filter));
+    } else if (filter(filename)) {
+      results.push(filename);
+    }
+  }
+  return results;
+}
+
 // The expected output from "codeql resolve queries" in getRemoteQueryPackDefaultQuery
 export type ResolvedQueries = [string];
 
@@ -406,10 +406,10 @@ export type ResolvedQueries = [string];
  * @param queryPack The path to the query pack on disk.
  * @returns The path to a query file.
  */
-export async function getRemoteQueryPackDefaultQuery(
+export async function getRemoteQueryPackQueries(
   codeql: string,
   queryPack: string,
-): Promise<string> {
+): Promise<string[]> {
   const output = await getExecOutput(codeql, [
     "resolve",
     "queries",
@@ -419,41 +419,25 @@ export async function getRemoteQueryPackDefaultQuery(
     getQueryPackName(queryPack),
   ]);
 
-  const queries = validateObject(JSON.parse(output.stdout), "resolvedQueries");
-  return queries[0];
+  return validateObject(JSON.parse(output.stdout), "resolvedQueries");
 }
 
 /**
- * Finds the BQRS result file for a database and ensures that exactly one is produced.
- * Returns the path to that BQRS file.
+ * Finds the BQRS result files for a database and returns the paths to those BQRS files.
+ *
  * @param databaseName The name of the database that was analyzed.
- * @returns string     The path to the BQRS result file.
+ * @returns string[]   The paths to the BQRS result files.
  */
-function getBqrsFile(databaseName: string): string {
+function getBqrsFiles(databaseName: string): string[] {
   // This is where results are saved, according to
   // https://codeql.github.com/docs/codeql-cli/manual/database-run-queries/
-  let dbResultsFolder = `${databaseName}/results`;
-  let entries: fs.Dirent[];
-  while (
-    (entries = fs.readdirSync(dbResultsFolder, { withFileTypes: true })) &&
-    entries.length === 1 &&
-    entries[0].isDirectory()
-  ) {
-    dbResultsFolder = path.join(dbResultsFolder, entries[0].name);
-  }
+  const dbResultsFolder = `${databaseName}/results`;
 
-  if (entries.length !== 1) {
-    throw new Error(
-      `Expected a single file in ${dbResultsFolder}, found: ${entries}`,
-    );
+  const bqrsFiles = findFilesInDir(dbResultsFolder, (p) => p.endsWith(".bqrs"));
+  if (bqrsFiles.length === 0) {
+    throw new Error(`Found zero BQRS files in ${dbResultsFolder}`);
   }
-
-  const entry = entries[0];
-  if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
-    throw new Error(`Unexpected file in ${dbResultsFolder}: ${entry.name}`);
-  }
-
-  return path.join(dbResultsFolder, entry.name);
+  return bqrsFiles;
 }
 
 function getQueryPackName(queryPackPath: string) {

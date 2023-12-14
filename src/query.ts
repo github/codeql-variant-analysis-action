@@ -157,8 +157,14 @@ async function getArtifactContentsForUpload(
     const sarifFileContents = fs.createReadStream(runQueryResult.sarifFilePath);
     zip.file("results.sarif", sarifFileContents);
   }
-  const bqrsFileContents = fs.createReadStream(runQueryResult.bqrsFilePath);
-  zip.file("results.bqrs", bqrsFileContents);
+  for (const bqrsFilePath of runQueryResult.bqrsFilePaths) {
+    const bqrsFileContents = fs.createReadStream(bqrsFilePath);
+    const relativePath = path.relative(
+      `${runQueryResult.databaseName}/results`,
+      bqrsFilePath,
+    );
+    zip.file(relativePath, bqrsFileContents);
+  }
 
   return await zip.generateAsync({
     compression: "DEFLATE",
