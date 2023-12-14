@@ -95,7 +95,6 @@ export async function runQuery(
     nwo,
     databaseName,
     queryPackName,
-    sourceLocationPrefix,
     databaseSHA,
   );
   const resultCount = getSarifResultCount(sarif);
@@ -241,7 +240,6 @@ async function generateSarif(
   nwo: string,
   databaseName: string,
   queryPackName: string,
-  sourceLocationPrefix: string,
   databaseSHA?: string,
 ): Promise<Sarif> {
   const sarifFile = path.join("results", "results.sarif");
@@ -252,10 +250,6 @@ async function generateSarif(
     `--output=${sarifFile}`,
     "--sarif-add-snippets",
     "--no-group-results",
-    // Hard-coded the source archive as src.zip inside the database, since that's
-    // where the CLI puts it. If this changes, we need to update this path.
-    `--source-archive=${databaseName}/src.zip`,
-    `--source-location-prefix=${sourceLocationPrefix}`,
     databaseName,
     queryPackName,
   ]);

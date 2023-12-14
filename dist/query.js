@@ -60000,7 +60000,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
     nwo,
     databaseName,
     queryPackName,
-    sourceLocationPrefix,
     databaseSHA
   );
   const resultCount = getSarifResultCount(sarif);
@@ -60062,7 +60061,7 @@ async function getSourceLocationPrefix(codeql) {
   );
   return resolvedDatabase.sourceLocationPrefix;
 }
-async function generateSarif(codeql, nwo, databaseName, queryPackName, sourceLocationPrefix, databaseSHA) {
+async function generateSarif(codeql, nwo, databaseName, queryPackName, databaseSHA) {
   const sarifFile = import_path.default.join("results", "results.sarif");
   await (0, import_exec.exec)(codeql, [
     "database",
@@ -60071,10 +60070,6 @@ async function generateSarif(codeql, nwo, databaseName, queryPackName, sourceLoc
     `--output=${sarifFile}`,
     "--sarif-add-snippets",
     "--no-group-results",
-    // Hard-coded the source archive as src.zip inside the database, since that's
-    // where the CLI puts it. If this changes, we need to update this path.
-    `--source-archive=${databaseName}/src.zip`,
-    `--source-location-prefix=${sourceLocationPrefix}`,
     databaseName,
     queryPackName
   ]);
