@@ -397,7 +397,7 @@ function findFilesInDir(startPath: string, filter: (path: string) => boolean) {
 }
 
 // The expected output from "codeql resolve queries" in getRemoteQueryPackDefaultQuery
-export type ResolvedQueries = [string];
+export type ResolvedQueries = string[];
 
 /**
  * Gets the query for a pack, assuming there is a single query in that pack's default suite.
