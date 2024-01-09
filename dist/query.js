@@ -74848,7 +74848,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
   const bqrsFilePath = import_path.default.join("results", "results.bqrs");
   const tempBqrsFilePath = getBqrsFile(databaseName);
   import_fs3.default.renameSync(tempBqrsFilePath, bqrsFilePath);
-  const bqrsFileSize = import_fs3.default.statSync(bqrsFilePath).size;
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
   const queryMetadata = await getQueryMetadata(
@@ -74895,7 +74894,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
     sourceLocationPrefix,
     metadataFilePath,
     bqrsFilePath,
-    bqrsFileSize,
     sarifFilePath,
     sarifFileSize
   };

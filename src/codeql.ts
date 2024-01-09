@@ -17,7 +17,6 @@ export interface RunQueryResult {
   sourceLocationPrefix: string;
   metadataFilePath: string;
   bqrsFilePath: string;
-  bqrsFileSize: number;
   sarifFilePath?: string;
   sarifFileSize?: number;
 }
@@ -84,8 +83,6 @@ export async function runQuery(
   const tempBqrsFilePath = getBqrsFile(databaseName);
   fs.renameSync(tempBqrsFilePath, bqrsFilePath);
 
-  const bqrsFileSize = fs.statSync(bqrsFilePath).size;
-
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
   const queryMetadata = await getQueryMetadata(
@@ -135,7 +132,6 @@ export async function runQuery(
     sourceLocationPrefix,
     metadataFilePath,
     bqrsFilePath,
-    bqrsFileSize,
     sarifFilePath,
     sarifFileSize,
   };
