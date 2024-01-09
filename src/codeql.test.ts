@@ -10,7 +10,7 @@ import {
   getBqrsInfo,
   getDatabaseMetadata,
   BQRSInfo,
-  getRemoteQueryPackDefaultQuery,
+  getRemoteQueryPackQueries,
   injectVersionControlInfo,
   getSarifResultCount,
   Sarif,
@@ -58,6 +58,7 @@ test("running a query in a pack", async (t) => {
     await runQuery("codeql", t.context.db, "a/b", queryPack);
 
     t.true(fs.existsSync(path.join("results", "results.bqrs")));
+    t.false(fs.existsSync(path.join("results", "codeql/queries/x/query.bqrs")));
 
     const bqrsInfo: BQRSInfo = await getBqrsInfo(
       "codeql",
@@ -66,6 +67,37 @@ test("running a query in a pack", async (t) => {
     t.is(1, bqrsInfo.resultSets.length);
     t.is("#select", bqrsInfo.resultSets[0].name);
     t.true(bqrsInfo.compatibleQueryKinds.includes("Table"));
+  } finally {
+    process.chdir(cwd);
+    await rmRF(tmpDir);
+  }
+});
+
+test("running multiple queries in a pack", async (t) => {
+  const queryPack = path.resolve("testdata/test_pack_multiple_queries");
+  const tmpDir = fs.mkdtempSync("tmp");
+  const cwd = process.cwd();
+  process.chdir(tmpDir);
+  try {
+    await runQuery("codeql", t.context.db, "a/b", queryPack);
+
+    const bqrsFilePath1 = "results/codeql/queries/x/query.bqrs";
+    t.true(fs.existsSync(bqrsFilePath1));
+
+    const bqrsInfo1 = await getBqrsInfo("codeql", bqrsFilePath1);
+    t.is(1, bqrsInfo1.resultSets.length);
+    t.is("#select", bqrsInfo1.resultSets[0].name);
+    t.true(bqrsInfo1.compatibleQueryKinds.includes("Table"));
+
+    const bqrsFilePath2 = "results/codeql/queries/z/query.bqrs";
+    t.true(fs.existsSync(bqrsFilePath2));
+
+    const bqrsInfo2 = await getBqrsInfo("codeql", bqrsFilePath2);
+    t.is(1, bqrsInfo2.resultSets.length);
+    t.is("#select", bqrsInfo2.resultSets[0].name);
+    t.true(bqrsInfo2.compatibleQueryKinds.includes("Table"));
+
+    t.false(fs.existsSync(path.join("results", "results.bqrs")));
   } finally {
     process.chdir(cwd);
     await rmRF(tmpDir);
@@ -143,10 +175,9 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
 });
 
 test("getting the default query from a pack", async (t) => {
-  t.is(
-    await getRemoteQueryPackDefaultQuery("codeql", "testdata/test_pack"),
+  t.deepEqual(await getRemoteQueryPackQueries("codeql", "testdata/test_pack"), [
     path.resolve("testdata/test_pack/x/query.ql"),
-  );
+  ]);
 });
 
 test("populating the SARIF versionControlProvenance property", (t) => {
