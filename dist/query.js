@@ -74848,7 +74848,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
   const bqrsFilePath = import_path.default.join("results", "results.bqrs");
   const tempBqrsFilePath = getBqrsFile(databaseName);
   import_fs3.default.renameSync(tempBqrsFilePath, bqrsFilePath);
-  const bqrsFileSize = import_fs3.default.statSync(bqrsFilePath).size;
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
   const queryMetadata = await getQueryMetadata(
@@ -74862,7 +74861,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
   );
   let resultCount;
   let sarifFilePath;
-  let sarifFileSize;
   if (sarifOutputType !== void 0) {
     const sarif = await generateSarif(
       codeql,
@@ -74877,7 +74875,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = import_path.default.join("results", "results.sarif");
     import_fs3.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
-    sarifFileSize = import_fs3.default.statSync(sarifFilePath).size;
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
@@ -74895,9 +74892,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
     sourceLocationPrefix,
     metadataFilePath,
     bqrsFilePath,
-    bqrsFileSize,
-    sarifFilePath,
-    sarifFileSize
+    sarifFilePath
   };
 }
 async function downloadDatabase(repoId, repoName, language, pat) {
