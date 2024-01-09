@@ -32,14 +32,14 @@ export interface Sarif {
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
  * - query/    (query.ql and any other supporting files)
- * - results/  (results.{bqrs,sarif} and metadata.json)
+ * - results/  (results.{bqrs,sarif})
  *
  * @param     codeql                    The path to the codeql binary
  * @param     database                  The path to the bundled database zip file
  * @param     nwo                       The name of the repository
  * @param     queryPack                 The path to the query pack
  * @returns   Promise<RunQueryResult>   Resolves when the query has finished running. Returns information
- * about the query result and paths to the result files and metadata.json file.
+ * about the query result and paths to the result files.
  */
 export async function runQuery(
   codeql: string,
