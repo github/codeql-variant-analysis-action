@@ -13,13 +13,11 @@ import BQRSInfoSchema from "./json-schemas/BQRSInfo.json";
 import instructionsSchema from "./json-schemas/Instructions.json";
 import policySchema from "./json-schemas/Policy.json";
 import queryMetadataSchema from "./json-schemas/QueryMetadata.json";
-import queryRunMetadataSchema from "./json-schemas/QueryRunMetadata.json";
 import repoArraySchema from "./json-schemas/RepoArray.json";
 import repoTaskSchema from "./json-schemas/RepoTask.json";
 import ResolvedDatabaseSchema from "./json-schemas/ResolvedDatabase.json";
 import ResolvedQueriesSchema from "./json-schemas/ResolvedQueries.json";
 import sarifSchema from "./json-schemas/Sarif.json";
-import { QueryRunMetadata } from "./query-run-metadata";
 
 type SchemaTypes = {
   repoArray: RepoArray;
@@ -29,7 +27,6 @@ type SchemaTypes = {
   resolvedQueries: ResolvedQueries;
   resolvedDatabase: ResolvedDatabase;
   queryMetadata: QueryMetadata;
-  queryRunMetadata: QueryRunMetadata;
   repoTask: RepoTask;
   policy: Policy;
 };
@@ -44,7 +41,6 @@ const validators: Record<Schema, ValidateFunction> = {
   resolvedQueries: ajv.compile(ResolvedQueriesSchema),
   resolvedDatabase: ajv.compile(ResolvedDatabaseSchema),
   queryMetadata: ajv.compile(queryMetadataSchema),
-  queryRunMetadata: ajv.compile(queryRunMetadataSchema),
   repoTask: ajv.compile(repoTaskSchema),
   policy: ajv.compile(policySchema),
 };

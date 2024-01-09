@@ -8,14 +8,12 @@ import { download } from "./download";
 import { HTTPError } from "./http-error";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
-import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 import { parseYamlFromFile } from "./yaml";
 
 export interface RunQueryResult {
   resultCount: number;
   databaseSHA: string | undefined;
   sourceLocationPrefix: string;
-  metadataFilePath: string;
   bqrsFilePath: string;
   sarifFilePath?: string;
 }
@@ -113,21 +111,11 @@ export async function runQuery(
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
-  const metadataFilePath = path.join("results", "metadata.json");
-
-  writeQueryRunMetadataToFile(
-    metadataFilePath,
-    nwo,
-    resultCount,
-    databaseSHA,
-    sourceLocationPrefix,
-  );
 
   return {
     resultCount,
     databaseSHA,
     sourceLocationPrefix,
-    metadataFilePath,
     bqrsFilePath,
     sarifFilePath,
   };

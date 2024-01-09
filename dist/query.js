@@ -519,7 +519,7 @@ var require_file_command = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
-    var fs6 = __importStar(require("fs"));
+    var fs5 = __importStar(require("fs"));
     var os2 = __importStar(require("os"));
     var uuid_1 = (init_esm_node(), __toCommonJS(esm_node_exports));
     var utils_1 = require_utils();
@@ -528,10 +528,10 @@ var require_file_command = __commonJS({
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs6.existsSync(filePath)) {
+      if (!fs5.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs6.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os2.EOL}`, {
+      fs5.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os2.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -17924,12 +17924,12 @@ var require_io_util = __commonJS({
     var _a;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
-    var fs6 = __importStar(require("fs"));
+    var fs5 = __importStar(require("fs"));
     var path4 = __importStar(require("path"));
-    _a = fs6.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
+    _a = fs5.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
     exports.IS_WINDOWS = process.platform === "win32";
     exports.UV_FS_O_EXLOCK = 268435456;
-    exports.READONLY = fs6.constants.O_RDONLY;
+    exports.READONLY = fs5.constants.O_RDONLY;
     function exists(fsPath) {
       return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -19508,7 +19508,7 @@ var require_manifest = __commonJS({
     var core_1 = require_core();
     var os2 = require("os");
     var cp = require("child_process");
-    var fs6 = require("fs");
+    var fs5 = require("fs");
     function _findMatch(versionSpec, stable, candidates, archFilter) {
       return __awaiter(this, void 0, void 0, function* () {
         const platFilter = os2.platform();
@@ -19572,10 +19572,10 @@ var require_manifest = __commonJS({
       const lsbReleaseFile = "/etc/lsb-release";
       const osReleaseFile = "/etc/os-release";
       let contents = "";
-      if (fs6.existsSync(lsbReleaseFile)) {
-        contents = fs6.readFileSync(lsbReleaseFile).toString();
-      } else if (fs6.existsSync(osReleaseFile)) {
-        contents = fs6.readFileSync(osReleaseFile).toString();
+      if (fs5.existsSync(lsbReleaseFile)) {
+        contents = fs5.readFileSync(lsbReleaseFile).toString();
+      } else if (fs5.existsSync(osReleaseFile)) {
+        contents = fs5.readFileSync(osReleaseFile).toString();
       }
       return contents;
     }
@@ -20431,7 +20431,7 @@ var require_tool_cache = __commonJS({
     exports.evaluateVersions = exports.isExplicitVersion = exports.findFromManifest = exports.getManifestFromRepo = exports.findAllVersions = exports.find = exports.cacheFile = exports.cacheDir = exports.extractZip = exports.extractXar = exports.extractTar = exports.extract7z = exports.downloadTool = exports.HTTPError = void 0;
     var core4 = __importStar(require_core());
     var io2 = __importStar(require_io());
-    var fs6 = __importStar(require("fs"));
+    var fs5 = __importStar(require("fs"));
     var mm = __importStar(require_manifest());
     var os2 = __importStar(require("os"));
     var path4 = __importStar(require("path"));
@@ -20479,7 +20479,7 @@ var require_tool_cache = __commonJS({
     exports.downloadTool = downloadTool;
     function downloadToolAttempt(url, dest, auth, headers) {
       return __awaiter(this, void 0, void 0, function* () {
-        if (fs6.existsSync(dest)) {
+        if (fs5.existsSync(dest)) {
           throw new Error(`Destination file path ${dest} already exists`);
         }
         const http = new httpm2.HttpClient(userAgent2, [], {
@@ -20503,7 +20503,7 @@ var require_tool_cache = __commonJS({
         const readStream = responseMessageFactory();
         let succeeded = false;
         try {
-          yield pipeline2(readStream, fs6.createWriteStream(dest));
+          yield pipeline2(readStream, fs5.createWriteStream(dest));
           core4.debug("download complete");
           succeeded = true;
           return dest;
@@ -20715,11 +20715,11 @@ var require_tool_cache = __commonJS({
         arch = arch || os2.arch();
         core4.debug(`Caching tool ${tool} ${version2} ${arch}`);
         core4.debug(`source dir: ${sourceDir}`);
-        if (!fs6.statSync(sourceDir).isDirectory()) {
+        if (!fs5.statSync(sourceDir).isDirectory()) {
           throw new Error("sourceDir is not a directory");
         }
         const destPath = yield _createToolPath(tool, version2, arch);
-        for (const itemName of fs6.readdirSync(sourceDir)) {
+        for (const itemName of fs5.readdirSync(sourceDir)) {
           const s = path4.join(sourceDir, itemName);
           yield io2.cp(s, destPath, { recursive: true });
         }
@@ -20734,7 +20734,7 @@ var require_tool_cache = __commonJS({
         arch = arch || os2.arch();
         core4.debug(`Caching tool ${tool} ${version2} ${arch}`);
         core4.debug(`source file: ${sourceFile}`);
-        if (!fs6.statSync(sourceFile).isFile()) {
+        if (!fs5.statSync(sourceFile).isFile()) {
           throw new Error("sourceFile is not a file");
         }
         const destFolder = yield _createToolPath(tool, version2, arch);
@@ -20764,7 +20764,7 @@ var require_tool_cache = __commonJS({
         versionSpec = semver.clean(versionSpec) || "";
         const cachePath = path4.join(_getCacheDirectory(), toolName, versionSpec, arch);
         core4.debug(`checking cache: ${cachePath}`);
-        if (fs6.existsSync(cachePath) && fs6.existsSync(`${cachePath}.complete`)) {
+        if (fs5.existsSync(cachePath) && fs5.existsSync(`${cachePath}.complete`)) {
           core4.debug(`Found tool in cache ${toolName} ${versionSpec} ${arch}`);
           toolPath = cachePath;
         } else {
@@ -20778,12 +20778,12 @@ var require_tool_cache = __commonJS({
       const versions = [];
       arch = arch || os2.arch();
       const toolPath = path4.join(_getCacheDirectory(), toolName);
-      if (fs6.existsSync(toolPath)) {
-        const children = fs6.readdirSync(toolPath);
+      if (fs5.existsSync(toolPath)) {
+        const children = fs5.readdirSync(toolPath);
         for (const child of children) {
           if (isExplicitVersion(child)) {
             const fullPath = path4.join(toolPath, child, arch || "");
-            if (fs6.existsSync(fullPath) && fs6.existsSync(`${fullPath}.complete`)) {
+            if (fs5.existsSync(fullPath) && fs5.existsSync(`${fullPath}.complete`)) {
               versions.push(child);
             }
           }
@@ -20857,7 +20857,7 @@ var require_tool_cache = __commonJS({
     function _completeToolPath(tool, version2, arch) {
       const folderPath = path4.join(_getCacheDirectory(), tool, semver.clean(version2) || version2, arch || "");
       const markerPath = `${folderPath}.complete`;
-      fs6.writeFileSync(markerPath, "");
+      fs5.writeFileSync(markerPath, "");
       core4.debug("finished caching tool");
     }
     function isExplicitVersion(versionSpec) {
@@ -39881,7 +39881,7 @@ var require_form_data = __commonJS({
     var http = require("http");
     var https = require("https");
     var parseUrl = require("url").parse;
-    var fs6 = require("fs");
+    var fs5 = require("fs");
     var Stream = require("stream").Stream;
     var mime = require_mime_types();
     var asynckit = require_asynckit();
@@ -39946,7 +39946,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs6.stat(value.path, function(err, stat) {
+          fs5.stat(value.path, function(err, stat) {
             var fileSize;
             if (err) {
               callback(err);
@@ -73664,14 +73664,14 @@ var require_parser = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs6 = this.flowScalar(this.type);
+              const fs5 = this.flowScalar(this.type);
               if (atNextItem || it.value) {
-                map.items.push({ start, key: fs6, sep: [] });
+                map.items.push({ start, key: fs5, sep: [] });
                 this.onKeyLine = true;
               } else if (it.sep) {
-                this.stack.push(fs6);
+                this.stack.push(fs5);
               } else {
-                Object.assign(it, { key: fs6, sep: [] });
+                Object.assign(it, { key: fs5, sep: [] });
                 this.onKeyLine = true;
               }
               return;
@@ -73789,13 +73789,13 @@ var require_parser = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs6 = this.flowScalar(this.type);
+              const fs5 = this.flowScalar(this.type);
               if (!it || it.value)
-                fc.items.push({ start: [], key: fs6, sep: [] });
+                fc.items.push({ start: [], key: fs5, sep: [] });
               else if (it.sep)
-                this.stack.push(fs6);
+                this.stack.push(fs5);
               else
-                Object.assign(it, { key: fs6, sep: [] });
+                Object.assign(it, { key: fs5, sep: [] });
               return;
             }
             case "flow-map-end":
@@ -74100,7 +74100,7 @@ var require_dist = __commonJS({
 });
 
 // src/query.ts
-var import_fs4 = __toESM(require("fs"));
+var import_fs3 = __toESM(require("fs"));
 var import_path2 = __toESM(require("path"));
 var import_process = require("process");
 var import_core2 = __toESM(require_core());
@@ -74260,34 +74260,6 @@ var QueryMetadata_default = {
   }
 };
 
-// src/json-schemas/QueryRunMetadata.json
-var QueryRunMetadata_default = {
-  $ref: "#/definitions/QueryRunMetadata",
-  $schema: "http://json-schema.org/draft-07/schema#",
-  definitions: {
-    QueryRunMetadata: {
-      properties: {
-        nwo: {
-          type: "string"
-        },
-        resultCount: {
-          type: "number"
-        },
-        sha: {
-          type: "string"
-        },
-        sourceLocationPrefix: {
-          type: "string"
-        }
-      },
-      required: [
-        "nwo"
-      ],
-      type: "object"
-    }
-  }
-};
-
 // src/json-schemas/RepoArray.json
 var RepoArray_default = {
   $ref: "#/definitions/RepoArray",
@@ -74430,7 +74402,6 @@ var validators = {
   resolvedQueries: ajv.compile(ResolvedQueries_default),
   resolvedDatabase: ajv.compile(ResolvedDatabase_default),
   queryMetadata: ajv.compile(QueryMetadata_default),
-  queryRunMetadata: ajv.compile(QueryRunMetadata_default),
   repoTask: ajv.compile(RepoTask_default),
   policy: ajv.compile(Policy_default)
 };
@@ -74660,7 +74631,7 @@ async function uploadArtifactImpl(policy, artifactContents) {
 }
 
 // src/codeql.ts
-var import_fs3 = __toESM(require("fs"));
+var import_fs2 = __toESM(require("fs"));
 var import_path = __toESM(require("path"));
 var import_exec = __toESM(require_exec());
 
@@ -74765,21 +74736,8 @@ function getMemoryFlagValue() {
   return Math.floor(memoryToUseMegaBytes);
 }
 
-// src/query-run-metadata.ts
-var import_fs = __toESM(require("fs"));
-function writeQueryRunMetadataToFile(metadataFilePath, nwo, resultCount, sha, sourceLocationPrefix) {
-  const queryRunMetadata = {
-    nwo,
-    resultCount,
-    sha,
-    sourceLocationPrefix
-  };
-  import_fs.default.writeFileSync(metadataFilePath, JSON.stringify(queryRunMetadata));
-  return;
-}
-
 // src/yaml.ts
-var import_fs2 = __toESM(require("fs"));
+var import_fs = __toESM(require("fs"));
 var import_yaml = __toESM(require_dist());
 var floatExp = {
   identify: (value) => typeof value === "number",
@@ -74816,12 +74774,12 @@ function parseYaml(src) {
   });
 }
 function parseYamlFromFile(filePath) {
-  return parseYaml(import_fs2.default.readFileSync(filePath, "utf8"));
+  return parseYaml(import_fs.default.readFileSync(filePath, "utf8"));
 }
 
 // src/codeql.ts
 async function runQuery(codeql, database, nwo, queryPack) {
-  import_fs3.default.mkdirSync("results");
+  import_fs2.default.mkdirSync("results");
   const databaseName = "db";
   await (0, import_exec.exec)(codeql, [
     "database",
@@ -74847,7 +74805,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
   ]);
   const bqrsFilePath = import_path.default.join("results", "results.bqrs");
   const tempBqrsFilePath = getBqrsFile(databaseName);
-  import_fs3.default.renameSync(tempBqrsFilePath, bqrsFilePath);
+  import_fs2.default.renameSync(tempBqrsFilePath, bqrsFilePath);
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
   const queryMetadata = await getQueryMetadata(
@@ -74874,23 +74832,14 @@ async function runQuery(codeql, database, nwo, queryPack) {
     );
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = import_path.default.join("results", "results.sarif");
-    import_fs3.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
+    import_fs2.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
-  const metadataFilePath = import_path.default.join("results", "metadata.json");
-  writeQueryRunMetadataToFile(
-    metadataFilePath,
-    nwo,
-    resultCount,
-    databaseSHA,
-    sourceLocationPrefix
-  );
   return {
     resultCount,
     databaseSHA,
     sourceLocationPrefix,
-    metadataFilePath,
     bqrsFilePath,
     sarifFilePath
   };
@@ -75002,7 +74951,7 @@ async function generateSarif(codeql, bqrs, nwo, queryMetadata, sarifOutputType, 
     bqrs
   ]);
   const sarif = validateObject(
-    JSON.parse(import_fs3.default.readFileSync(sarifFile, "utf8")),
+    JSON.parse(import_fs2.default.readFileSync(sarifFile, "utf8")),
     "sarif"
   );
   injectVersionControlInfo(sarif, nwo, databaseSHA);
@@ -75064,7 +75013,7 @@ async function getRemoteQueryPackDefaultQuery(codeql, queryPack) {
 function getBqrsFile(databaseName) {
   let dbResultsFolder = `${databaseName}/results`;
   let entries;
-  while ((entries = import_fs3.default.readdirSync(dbResultsFolder, { withFileTypes: true })) && entries.length === 1 && entries[0].isDirectory()) {
+  while ((entries = import_fs2.default.readdirSync(dbResultsFolder, { withFileTypes: true })) && entries.length === 1 && entries[0].isDirectory()) {
     dbResultsFolder = import_path.default.join(dbResultsFolder, entries[0].name);
   }
   if (entries.length !== 1) {
@@ -75082,11 +75031,11 @@ function getQueryPackName(queryPackPath) {
   const qlpackFile = import_path.default.join(queryPackPath, "qlpack.yml");
   const codeqlpackFile = import_path.default.join(queryPackPath, "codeql-pack.yml");
   let packFile;
-  if (import_fs3.default.statSync(qlpackFile, {
+  if (import_fs2.default.statSync(qlpackFile, {
     throwIfNoEntry: false
   })?.isFile()) {
     packFile = qlpackFile;
-  } else if (import_fs3.default.statSync(codeqlpackFile, {
+  } else if (import_fs2.default.statSync(codeqlpackFile, {
     throwIfNoEntry: false
   })?.isFile()) {
     packFile = codeqlpackFile;
@@ -75185,7 +75134,7 @@ async function run() {
       );
     }
     (0, import_process.chdir)(curDir);
-    import_fs4.default.rmSync(workDir, { recursive: true });
+    import_fs3.default.rmSync(workDir, { recursive: true });
   }
 }
 async function uploadRepoResult(controllerRepoId, variantAnalysisId, repo, runQueryResult) {
@@ -75201,10 +75150,10 @@ async function uploadRepoResult(controllerRepoId, variantAnalysisId, repo, runQu
 async function getArtifactContentsForUpload(runQueryResult) {
   const zip = new import_jszip.default();
   if (runQueryResult.sarifFilePath) {
-    const sarifFileContents = import_fs4.default.createReadStream(runQueryResult.sarifFilePath);
+    const sarifFileContents = import_fs3.default.createReadStream(runQueryResult.sarifFilePath);
     zip.file("results.sarif", sarifFileContents);
   }
-  const bqrsFileContents = import_fs4.default.createReadStream(runQueryResult.bqrsFilePath);
+  const bqrsFileContents = import_fs3.default.createReadStream(runQueryResult.bqrsFilePath);
   zip.file("results.bqrs", bqrsFileContents);
   return await zip.generateAsync({
     compression: "DEFLATE",
@@ -75220,7 +75169,7 @@ async function getDatabase(repo, language) {
   }
 }
 function createTempRepoDir(curDir, repo) {
-  const workDir = import_fs4.default.mkdtempSync(import_path2.default.join(curDir, repo.id.toString()));
+  const workDir = import_fs3.default.mkdtempSync(import_path2.default.join(curDir, repo.id.toString()));
   return workDir;
 }
 void run();

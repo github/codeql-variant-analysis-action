@@ -44800,34 +44800,6 @@ var QueryMetadata_default = {
   }
 };
 
-// src/json-schemas/QueryRunMetadata.json
-var QueryRunMetadata_default = {
-  $ref: "#/definitions/QueryRunMetadata",
-  $schema: "http://json-schema.org/draft-07/schema#",
-  definitions: {
-    QueryRunMetadata: {
-      properties: {
-        nwo: {
-          type: "string"
-        },
-        resultCount: {
-          type: "number"
-        },
-        sha: {
-          type: "string"
-        },
-        sourceLocationPrefix: {
-          type: "string"
-        }
-      },
-      required: [
-        "nwo"
-      ],
-      type: "object"
-    }
-  }
-};
-
 // src/json-schemas/RepoArray.json
 var RepoArray_default = {
   $ref: "#/definitions/RepoArray",
@@ -44970,7 +44942,6 @@ var validators = {
   resolvedQueries: ajv.compile(ResolvedQueries_default),
   resolvedDatabase: ajv.compile(ResolvedDatabase_default),
   queryMetadata: ajv.compile(QueryMetadata_default),
-  queryRunMetadata: ajv.compile(QueryRunMetadata_default),
   repoTask: ajv.compile(RepoTask_default),
   policy: ajv.compile(Policy_default)
 };
