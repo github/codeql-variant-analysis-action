@@ -10,7 +10,6 @@ import {
 import { Policy, RepoTask } from "./gh-api-client";
 import { Instructions, RepoArray } from "./inputs";
 import { schemaNames, validateObject } from "./json-validation";
-import { QueryRunMetadata } from "./query-run-metadata";
 
 for (const schema of schemaNames) {
   test(`throws error for invalid ${schema}`, (t) => {
@@ -101,16 +100,6 @@ test("can successfully validate QueryMetadata", (t) => {
     kind: "problem",
   };
   t.notThrows(() => validateObject(obj, "queryMetadata"));
-});
-
-test("can successfully validate QueryRunMetadata", (t) => {
-  const obj: QueryRunMetadata = {
-    nwo: "foo/bar",
-    resultCount: 123,
-    sha: "abc",
-    sourceLocationPrefix: "/path",
-  };
-  t.notThrows(() => validateObject(obj, "queryRunMetadata"));
 });
 
 test("can successfully validate RepoTask", (t) => {
