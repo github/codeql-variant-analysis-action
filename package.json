@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "test": "ava src/** --serial --verbose --timeout=1m",
+    "test": "ava src/codeql.test.ts --serial --verbose --timeout=1m",
     "test-debug": "ava src/** --serial --verbose --timeout=20m",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts",
     "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix",

@@ -74850,11 +74850,6 @@ async function adjustBqrsFiles(queryPackRunResults) {
     await import_fs2.default.promises.rename(currentBqrsFilePath, newBqrsFilePath);
     return { basePath: "results", relativeFilePaths: [newBqrsFilePath] };
   }
-  for (const q of queryPackRunResults.queries) {
-    console.log(
-      `******* ${queryPackRunResults.resultsBasePath} --> ${q.relativeBqrsFilePath}`
-    );
-  }
   return {
     basePath: queryPackRunResults.resultsBasePath,
     relativeFilePaths: queryPackRunResults.queries.map(
@@ -75187,6 +75182,9 @@ async function getArtifactContentsForUpload(runQueryResult) {
     zip.file("results.sarif", sarifFileContents);
   }
   for (const relativePath of runQueryResult.bqrsFilePaths.relativeFilePaths) {
+    console.log(
+      `--------- Adding ${relativePath} to artifact. Base path is ${runQueryResult.bqrsFilePaths.basePath}`
+    );
     const fullPath = import_path2.default.join(
       runQueryResult.bqrsFilePaths.basePath,
       relativePath

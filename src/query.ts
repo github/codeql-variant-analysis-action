@@ -159,6 +159,9 @@ async function getArtifactContentsForUpload(
   }
 
   for (const relativePath of runQueryResult.bqrsFilePaths.relativeFilePaths) {
+    console.log(
+      `--------- Adding ${relativePath} to artifact. Base path is ${runQueryResult.bqrsFilePaths.basePath}`,
+    );
     const fullPath = path.join(
       runQueryResult.bqrsFilePaths.basePath,
       relativePath,
