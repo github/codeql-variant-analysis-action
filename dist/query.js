@@ -74801,7 +74801,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
     databaseName,
     queryPackName
   ]);
-  const queryPaths = await getRemoteQueryPackQueries(codeql, queryPack);
+  const queryPaths = await getQueryPackQueries(codeql, queryPack);
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
@@ -75056,7 +75056,7 @@ function getDatabaseMetadata(database) {
     return {};
   }
 }
-async function getRemoteQueryPackQueries(codeql, queryPack) {
+async function getQueryPackQueries(codeql, queryPack) {
   const output = await (0, import_exec.getExecOutput)(codeql, [
     "resolve",
     "queries",

@@ -10,7 +10,7 @@ import {
   getBqrsInfo,
   getDatabaseMetadata,
   BQRSInfo,
-  getRemoteQueryPackQueries,
+  getQueryPackQueries,
   injectVersionControlInfo,
   getSarifResultCount,
   Sarif,
@@ -175,7 +175,7 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
 });
 
 test("getting the default query from a pack", async (t) => {
-  t.deepEqual(await getRemoteQueryPackQueries("codeql", "testdata/test_pack"), [
+  t.deepEqual(await getQueryPackQueries("codeql", "testdata/test_pack"), [
     path.resolve("testdata/test_pack/x/query.ql"),
   ]);
 });

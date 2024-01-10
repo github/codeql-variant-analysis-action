@@ -77,7 +77,7 @@ export async function runQuery(
     queryPackName,
   ]);
 
-  const queryPaths = await getRemoteQueryPackQueries(codeql, queryPack);
+  const queryPaths = await getQueryPackQueries(codeql, queryPack);
 
   // Calculate query run information like BQRS file paths, etc.
   const queryPackRunResults = await getQueryPackRunResults(
@@ -500,7 +500,7 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
   }
 }
 
-// The expected output from "codeql resolve queries" in getRemoteQueryPackDefaultQuery
+// The expected output from "codeql resolve queries" in getQueryPackQueries
 export type ResolvedQueries = string[];
 
 /**
@@ -510,7 +510,7 @@ export type ResolvedQueries = string[];
  * @param queryPack The path to the query pack on disk.
  * @returns The path to a query file.
  */
-export async function getRemoteQueryPackQueries(
+export async function getQueryPackQueries(
   codeql: string,
   queryPack: string,
 ): Promise<string[]> {
