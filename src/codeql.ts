@@ -90,27 +90,20 @@ export async function runQuery(
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
 
-  const shouldGenerateSarif = await queryPackSupportsSarif(
+  const sarif = await generateSarif(
     codeql,
-    queryPackRunResults,
+    nwo,
+    databaseName,
+    queryPackName,
+    databaseSHA,
   );
+  const resultCount = getSarifResultCount(sarif);
+  const sarifFilePath = path.join("results", "results.sarif");
+  fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
 
-  let resultCount: number;
-  let sarifFilePath: string | undefined;
-  if (shouldGenerateSarif) {
-    const sarif = await generateSarif(
-      codeql,
-      nwo,
-      databaseName,
-      queryPackName,
-      databaseSHA,
-    );
-    resultCount = getSarifResultCount(sarif);
-    sarifFilePath = path.join("results", "results.sarif");
-    fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
-  } else {
-    resultCount = queryPackRunResults.totalResultsCount;
-  }
+  console.log("--------- SARIF file ---------");
+  console.log(JSON.stringify(sarif, null, 2));
+  console.log("--------- SARIF file ---------");
 
   const bqrsFilePaths = await adjustBqrsFiles(queryPackRunResults);
 

@@ -74810,26 +74810,19 @@ async function runQuery(codeql, database, nwo, queryPack) {
     queryPackName
   );
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const shouldGenerateSarif = await queryPackSupportsSarif(
+  const sarif = await generateSarif(
     codeql,
-    queryPackRunResults
+    nwo,
+    databaseName,
+    queryPackName,
+    databaseSHA
   );
-  let resultCount;
-  let sarifFilePath;
-  if (shouldGenerateSarif) {
-    const sarif = await generateSarif(
-      codeql,
-      nwo,
-      databaseName,
-      queryPackName,
-      databaseSHA
-    );
-    resultCount = getSarifResultCount(sarif);
-    sarifFilePath = import_path.default.join("results", "results.sarif");
-    import_fs2.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
-  } else {
-    resultCount = queryPackRunResults.totalResultsCount;
-  }
+  const resultCount = getSarifResultCount(sarif);
+  const sarifFilePath = import_path.default.join("results", "results.sarif");
+  import_fs2.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
+  console.log("--------- SARIF file ---------");
+  console.log(JSON.stringify(sarif, null, 2));
+  console.log("--------- SARIF file ---------");
   const bqrsFilePaths = await adjustBqrsFiles(queryPackRunResults);
   return {
     resultCount,
@@ -74892,23 +74885,6 @@ async function downloadDatabase(repoId, repoName, language, pat) {
     }
   }
 }
-async function getQueryMetadata(codeql, query) {
-  const queryMetadataOutput = await (0, import_exec.getExecOutput)(codeql, [
-    "resolve",
-    "metadata",
-    "--format=json",
-    query
-  ]);
-  if (queryMetadataOutput.exitCode !== 0) {
-    throw new Error(
-      `Unable to run codeql resolve metadata. Exit code: ${queryMetadataOutput.exitCode}`
-    );
-  }
-  return validateObject(
-    JSON.parse(queryMetadataOutput.stdout, camelize),
-    "queryMetadata"
-  );
-}
 async function getBqrsInfo(codeql, bqrs) {
   const bqrsInfoOutput = await (0, import_exec.getExecOutput)(codeql, [
     "bqrs",
@@ -74969,32 +74945,6 @@ async function getQueryPackRunResults(codeql, databaseName, queryPaths, queryPac
     resultsBasePath,
     queries
   };
-}
-async function querySupportsSarif(codeql, queryPath, bqrsInfo) {
-  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-  const queryMetadata = await getQueryMetadata(codeql, queryPath);
-  const sarifOutputType = getSarifOutputType(
-    queryMetadata,
-    compatibleQueryKinds
-  );
-  return sarifOutputType !== void 0;
-}
-async function queryPackSupportsSarif(codeql, queriesResultInfo) {
-  return (await Promise.all(
-    queriesResultInfo.queries.map(
-      (q) => querySupportsSarif(codeql, q.queryPath, q.bqrsInfo)
-    )
-  )).some((result) => result);
-}
-function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
-  const queryKind = queryMetadata.kind;
-  if (queryKind === "path-problem" && compatibleQueryKinds.includes("PathProblem")) {
-    return "path-problem";
-  } else if (queryKind === "problem" && compatibleQueryKinds.includes("Problem")) {
-    return "problem";
-  } else {
-    return void 0;
-  }
 }
 async function generateSarif(codeql, nwo, databaseName, queryPackName, databaseSHA) {
   const sarifFile = import_path.default.join("results", "results.sarif");
