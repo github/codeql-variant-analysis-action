@@ -81,7 +81,7 @@ test("running multiple queries in a pack", async (t) => {
   try {
     await runQuery("codeql", t.context.db, "a/b", queryPack);
 
-    const bqrsFilePath1 = "results/codeql/queries/x/query.bqrs";
+    const bqrsFilePath1 = "db/results/codeql/queries/x/query.bqrs";
     t.true(fs.existsSync(bqrsFilePath1));
 
     const bqrsInfo1 = await getBqrsInfo("codeql", bqrsFilePath1);
@@ -89,7 +89,7 @@ test("running multiple queries in a pack", async (t) => {
     t.is("#select", bqrsInfo1.resultSets[0].name);
     t.true(bqrsInfo1.compatibleQueryKinds.includes("Table"));
 
-    const bqrsFilePath2 = "results/codeql/queries/z/query.bqrs";
+    const bqrsFilePath2 = "db/results/codeql/queries/z/query.bqrs";
     t.true(fs.existsSync(bqrsFilePath2));
 
     const bqrsInfo2 = await getBqrsInfo("codeql", bqrsFilePath2);

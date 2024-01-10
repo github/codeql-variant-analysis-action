@@ -158,11 +158,12 @@ async function getArtifactContentsForUpload(
     zip.file("results.sarif", sarifFileContents);
   }
 
-  for (const bqrsFilePath of runQueryResult.bqrsFilePaths) {
-    // All the files are in the results dir, so we need to make sure
-    // that the zip does not contain a "results" directory.
-    const bqrsFileContents = fs.createReadStream(bqrsFilePath);
-    const relativePath = path.relative("results", bqrsFilePath);
+  for (const relativePath of runQueryResult.bqrsFilePaths.relativeFilePaths) {
+    const fullPath = path.join(
+      runQueryResult.bqrsFilePaths.basePath,
+      relativePath,
+    );
+    const bqrsFileContents = fs.createReadStream(fullPath);
     zip.file(relativePath, bqrsFileContents);
   }
 

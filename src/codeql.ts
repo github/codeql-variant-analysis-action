@@ -15,8 +15,13 @@ export interface RunQueryResult {
   databaseSHA: string | undefined;
   databaseName: string;
   sourceLocationPrefix: string;
-  bqrsFilePaths: string[];
+  bqrsFilePaths: BqrsFilePaths;
   sarifFilePath?: string;
+}
+
+interface BqrsFilePaths {
+  basePath: string;
+  relativeFilePaths: string[];
 }
 
 // Must be a valid value for "-t=kind" when doing "codeql bqrs interpret"
@@ -126,7 +131,7 @@ export async function runQuery(
 
 async function adjustBqrsFiles(
   queryPackRunResults: QueryPackRunResults,
-): Promise<string[]> {
+): Promise<BqrsFilePaths> {
   if (queryPackRunResults.queries.length === 1) {
     // If we have a single query, move the BQRS file to "results.bqrs" in order to
     // maintain backwards compatibility with the VS Code extension, since it expects
@@ -137,33 +142,15 @@ async function adjustBqrsFiles(
     );
     const newBqrsFilePath = path.join("results", "results.bqrs");
     await fs.promises.rename(currentBqrsFilePath, newBqrsFilePath);
-    return [newBqrsFilePath];
+    return { basePath: "results", relativeFilePaths: ["results.bqrs"] };
   }
 
-  // If we have multiple queries, move the BQRS files to the correct location and
-  // return the new paths.
-  return await Promise.all(
-    queryPackRunResults.queries.map(async (query) => {
-      const newPath = await moveBqrsFileToResultsDir(
-        queryPackRunResults.resultsBasePath,
-        query.relativeBqrsFilePath,
-      );
-      return newPath;
-    }),
-  );
-}
-
-async function moveBqrsFileToResultsDir(
-  resultsBasePath: string,
-  relativeBqrsFilePath: string,
-): Promise<string> {
-  const oldPath = path.join(resultsBasePath, relativeBqrsFilePath);
-  const newPath = path.join("results", relativeBqrsFilePath);
-
-  await fs.promises.mkdir(path.dirname(newPath), { recursive: true });
-  await fs.promises.rename(oldPath, newPath);
-
-  return newPath;
+  return {
+    basePath: queryPackRunResults.resultsBasePath,
+    relativeFilePaths: queryPackRunResults.queries.map(
+      (q) => q.relativeBqrsFilePath,
+    ),
+  };
 }
 
 export async function downloadDatabase(
