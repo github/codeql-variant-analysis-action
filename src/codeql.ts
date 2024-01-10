@@ -160,11 +160,9 @@ async function moveBqrsFileToResultsDir(
   const oldPath = path.join(resultsBasePath, relativeBqrsFilePath);
   const newPath = path.join("results", relativeBqrsFilePath);
 
-  if (!fs.existsSync(path.dirname(newPath))) {
-    await fs.promises.mkdir(path.dirname(newPath), { recursive: true });
-  }
-
+  await fs.promises.mkdir(path.dirname(newPath), { recursive: true });
   await fs.promises.rename(oldPath, newPath);
+
   return newPath;
 }
 

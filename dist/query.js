@@ -74863,9 +74863,7 @@ async function adjustBqrsFiles(queryPackRunResults) {
 async function moveBqrsFileToResultsDir(resultsBasePath, relativeBqrsFilePath) {
   const oldPath = import_path.default.join(resultsBasePath, relativeBqrsFilePath);
   const newPath = import_path.default.join("results", relativeBqrsFilePath);
-  if (!import_fs2.default.existsSync(import_path.default.dirname(newPath))) {
-    await import_fs2.default.promises.mkdir(import_path.default.dirname(newPath), { recursive: true });
-  }
+  await import_fs2.default.promises.mkdir(import_path.default.dirname(newPath), { recursive: true });
   await import_fs2.default.promises.rename(oldPath, newPath);
   return newPath;
 }
