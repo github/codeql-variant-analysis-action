@@ -74848,24 +74848,19 @@ async function adjustBqrsFiles(queryPackRunResults) {
     );
     const newBqrsFilePath = import_path.default.join("results", "results.bqrs");
     await import_fs2.default.promises.rename(currentBqrsFilePath, newBqrsFilePath);
-    return [newBqrsFilePath];
+    return { basePath: "results", relativeFilePaths: [newBqrsFilePath] };
   }
-  return await Promise.all(
-    queryPackRunResults.queries.map(async (query) => {
-      const newPath = await moveBqrsFileToResultsDir(
-        queryPackRunResults.resultsBasePath,
-        query.relativeBqrsFilePath
-      );
-      return newPath;
-    })
-  );
-}
-async function moveBqrsFileToResultsDir(resultsBasePath, relativeBqrsFilePath) {
-  const oldPath = import_path.default.join(resultsBasePath, relativeBqrsFilePath);
-  const newPath = import_path.default.join("results", relativeBqrsFilePath);
-  await import_fs2.default.promises.mkdir(import_path.default.dirname(newPath), { recursive: true });
-  await import_fs2.default.promises.rename(oldPath, newPath);
-  return newPath;
+  for (const q of queryPackRunResults.queries) {
+    console.log(
+      `******* ${queryPackRunResults.resultsBasePath} --> ${q.relativeBqrsFilePath}`
+    );
+  }
+  return {
+    basePath: queryPackRunResults.resultsBasePath,
+    relativeFilePaths: queryPackRunResults.queries.map(
+      (q) => q.relativeBqrsFilePath
+    )
+  };
 }
 async function downloadDatabase(repoId, repoName, language, pat) {
   let authHeader = void 0;
@@ -75191,9 +75186,12 @@ async function getArtifactContentsForUpload(runQueryResult) {
     const sarifFileContents = import_fs3.default.createReadStream(runQueryResult.sarifFilePath);
     zip.file("results.sarif", sarifFileContents);
   }
-  for (const bqrsFilePath of runQueryResult.bqrsFilePaths) {
-    const bqrsFileContents = import_fs3.default.createReadStream(bqrsFilePath);
-    const relativePath = import_path2.default.relative("results", bqrsFilePath);
+  for (const relativePath of runQueryResult.bqrsFilePaths.relativeFilePaths) {
+    const fullPath = import_path2.default.join(
+      runQueryResult.bqrsFilePaths.basePath,
+      relativePath
+    );
+    const bqrsFileContents = import_fs3.default.createReadStream(fullPath);
     zip.file(relativePath, bqrsFileContents);
   }
   return await zip.generateAsync({
