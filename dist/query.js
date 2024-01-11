@@ -74968,11 +74968,17 @@ async function querySupportsSarif(codeql, queryPath, bqrsInfo) {
   return sarifOutputType !== void 0;
 }
 async function queryPackSupportsSarif(codeql, queriesResultInfo) {
-  return (await Promise.all(
-    queriesResultInfo.queries.map(
-      (q) => querySupportsSarif(codeql, q.queryPath, q.bqrsInfo)
-    )
-  )).some((result) => result);
+  for (const query of queriesResultInfo.queries) {
+    const supportsSarif = await querySupportsSarif(
+      codeql,
+      query.queryPath,
+      query.bqrsInfo
+    );
+    if (!supportsSarif) {
+      return false;
+    }
+  }
+  return true;
 }
 function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
   const queryKind = queryMetadata.kind;
