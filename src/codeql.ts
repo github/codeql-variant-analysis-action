@@ -107,7 +107,7 @@ export async function runQuery(
       codeql,
       nwo,
       databaseName,
-      queryPackName,
+      queryPack,
       databaseSHA,
     );
     resultCount = getSarifResultCount(sarif);
@@ -386,7 +386,7 @@ async function generateSarif(
   codeql: string,
   nwo: string,
   databaseName: string,
-  queryPackName: string,
+  queryPackPath: string,
   databaseSHA?: string,
 ): Promise<Sarif> {
   const sarifFile = path.join("results", "results.sarif");
@@ -398,7 +398,7 @@ async function generateSarif(
     "--sarif-add-snippets",
     "--no-group-results",
     databaseName,
-    queryPackName,
+    queryPackPath,
   ]);
   const sarif = validateObject(
     JSON.parse(fs.readFileSync(sarifFile, "utf8")),
