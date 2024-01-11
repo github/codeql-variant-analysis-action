@@ -349,13 +349,14 @@ async function queryPackSupportsSarif(
 ) {
   // Some queries in the pack must support SARIF in order
   // for the query pack to support SARIF.
-  return (
-    await Promise.all(
-      queriesResultInfo.queries.map((q) =>
-        querySupportsSarif(codeql, q.queryPath, q.bqrsInfo),
-      ),
-    )
-  ).some((result) => result);
+  for (const q of queriesResultInfo.queries) {
+    const result = await querySupportsSarif(codeql, q.queryPath, q.bqrsInfo);
+    if (result) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
