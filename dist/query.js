@@ -74821,7 +74821,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
       codeql,
       nwo,
       databaseName,
-      queryPackName,
+      queryPack,
       databaseSHA
     );
     resultCount = getSarifResultCount(sarif);
@@ -74986,7 +74986,7 @@ function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
     return void 0;
   }
 }
-async function generateSarif(codeql, nwo, databaseName, queryPackName, databaseSHA) {
+async function generateSarif(codeql, nwo, databaseName, queryPackPath, databaseSHA) {
   const sarifFile = import_path.default.join("results", "results.sarif");
   await (0, import_exec.exec)(codeql, [
     "database",
@@ -74996,7 +74996,7 @@ async function generateSarif(codeql, nwo, databaseName, queryPackName, databaseS
     "--sarif-add-snippets",
     "--no-group-results",
     databaseName,
-    queryPackName
+    queryPackPath
   ]);
   const sarif = validateObject(
     JSON.parse(import_fs2.default.readFileSync(sarifFile, "utf8")),
