@@ -8,18 +8,14 @@ import { download } from "./download";
 import { HTTPError } from "./http-error";
 import { validateObject } from "./json-validation";
 import { getMemoryFlagValue } from "./query-run-memory";
-import { writeQueryRunMetadataToFile } from "./query-run-metadata";
 import { parseYamlFromFile } from "./yaml";
 
 export interface RunQueryResult {
   resultCount: number;
   databaseSHA: string | undefined;
   sourceLocationPrefix: string;
-  metadataFilePath: string;
   bqrsFilePath: string;
-  bqrsFileSize: number;
   sarifFilePath?: string;
-  sarifFileSize?: number;
 }
 
 // Must be a valid value for "-t=kind" when doing "codeql bqrs interpret"
@@ -36,14 +32,14 @@ export interface Sarif {
 /**
  * Run a query. Will operate on the current working directory and create the following directories:
  * - query/    (query.ql and any other supporting files)
- * - results/  (results.{bqrs,sarif} and metadata.json)
+ * - results/  (results.{bqrs,sarif})
  *
  * @param     codeql                    The path to the codeql binary
  * @param     database                  The path to the bundled database zip file
  * @param     nwo                       The name of the repository
  * @param     queryPack                 The path to the query pack
  * @returns   Promise<RunQueryResult>   Resolves when the query has finished running. Returns information
- * about the query result and paths to the result files and metadata.json file.
+ * about the query result and paths to the result files.
  */
 export async function runQuery(
   codeql: string,
@@ -84,8 +80,6 @@ export async function runQuery(
   const tempBqrsFilePath = getBqrsFile(databaseName);
   fs.renameSync(tempBqrsFilePath, bqrsFilePath);
 
-  const bqrsFileSize = fs.statSync(bqrsFilePath).size;
-
   const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
   const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
   const queryMetadata = await getQueryMetadata(
@@ -100,7 +94,6 @@ export async function runQuery(
   );
   let resultCount: number;
   let sarifFilePath: string | undefined;
-  let sarifFileSize: number | undefined;
   if (sarifOutputType !== undefined) {
     const sarif = await generateSarif(
       codeql,
@@ -115,29 +108,16 @@ export async function runQuery(
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = path.join("results", "results.sarif");
     fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
-    sarifFileSize = fs.statSync(sarifFilePath).size;
   } else {
     resultCount = getBqrsResultCount(bqrsInfo);
   }
-  const metadataFilePath = path.join("results", "metadata.json");
-
-  writeQueryRunMetadataToFile(
-    metadataFilePath,
-    nwo,
-    resultCount,
-    databaseSHA,
-    sourceLocationPrefix,
-  );
 
   return {
     resultCount,
     databaseSHA,
     sourceLocationPrefix,
-    metadataFilePath,
     bqrsFilePath,
-    bqrsFileSize,
     sarifFilePath,
-    sarifFileSize,
   };
 }
 
