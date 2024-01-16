@@ -74350,8 +74350,6 @@ var ResolvedQueries_default = {
       items: {
         type: "string"
       },
-      maxItems: 1,
-      minItems: 1,
       type: "array"
     }
   }
@@ -74803,45 +74801,60 @@ async function runQuery(codeql, database, nwo, queryPack) {
     databaseName,
     queryPackName
   ]);
-  const bqrsFilePath = import_path.default.join("results", "results.bqrs");
-  const tempBqrsFilePath = getBqrsFile(databaseName);
-  import_fs2.default.renameSync(tempBqrsFilePath, bqrsFilePath);
-  const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
-  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-  const queryMetadata = await getQueryMetadata(
+  const queryPaths = await getQueryPackQueries(codeql, queryPack);
+  const queryPackRunResults = await getQueryPackRunResults(
     codeql,
-    await getRemoteQueryPackDefaultQuery(codeql, queryPack)
+    databaseName,
+    queryPaths,
+    queryPack,
+    queryPackName
   );
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const sarifOutputType = getSarifOutputType(
-    queryMetadata,
-    compatibleQueryKinds
+  const shouldGenerateSarif = await queryPackSupportsSarif(
+    codeql,
+    queryPackRunResults
   );
   let resultCount;
   let sarifFilePath;
-  if (sarifOutputType !== void 0) {
+  if (shouldGenerateSarif) {
     const sarif = await generateSarif(
       codeql,
-      bqrsFilePath,
       nwo,
-      queryMetadata,
-      sarifOutputType,
       databaseName,
-      sourceLocationPrefix,
+      queryPack,
       databaseSHA
     );
     resultCount = getSarifResultCount(sarif);
     sarifFilePath = import_path.default.join("results", "results.sarif");
     import_fs2.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
   } else {
-    resultCount = getBqrsResultCount(bqrsInfo);
+    resultCount = queryPackRunResults.totalResultsCount;
   }
+  const bqrsFilePaths = await adjustBqrsFiles(queryPackRunResults);
   return {
     resultCount,
     databaseSHA,
+    databaseName,
     sourceLocationPrefix,
-    bqrsFilePath,
+    bqrsFilePaths,
     sarifFilePath
+  };
+}
+async function adjustBqrsFiles(queryPackRunResults) {
+  if (queryPackRunResults.queries.length === 1) {
+    const currentBqrsFilePath = import_path.default.join(
+      queryPackRunResults.resultsBasePath,
+      queryPackRunResults.queries[0].relativeBqrsFilePath
+    );
+    const newBqrsFilePath = import_path.default.join("results", "results.bqrs");
+    await import_fs2.default.promises.rename(currentBqrsFilePath, newBqrsFilePath);
+    return { basePath: "results", relativeFilePaths: ["results.bqrs"] };
+  }
+  return {
+    basePath: queryPackRunResults.resultsBasePath,
+    relativeFilePaths: queryPackRunResults.queries.map(
+      (q) => q.relativeBqrsFilePath
+    )
   };
 }
 async function downloadDatabase(repoId, repoName, language, pat) {
@@ -74913,6 +74926,60 @@ async function getSourceLocationPrefix(codeql) {
   );
   return resolvedDatabase.sourceLocationPrefix;
 }
+async function getQueryPackRunResults(codeql, databaseName, queryPaths, queryPackPath, queryPackName) {
+  const resultsBasePath = `${databaseName}/results`;
+  const queries = [];
+  let totalResultsCount = 0;
+  for (const queryPath of queryPaths) {
+    const queryPackRelativePath = import_path.default.relative(queryPackPath, queryPath);
+    const parsedQueryPath = import_path.default.parse(queryPackRelativePath);
+    const relativeBqrsFilePath = import_path.default.join(
+      queryPackName,
+      parsedQueryPath.dir,
+      `${parsedQueryPath.name}.bqrs`
+    );
+    const bqrsFilePath = import_path.default.join(resultsBasePath, relativeBqrsFilePath);
+    if (!import_fs2.default.existsSync(bqrsFilePath)) {
+      throw new Error(
+        `Could not find BQRS file for query ${queryPath} at ${bqrsFilePath}`
+      );
+    }
+    const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
+    queries.push({
+      queryPath,
+      relativeBqrsFilePath,
+      bqrsInfo
+    });
+    totalResultsCount += getBqrsResultCount(bqrsInfo);
+  }
+  return {
+    totalResultsCount,
+    resultsBasePath,
+    queries
+  };
+}
+async function querySupportsSarif(codeql, queryPath, bqrsInfo) {
+  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
+  const queryMetadata = await getQueryMetadata(codeql, queryPath);
+  const sarifOutputType = getSarifOutputType(
+    queryMetadata,
+    compatibleQueryKinds
+  );
+  return sarifOutputType !== void 0;
+}
+async function queryPackSupportsSarif(codeql, queriesResultInfo) {
+  for (const query of queriesResultInfo.queries) {
+    const supportsSarif = await querySupportsSarif(
+      codeql,
+      query.queryPath,
+      query.bqrsInfo
+    );
+    if (!supportsSarif) {
+      return false;
+    }
+  }
+  return true;
+}
 function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
   const queryKind = queryMetadata.kind;
   if (queryKind === "path-problem" && compatibleQueryKinds.includes("PathProblem")) {
@@ -74923,32 +74990,17 @@ function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
     return void 0;
   }
 }
-async function generateSarif(codeql, bqrs, nwo, queryMetadata, sarifOutputType, databaseName, sourceLocationPrefix, databaseSHA) {
-  const {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- we are explicitly excluding this since it's calculated separately
-    kind,
-    id: queryId,
-    ...passthroughQueryMetadata
-  } = queryMetadata;
+async function generateSarif(codeql, nwo, databaseName, queryPackPath, databaseSHA) {
   const sarifFile = import_path.default.join("results", "results.sarif");
   await (0, import_exec.exec)(codeql, [
-    "bqrs",
-    "interpret",
+    "database",
+    "interpret-results",
     "--format=sarif-latest",
     `--output=${sarifFile}`,
-    `-t=kind=${sarifOutputType}`,
-    `-t=id=${queryId || "remote-query"}`,
-    // Forward all of the query metadata.
-    ...Object.entries(passthroughQueryMetadata).map(
-      ([key, value]) => `-t=${key}=${value}`
-    ),
     "--sarif-add-snippets",
     "--no-group-results",
-    // Hard-coded the source archive as src.zip inside the database, since that's
-    // where the CLI puts it. If this changes, we need to update this path.
-    `--source-archive=${databaseName}/src.zip`,
-    `--source-location-prefix=${sourceLocationPrefix}`,
-    bqrs
+    databaseName,
+    queryPackPath
   ]);
   const sarif = validateObject(
     JSON.parse(import_fs2.default.readFileSync(sarifFile, "utf8")),
@@ -74998,7 +75050,7 @@ function getDatabaseMetadata(database) {
     return {};
   }
 }
-async function getRemoteQueryPackDefaultQuery(codeql, queryPack) {
+async function getQueryPackQueries(codeql, queryPack) {
   const output = await (0, import_exec.getExecOutput)(codeql, [
     "resolve",
     "queries",
@@ -75007,25 +75059,7 @@ async function getRemoteQueryPackDefaultQuery(codeql, queryPack) {
     queryPack,
     getQueryPackName(queryPack)
   ]);
-  const queries = validateObject(JSON.parse(output.stdout), "resolvedQueries");
-  return queries[0];
-}
-function getBqrsFile(databaseName) {
-  let dbResultsFolder = `${databaseName}/results`;
-  let entries;
-  while ((entries = import_fs2.default.readdirSync(dbResultsFolder, { withFileTypes: true })) && entries.length === 1 && entries[0].isDirectory()) {
-    dbResultsFolder = import_path.default.join(dbResultsFolder, entries[0].name);
-  }
-  if (entries.length !== 1) {
-    throw new Error(
-      `Expected a single file in ${dbResultsFolder}, found: ${entries}`
-    );
-  }
-  const entry = entries[0];
-  if (!entry.isFile() || !entry.name.endsWith(".bqrs")) {
-    throw new Error(`Unexpected file in ${dbResultsFolder}: ${entry.name}`);
-  }
-  return import_path.default.join(dbResultsFolder, entry.name);
+  return validateObject(JSON.parse(output.stdout), "resolvedQueries");
 }
 function getQueryPackName(queryPackPath) {
   const qlpackFile = import_path.default.join(queryPackPath, "qlpack.yml");
@@ -75153,8 +75187,14 @@ async function getArtifactContentsForUpload(runQueryResult) {
     const sarifFileContents = import_fs3.default.createReadStream(runQueryResult.sarifFilePath);
     zip.file("results.sarif", sarifFileContents);
   }
-  const bqrsFileContents = import_fs3.default.createReadStream(runQueryResult.bqrsFilePath);
-  zip.file("results.bqrs", bqrsFileContents);
+  for (const relativePath of runQueryResult.bqrsFilePaths.relativeFilePaths) {
+    const fullPath = import_path2.default.join(
+      runQueryResult.bqrsFilePaths.basePath,
+      relativePath
+    );
+    const bqrsFileContents = import_fs3.default.createReadStream(fullPath);
+    zip.file(relativePath, bqrsFileContents);
+  }
   return await zip.generateAsync({
     compression: "DEFLATE",
     type: "nodebuffer"

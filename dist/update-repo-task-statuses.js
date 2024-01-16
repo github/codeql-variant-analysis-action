@@ -44891,8 +44891,6 @@ var ResolvedQueries_default = {
       items: {
         type: "string"
       },
-      maxItems: 1,
-      minItems: 1,
       type: "array"
     }
   }

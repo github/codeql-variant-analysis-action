@@ -1,0 +1,10 @@
+library: false
+name: codeql/queries
+version: 1.0.0
+buildMetadata:
+  creationTime: 2021-11-23T16:09:11.452312400Z
+  cliVersion: 2.7.2
+defaultSuite:
+  - description: Query suite for remote query
+  - query: x/query.ql
+  - query: z/query.ql
