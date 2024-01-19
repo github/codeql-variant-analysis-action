@@ -44658,6 +44658,246 @@ var require_dist_node13 = __commonJS({
   }
 });
 
+// node_modules/@octokit/plugin-throttling/dist-node/index.js
+var require_dist_node14 = __commonJS({
+  "node_modules/@octokit/plugin-throttling/dist-node/index.js"(exports2, module2) {
+    "use strict";
+    var __create2 = Object.create;
+    var __defProp2 = Object.defineProperty;
+    var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+    var __getOwnPropNames2 = Object.getOwnPropertyNames;
+    var __getProtoOf2 = Object.getPrototypeOf;
+    var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+    var __export2 = (target, all) => {
+      for (var name in all)
+        __defProp2(target, name, { get: all[name], enumerable: true });
+    };
+    var __copyProps2 = (to, from, except, desc) => {
+      if (from && typeof from === "object" || typeof from === "function") {
+        for (let key of __getOwnPropNames2(from))
+          if (!__hasOwnProp2.call(to, key) && key !== except)
+            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      }
+      return to;
+    };
+    var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
+      // If the importer is in node compatibility mode or this is not an ESM
+      // file that has been converted to a CommonJS file using a Babel-
+      // compatible transform (i.e. "__esModule" has not been set), then set
+      // "default" to the CommonJS "module.exports" for node compatibility.
+      isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
+      mod
+    ));
+    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var dist_src_exports = {};
+    __export2(dist_src_exports, {
+      throttling: () => throttling2
+    });
+    module2.exports = __toCommonJS2(dist_src_exports);
+    var import_light = __toESM2(require_light());
+    var import_core2 = require_dist_node8();
+    var VERSION = "8.1.3";
+    var noop = () => Promise.resolve();
+    function wrapRequest(state, request, options) {
+      return state.retryLimiter.schedule(doRequest, state, request, options);
+    }
+    async function doRequest(state, request, options) {
+      const isWrite = options.method !== "GET" && options.method !== "HEAD";
+      const { pathname } = new URL(options.url, "http://github.test");
+      const isSearch = options.method === "GET" && pathname.startsWith("/search/");
+      const isGraphQL = pathname.startsWith("/graphql");
+      const retryCount = ~~request.retryCount;
+      const jobOptions = retryCount > 0 ? { priority: 0, weight: 0 } : {};
+      if (state.clustering) {
+        jobOptions.expiration = 1e3 * 60;
+      }
+      if (isWrite || isGraphQL) {
+        await state.write.key(state.id).schedule(jobOptions, noop);
+      }
+      if (isWrite && state.triggersNotification(pathname)) {
+        await state.notifications.key(state.id).schedule(jobOptions, noop);
+      }
+      if (isSearch) {
+        await state.search.key(state.id).schedule(jobOptions, noop);
+      }
+      const req = state.global.key(state.id).schedule(
+        jobOptions,
+        request,
+        options
+      );
+      if (isGraphQL) {
+        const res = await req;
+        if (res.data.errors != null && res.data.errors.some((error) => error.type === "RATE_LIMITED")) {
+          const error = Object.assign(new Error("GraphQL Rate Limit Exceeded"), {
+            response: res,
+            data: res.data
+          });
+          throw error;
+        }
+      }
+      return req;
+    }
+    var triggers_notification_paths_default = [
+      "/orgs/{org}/invitations",
+      "/orgs/{org}/invitations/{invitation_id}",
+      "/orgs/{org}/teams/{team_slug}/discussions",
+      "/orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments",
+      "/repos/{owner}/{repo}/collaborators/{username}",
+      "/repos/{owner}/{repo}/commits/{commit_sha}/comments",
+      "/repos/{owner}/{repo}/issues",
+      "/repos/{owner}/{repo}/issues/{issue_number}/comments",
+      "/repos/{owner}/{repo}/pulls",
+      "/repos/{owner}/{repo}/pulls/{pull_number}/comments",
+      "/repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies",
+      "/repos/{owner}/{repo}/pulls/{pull_number}/merge",
+      "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers",
+      "/repos/{owner}/{repo}/pulls/{pull_number}/reviews",
+      "/repos/{owner}/{repo}/releases",
+      "/teams/{team_id}/discussions",
+      "/teams/{team_id}/discussions/{discussion_number}/comments"
+    ];
+    function routeMatcher(paths) {
+      const regexes = paths.map(
+        (path) => path.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+      );
+      const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
+      return new RegExp(regex2, "i");
+    }
+    var regex = routeMatcher(triggers_notification_paths_default);
+    var triggersNotification = regex.test.bind(regex);
+    var groups = {};
+    var createGroups = function(Bottleneck, common) {
+      groups.global = new Bottleneck.Group({
+        id: "octokit-global",
+        maxConcurrent: 10,
+        ...common
+      });
+      groups.search = new Bottleneck.Group({
+        id: "octokit-search",
+        maxConcurrent: 1,
+        minTime: 2e3,
+        ...common
+      });
+      groups.write = new Bottleneck.Group({
+        id: "octokit-write",
+        maxConcurrent: 1,
+        minTime: 1e3,
+        ...common
+      });
+      groups.notifications = new Bottleneck.Group({
+        id: "octokit-notifications",
+        maxConcurrent: 1,
+        minTime: 3e3,
+        ...common
+      });
+    };
+    function throttling2(octokit, octokitOptions) {
+      const {
+        enabled = true,
+        Bottleneck = import_light.default,
+        id = "no-id",
+        timeout = 1e3 * 60 * 2,
+        // Redis TTL: 2 minutes
+        connection
+      } = octokitOptions.throttle || {};
+      if (!enabled) {
+        return {};
+      }
+      const common = { connection, timeout };
+      if (groups.global == null) {
+        createGroups(Bottleneck, common);
+      }
+      const state = Object.assign(
+        {
+          clustering: connection != null,
+          triggersNotification,
+          fallbackSecondaryRateRetryAfter: 60,
+          retryAfterBaseValue: 1e3,
+          retryLimiter: new Bottleneck(),
+          id,
+          ...groups
+        },
+        octokitOptions.throttle
+      );
+      if (typeof state.onSecondaryRateLimit !== "function" || typeof state.onRateLimit !== "function") {
+        throw new Error(`octokit/plugin-throttling error:
+        You must pass the onSecondaryRateLimit and onRateLimit error handlers.
+        See https://octokit.github.io/rest.js/#throttling
+
+        const octokit = new Octokit({
+          throttle: {
+            onSecondaryRateLimit: (retryAfter, options) => {/* ... */},
+            onRateLimit: (retryAfter, options) => {/* ... */}
+          }
+        })
+    `);
+      }
+      const events = {};
+      const emitter = new Bottleneck.Events(events);
+      events.on("secondary-limit", state.onSecondaryRateLimit);
+      events.on("rate-limit", state.onRateLimit);
+      events.on(
+        "error",
+        (e) => octokit.log.warn("Error in throttling-plugin limit handler", e)
+      );
+      state.retryLimiter.on("failed", async function(error, info) {
+        const [state2, request, options] = info.args;
+        const { pathname } = new URL(options.url, "http://github.test");
+        const shouldRetryGraphQL = pathname.startsWith("/graphql") && error.status !== 401;
+        if (!(shouldRetryGraphQL || error.status === 403)) {
+          return;
+        }
+        const retryCount = ~~request.retryCount;
+        request.retryCount = retryCount;
+        options.request.retryCount = retryCount;
+        const { wantRetry, retryAfter = 0 } = await async function() {
+          if (/\bsecondary rate\b/i.test(error.message)) {
+            const retryAfter2 = Number(error.response.headers["retry-after"]) || state2.fallbackSecondaryRateRetryAfter;
+            const wantRetry2 = await emitter.trigger(
+              "secondary-limit",
+              retryAfter2,
+              options,
+              octokit,
+              retryCount
+            );
+            return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
+          }
+          if (error.response.headers != null && error.response.headers["x-ratelimit-remaining"] === "0" || (error.response.data?.errors ?? []).some(
+            (error2) => error2.type === "RATE_LIMITED"
+          )) {
+            const rateLimitReset = new Date(
+              ~~error.response.headers["x-ratelimit-reset"] * 1e3
+            ).getTime();
+            const retryAfter2 = Math.max(
+              // Add one second so we retry _after_ the reset time
+              // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#exceeding-the-rate-limit
+              Math.ceil((rateLimitReset - Date.now()) / 1e3) + 1,
+              0
+            );
+            const wantRetry2 = await emitter.trigger(
+              "rate-limit",
+              retryAfter2,
+              options,
+              octokit,
+              retryCount
+            );
+            return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
+          }
+          return {};
+        }();
+        if (wantRetry) {
+          request.retryCount++;
+          return retryAfter * state2.retryAfterBaseValue;
+        }
+      });
+      octokit.hook.wrap("request", wrapRequest.bind(null, state));
+      return {};
+    }
+    throttling2.VERSION = VERSION;
+    throttling2.triggersNotification = triggersNotification;
+  }
+});
+
 // src/inputs.ts
 var fs = __toESM(require("fs"));
 var import_core = __toESM(require_core());
@@ -44981,20 +45221,40 @@ async function getInstructions() {
 // src/gh-api-client.ts
 var import_action = __toESM(require_dist_node12());
 var import_plugin_retry = __toESM(require_dist_node13());
+var import_plugin_throttling = __toESM(require_dist_node14());
 var userAgent = "GitHub multi-repository variant analysis action";
-function getOctokitRequestInterface() {
-  const octokit = new import_action.Octokit({ userAgent, retry: import_plugin_retry.retry });
-  const signedAuthToken = getSignedAuthToken();
-  return octokit.request.defaults({
-    request: {
-      hook: (request, options) => {
-        if (options.headers) {
-          options.headers.authorization = `RemoteAuth ${signedAuthToken}`;
+function getOctokit() {
+  const throttlingOctokit = import_action.Octokit.plugin(import_plugin_throttling.throttling);
+  const octokit = new throttlingOctokit({
+    userAgent,
+    retry: import_plugin_retry.retry,
+    authStrategy: () => {
+      return {
+        hook: (request, options) => {
+          if (options.headers) {
+            options.headers.authorization = `RemoteAuth ${getSignedAuthToken()}`;
+          }
+          return request(options);
         }
-        return request(options);
+      };
+    },
+    throttle: {
+      enabled: !!process.env.CODEQL_VARIANT_ANALYSIS_ACTION_WAIT_ON_RATE_LIMIT,
+      onRateLimit: (retryAfter, options) => {
+        console.log(
+          `Rate limit exhausted for request ${options.method} ${options.url}, retrying after ${retryAfter} seconds`
+        );
+        return true;
+      },
+      onSecondaryRateLimit: (retryAfter, options) => {
+        console.log(
+          `Secondary rate limit triggered for request ${options.method} ${options.url}, retrying after ${retryAfter} seconds`
+        );
+        return true;
       }
     }
   });
+  return octokit;
 }
 async function setVariantAnalysesFailed(controllerRepoId, variantAnalysisId, repoIds, failureMessage) {
   await updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, {
@@ -45013,10 +45273,10 @@ function isRequestError(obj) {
   return typeof obj?.["status"] === "number";
 }
 async function updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, data) {
-  const octokitRequest = getOctokitRequestInterface();
+  const octokit = getOctokit();
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories`;
   try {
-    await octokitRequest(url, { data });
+    await octokit.request(url, { data });
   } catch (e) {
     if (isRequestError(e)) {
       console.error(`Request to ${url} failed with status code ${e.status}`);

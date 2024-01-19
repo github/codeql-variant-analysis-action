@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Octokit } from "@octokit/action";
 import { retry } from "@octokit/plugin-retry";
+import { throttling } from "@octokit/plugin-throttling";
 import {
   EndpointOptions,
   RequestError,
@@ -12,20 +13,39 @@ import { validateObject } from "./json-validation";
 
 export const userAgent = "GitHub multi-repository variant analysis action";
 
-function getOctokitRequestInterface(): RequestInterface {
-  const octokit = new Octokit({ userAgent, retry });
-
-  const signedAuthToken = getSignedAuthToken();
-  return octokit.request.defaults({
-    request: {
-      hook: (request: RequestInterface, options: EndpointOptions) => {
-        if (options.headers) {
-          options.headers.authorization = `RemoteAuth ${signedAuthToken}`;
-        }
-        return request(options);
+function getOctokit(): Octokit {
+  const throttlingOctokit = Octokit.plugin(throttling);
+  const octokit = new throttlingOctokit({
+    userAgent,
+    retry,
+    authStrategy: () => {
+      return {
+        hook: (request: RequestInterface, options: EndpointOptions) => {
+          if (options.headers) {
+            options.headers.authorization = `RemoteAuth ${getSignedAuthToken()}`;
+          }
+          return request(options);
+        },
+      };
+    },
+    throttle: {
+      enabled: !!process.env.CODEQL_VARIANT_ANALYSIS_ACTION_WAIT_ON_RATE_LIMIT,
+      onRateLimit: (retryAfter, options) => {
+        console.log(
+          `Rate limit exhausted for request ${options.method} ${options.url}, retrying after ${retryAfter} seconds`,
+        );
+        return true;
+      },
+      onSecondaryRateLimit: (retryAfter, options) => {
+        console.log(
+          `Secondary rate limit triggered for request ${options.method} ${options.url}, retrying after ${retryAfter} seconds`,
+        );
+        return true;
       },
     },
   });
+
+  return octokit;
 }
 
 export interface Policy {
@@ -163,11 +183,11 @@ async function updateVariantAnalysisStatus(
   repoId: number,
   data: UpdateVariantAnalysis,
 ): Promise<void> {
-  const octokitRequest = getOctokitRequestInterface();
+  const octokit = getOctokit();
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/status`;
   try {
-    await octokitRequest(url, { data });
+    await octokit.request(url, { data });
   } catch (e: unknown) {
     if (isRequestError(e)) {
       console.error(`Request to ${url} failed with status code ${e.status}`);
@@ -181,11 +201,11 @@ async function updateVariantAnalysisStatuses(
   variantAnalysisId: number,
   data: UpdateVariantAnalyses,
 ): Promise<void> {
-  const octokitRequest = getOctokitRequestInterface();
+  const octokit = getOctokit();
 
   const url = `PATCH /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories`;
   try {
-    await octokitRequest(url, { data });
+    await octokit.request(url, { data });
   } catch (e: unknown) {
     if (isRequestError(e)) {
       console.error(`Request to ${url} failed with status code ${e.status}`);
@@ -205,11 +225,11 @@ export async function getPolicyForRepoArtifact(
     content_type: "application/zip",
     size: artifactSize,
   };
-  const octokitRequest = getOctokitRequestInterface();
+  const octokit = getOctokit();
 
   const url = `PUT /repositories/${controllerRepoId}/code-scanning/codeql/variant-analyses/${variantAnalysisId}/repositories/${repoId}/artifact`;
   try {
-    const response = await octokitRequest(url, { data });
+    const response = await octokit.request(url, { data });
     return validateObject(response.data, "policy");
   } catch (e: unknown) {
     if (isRequestError(e)) {
