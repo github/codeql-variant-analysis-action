@@ -18,7 +18,7 @@ function getOctokit(): Octokit {
   const octokit = new throttlingOctokit({
     userAgent,
     retry,
-    authStrategy: (() => {
+    authStrategy: () => {
       return {
         hook: (request: RequestInterface, options: EndpointOptions) => {
           if (options.headers) {
@@ -27,7 +27,7 @@ function getOctokit(): Octokit {
           return request(options);
         },
       };
-    }),
+    },
     throttle: {
       enabled: !!process.env.CODEQL_VARIANT_ANALYSIS_ACTION_WAIT_ON_RATE_LIMIT,
       onRateLimit: (retryAfter, options) => {
