@@ -43,7 +43,7 @@ export interface Sarif {
  * @param     codeql                    The path to the codeql binary
  * @param     database                  The path to the bundled database zip file
  * @param     nwo                       The name of the repository
- * @param     queryPack                 The path to the query pack
+ * @param     queryPackPath             The path to the query pack
  * @returns   Promise<RunQueryResult>   Resolves when the query has finished running. Returns information
  * about the query result and paths to the result files.
  */
@@ -51,7 +51,7 @@ export async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
-  queryPack: string,
+  queryPackPath: string,
 ): Promise<RunQueryResult> {
   fs.mkdirSync("results");
 
@@ -69,27 +69,27 @@ export async function runQuery(
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
-  const queryPackName = getQueryPackName(queryPack);
+  const queryPackName = getQueryPackName(queryPackPath);
 
   await exec(codeql, [
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
-    queryPack,
+    queryPackPath,
     "--",
     databaseName,
     queryPackName,
   ]);
 
-  const queryPaths = await getQueryPackQueries(codeql, queryPack);
+  const queryPaths = await getQueryPackQueries(codeql, queryPackPath);
 
   // Calculate query run information like BQRS file paths, etc.
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
     queryPaths,
-    queryPack,
+    queryPackPath,
     queryPackName,
   );
 
@@ -107,7 +107,7 @@ export async function runQuery(
       codeql,
       nwo,
       databaseName,
-      queryPack,
+      queryPackPath,
       databaseSHA,
     );
     resultCount = getSarifResultCount(sarif);
@@ -497,20 +497,20 @@ export type ResolvedQueries = string[];
  * Gets the queries for a pack.
  *
  * @param codeql The path to the codeql CLI
- * @param queryPack The path to the query pack on disk.
+ * @param queryPackPath The path to the query pack on disk.
  * @returns The path to a query file.
  */
 export async function getQueryPackQueries(
   codeql: string,
-  queryPack: string,
+  queryPackPath: string,
 ): Promise<string[]> {
   const output = await getExecOutput(codeql, [
     "resolve",
     "queries",
     "--format=json",
     "--additional-packs",
-    queryPack,
-    getQueryPackName(queryPack),
+    queryPackPath,
+    getQueryPackName(queryPackPath),
   ]);
 
   return validateObject(JSON.parse(output.stdout), "resolvedQueries");
