@@ -41,12 +41,12 @@ async function run(): Promise<void> {
 
   const curDir = cwd();
 
-  let queryPack: string;
+  let queryPackPath: string;
   try {
     // Download and extract the query pack.
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
-    queryPack = await extractTar(queryPackArchive);
+    queryPackPath = await extractTar(queryPackArchive);
   } catch (error: unknown) {
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : `${error}`;
@@ -85,7 +85,12 @@ async function run(): Promise<void> {
       const dbZip = await getDatabase(repo, language);
 
       console.log("Running query");
-      const runQueryResult = await runQuery(codeql, dbZip, repo.nwo, queryPack);
+      const runQueryResult = await runQuery(
+        codeql,
+        dbZip,
+        repo.nwo,
+        queryPackPath,
+      );
 
       if (runQueryResult.resultCount > 0) {
         await uploadRepoResult(
