@@ -8,7 +8,7 @@
 
 We use the [ava](https://github.com/avajs/ava) test runner. To run one or more specific test(s), use `npm run test -- -m <title>`.
 
-The `codeql` executable must be on the path before running any tests. If you run `script/test` instad of `npm run test` it will set that up automatically.
+The `codeql` executable must be on the path before running any tests. If you run `script/test` instead of `npm run test` it will set that up automatically.
 
 # Generating sourcemaps
 
