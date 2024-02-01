@@ -4,7 +4,7 @@ run-name: ${{ github.event.inputs.workflow_name }}
 
 env:
   CODEQL_ENABLE_EXPERIMENTAL_FEATURES_SWIFT: true
-  CODEQL_VARIANT_ANALYSIS_ACTION_WAIT_ON_RATE_LIMIT: ${{ (vars.MRVA_WAIT_ON_RATE_LIMIT && true) || false }}
+  CODEQL_VARIANT_ANALYSIS_ACTION_WAIT_ON_RATE_LIMIT: ${{ (vars.MRVA_WAIT_ON_RATE_LIMIT && true) || '' }}
 
 on: dynamic
 
