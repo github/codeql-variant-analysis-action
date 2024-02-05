@@ -75031,14 +75031,18 @@ function getSarifResultCount(sarif) {
   }
   return count;
 }
+var KNOWN_RESULT_SET_NAMES = ["#select", "problems"];
 function getBqrsResultCount(bqrsInfo) {
-  const selectResultSet = bqrsInfo.resultSets.find(
-    (resultSet) => resultSet.name === "#select"
-  );
-  if (!selectResultSet) {
-    throw new Error("No result set named #select");
+  for (const name of KNOWN_RESULT_SET_NAMES) {
+    const resultSet = bqrsInfo.resultSets.find((r) => r.name === name);
+    if (resultSet !== void 0) {
+      return resultSet.rows;
+    }
   }
-  return selectResultSet.rows;
+  const resultSetNames = bqrsInfo.resultSets.map((r) => r.name);
+  throw new Error(
+    `BQRS does not contain any result sets matching known names. Expected one of ${KNOWN_RESULT_SET_NAMES.join(" or ")} but found ${resultSetNames.join(", ")}`
+  );
 }
 function getDatabaseMetadata(database) {
   try {

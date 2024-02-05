@@ -16,6 +16,7 @@ import {
   Sarif,
   getSarifOutputType,
   QueryMetadata,
+  getBqrsResultCount,
 } from "./codeql";
 
 const test = anyTest as TestFn<{ db: string; tmpDir: string }>;
@@ -259,4 +260,50 @@ test("getting the SARIF output type when the `@kind` metadata is compatible with
   ];
 
   t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
+});
+
+test("uses result count from #select result set if it exists", (t) => {
+  const bqrsInfo: BQRSInfo = {
+    resultSets: [{ name: "#select", rows: 3 }],
+    compatibleQueryKinds: [],
+  };
+
+  t.is(getBqrsResultCount(bqrsInfo), 3);
+});
+
+test("uses result count from problems result set if it exists", (t) => {
+  const bqrsInfo: BQRSInfo = {
+    resultSets: [{ name: "problems", rows: 4 }],
+    compatibleQueryKinds: [],
+  };
+
+  t.is(getBqrsResultCount(bqrsInfo), 4);
+});
+
+test("uses result count from #select result set if both #select and problems result sets exist", (t) => {
+  const bqrsInfo: BQRSInfo = {
+    resultSets: [
+      { name: "#select", rows: 3 },
+      { name: "problems", rows: 4 },
+    ],
+    compatibleQueryKinds: [],
+  };
+
+  t.is(getBqrsResultCount(bqrsInfo), 3);
+});
+
+test("throws error if neither #select or problems result sets exist", (t) => {
+  const bqrsInfo: BQRSInfo = {
+    resultSets: [
+      { name: "something", rows: 13 },
+      { name: "unknown", rows: 42 },
+    ],
+    compatibleQueryKinds: [],
+  };
+
+  const error = t.throws(() => getBqrsResultCount(bqrsInfo));
+  t.deepEqual(
+    error?.message,
+    "BQRS does not contain any result sets matching known names. Expected one of #select or problems but found something, unknown",
+  );
 });
