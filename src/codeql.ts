@@ -450,16 +450,27 @@ export function getSarifResultCount(sarif: Sarif): number {
 }
 
 /**
+ * Names of result sets that can be considered the "default" result set
+ * and should be used when calculating number of results and when showing
+ * results to users.
+ */
+const KNOWN_RESULT_SET_NAMES: string[] = ["#select", "problems"];
+
+/**
  * Gets the number of results in the given BQRS data.
  */
-function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
-  const selectResultSet = bqrsInfo.resultSets.find(
-    (resultSet) => resultSet.name === "#select",
-  );
-  if (!selectResultSet) {
-    throw new Error("No result set named #select");
+export function getBqrsResultCount(bqrsInfo: BQRSInfo): number {
+  for (const name of KNOWN_RESULT_SET_NAMES) {
+    const resultSet = bqrsInfo.resultSets.find((r) => r.name === name);
+    if (resultSet !== undefined) {
+      return resultSet.rows;
+    }
   }
-  return selectResultSet.rows;
+
+  const resultSetNames = bqrsInfo.resultSets.map((r) => r.name);
+  throw new Error(
+    `BQRS does not contain any result sets matching known names. Expected one of ${KNOWN_RESULT_SET_NAMES.join(" or ")} but found ${resultSetNames.join(", ")}`,
+  );
 }
 
 interface DatabaseMetadata {
