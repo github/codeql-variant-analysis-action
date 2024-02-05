@@ -453,6 +453,7 @@ export function getSarifResultCount(sarif: Sarif): number {
  * Names of result sets that can be considered the "default" result set
  * and should be used when calculating number of results and when showing
  * results to users.
+ * Will check result sets in this order and use the first one that exists.
  */
 const KNOWN_RESULT_SET_NAMES: string[] = ["#select", "problems"];
 
