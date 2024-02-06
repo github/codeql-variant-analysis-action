@@ -80,13 +80,11 @@ export async function runQuery(
     queryPack.name,
   ]);
 
-  const queryPaths = await getQueryPackQueries(codeql, queryPack);
-
   // Calculate query run information like BQRS file paths, etc.
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
-    queryPaths,
+    queryPack.queryPaths,
     queryPack.path,
     queryPack.name,
   );
@@ -503,14 +501,20 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
 interface QueryPackInfo {
   path: string;
   name: string;
+  queryPaths: string[];
 }
 
-export function getQueryPackInfo(queryPackPath: string): QueryPackInfo {
+export async function getQueryPackInfo(
+  codeql: string,
+  queryPackPath: string,
+): Promise<QueryPackInfo> {
   queryPackPath = path.resolve(queryPackPath);
   const name = getQueryPackName(queryPackPath);
+  const queryPaths = await getQueryPackQueries(codeql, queryPackPath, name);
   return {
     path: queryPackPath,
     name,
+    queryPaths,
   };
 }
 
@@ -526,15 +530,16 @@ export type ResolvedQueries = string[];
  */
 export async function getQueryPackQueries(
   codeql: string,
-  queryPack: QueryPackInfo,
+  queryPackPath: string,
+  queryPackName: string,
 ): Promise<string[]> {
   const output = await getExecOutput(codeql, [
     "resolve",
     "queries",
     "--format=json",
     "--additional-packs",
-    queryPack.path,
-    queryPack.name,
+    queryPackPath,
+    queryPackName,
   ]);
 
   return validateObject(JSON.parse(output.stdout), "resolvedQueries");

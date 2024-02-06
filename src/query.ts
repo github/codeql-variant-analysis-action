@@ -74,7 +74,7 @@ async function run(): Promise<void> {
     return;
   }
 
-  const queryPackInfo = getQueryPackInfo(queryPackPath);
+  const queryPackInfo = await getQueryPackInfo(codeql, queryPackPath);
 
   for (const repo of repos) {
     // Create a new directory to contain all files created during analysis of this repo.

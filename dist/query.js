@@ -74800,11 +74800,10 @@ async function runQuery(codeql, database, nwo, queryPack) {
     databaseName,
     queryPack.name
   ]);
-  const queryPaths = await getQueryPackQueries(codeql, queryPack);
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
-    queryPaths,
+    queryPack.queryPaths,
     queryPack.path,
     queryPack.name
   );
@@ -75053,22 +75052,24 @@ function getDatabaseMetadata(database) {
     return {};
   }
 }
-function getQueryPackInfo(queryPackPath) {
+async function getQueryPackInfo(codeql, queryPackPath) {
   queryPackPath = import_path.default.resolve(queryPackPath);
   const name = getQueryPackName(queryPackPath);
+  const queryPaths = await getQueryPackQueries(codeql, queryPackPath, name);
   return {
     path: queryPackPath,
-    name
+    name,
+    queryPaths
   };
 }
-async function getQueryPackQueries(codeql, queryPack) {
+async function getQueryPackQueries(codeql, queryPackPath, queryPackName) {
   const output = await (0, import_exec.getExecOutput)(codeql, [
     "resolve",
     "queries",
     "--format=json",
     "--additional-packs",
-    queryPack.path,
-    queryPack.name
+    queryPackPath,
+    queryPackName
   ]);
   return validateObject(JSON.parse(output.stdout), "resolvedQueries");
 }
@@ -75133,7 +75134,7 @@ async function run() {
     }
     return;
   }
-  const queryPackInfo = getQueryPackInfo(queryPackPath);
+  const queryPackInfo = await getQueryPackInfo(codeql, queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
     (0, import_process.chdir)(workDir);
