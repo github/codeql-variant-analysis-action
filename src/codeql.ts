@@ -89,10 +89,7 @@ export async function runQuery(
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
 
-  const shouldGenerateSarif = await queryPackSupportsSarif(
-    codeql,
-    queryPackRunResults,
-  );
+  const shouldGenerateSarif = queryPackSupportsSarif(queryPackRunResults);
 
   let resultCount: number;
   let sarifFilePath: string | undefined;
@@ -259,6 +256,7 @@ async function getSourceLocationPrefix(codeql: string) {
 interface QueryPackRunResults {
   queries: Array<{
     queryPath: string;
+    queryMetadata: QueryMetadata;
     relativeBqrsFilePath: string;
     bqrsInfo: BQRSInfo;
   }>;
@@ -277,13 +275,14 @@ async function getQueryPackRunResults(
 
   const queries: Array<{
     queryPath: string;
+    queryMetadata: QueryMetadata;
     relativeBqrsFilePath: string;
     bqrsInfo: BQRSInfo;
   }> = [];
 
   let totalResultsCount = 0;
 
-  for (const queryPath of queryPack.queryPaths) {
+  for (const [queryPath, queryMetadata] of Object.entries(queryPack.queries)) {
     // Calculate the BQRS file path
     const queryPackRelativePath = path.relative(queryPack.path, queryPath);
     const parsedQueryPath = path.parse(queryPackRelativePath);
@@ -304,6 +303,7 @@ async function getQueryPackRunResults(
 
     queries.push({
       queryPath,
+      queryMetadata,
       relativeBqrsFilePath,
       bqrsInfo,
     });
@@ -318,33 +318,25 @@ async function getQueryPackRunResults(
   };
 }
 
-async function querySupportsSarif(
-  codeql: string,
-  queryPath: string,
+function querySupportsSarif(
+  queryMetadata: QueryMetadata,
   bqrsInfo: BQRSInfo,
-): Promise<boolean> {
-  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-
-  const queryMetadata = await getQueryMetadata(codeql, queryPath);
-
+): boolean {
   const sarifOutputType = getSarifOutputType(
     queryMetadata,
-    compatibleQueryKinds,
+    bqrsInfo.compatibleQueryKinds,
   );
-
   return sarifOutputType !== undefined;
 }
 
-async function queryPackSupportsSarif(
-  codeql: string,
+function queryPackSupportsSarif(
   queriesResultInfo: QueryPackRunResults,
-) {
+): boolean {
   // Some queries in the pack must support SARIF in order
   // for the query pack to support SARIF.
   for (const query of queriesResultInfo.queries) {
-    const supportsSarif = await querySupportsSarif(
-      codeql,
-      query.queryPath,
+    const supportsSarif = querySupportsSarif(
+      query.queryMetadata,
       query.bqrsInfo,
     );
     if (!supportsSarif) {
@@ -497,7 +489,7 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
 interface QueryPackInfo {
   path: string;
   name: string;
-  queryPaths: string[];
+  queries: { [path: string]: QueryMetadata };
 }
 
 export async function getQueryPackInfo(
@@ -505,12 +497,20 @@ export async function getQueryPackInfo(
   queryPackPath: string,
 ): Promise<QueryPackInfo> {
   queryPackPath = path.resolve(queryPackPath);
+
   const name = getQueryPackName(queryPackPath);
+
   const queryPaths = await getQueryPackQueries(codeql, queryPackPath, name);
+  const queries: { [path: string]: QueryMetadata } = {};
+  for (const queryPath of queryPaths) {
+    const queryMetadata = await getQueryMetadata(codeql, queryPath);
+    queries[queryPath] = queryMetadata;
+  }
+
   return {
     path: queryPackPath,
     name,
-    queryPaths,
+    queries,
   };
 }
 

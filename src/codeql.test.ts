@@ -53,10 +53,13 @@ test.after(async (t) => {
 
 test("getting query pack info", async (t) => {
   const queryPackInfo = await getQueryPackInfo("codeql", "testdata/test_pack");
+
+  const queries = {};
+  queries[path.resolve("testdata/test_pack/x/query.ql")] = {};
   t.deepEqual(queryPackInfo, {
     path: path.resolve("testdata/test_pack"),
     name: "codeql/queries",
-    queryPaths: [path.resolve("testdata/test_pack/x/query.ql")],
+    queries,
   });
 });
 
@@ -65,13 +68,14 @@ test("getting query pack info with multiple queries", async (t) => {
     "codeql",
     "testdata/test_pack_multiple_queries",
   );
+
+  const queries = {};
+  queries[path.resolve("testdata/test_pack_multiple_queries/x/query.ql")] = {};
+  queries[path.resolve("testdata/test_pack_multiple_queries/z/query.ql")] = {};
   t.deepEqual(queryPackInfo, {
     path: path.resolve("testdata/test_pack_multiple_queries"),
     name: "codeql/queries",
-    queryPaths: [
-      path.resolve("testdata/test_pack_multiple_queries/x/query.ql"),
-      path.resolve("testdata/test_pack_multiple_queries/z/query.ql"),
-    ],
+    queries,
   });
 });
 

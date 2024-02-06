@@ -74806,10 +74806,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
     queryPack
   );
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
-  const shouldGenerateSarif = await queryPackSupportsSarif(
-    codeql,
-    queryPackRunResults
-  );
+  const shouldGenerateSarif = queryPackSupportsSarif(queryPackRunResults);
   let resultCount;
   let sarifFilePath;
   if (shouldGenerateSarif) {
@@ -74926,7 +74923,7 @@ async function getQueryPackRunResults(codeql, databaseName, queryPack) {
   const resultsBasePath = `${databaseName}/results`;
   const queries = [];
   let totalResultsCount = 0;
-  for (const queryPath of queryPack.queryPaths) {
+  for (const [queryPath, queryMetadata] of Object.entries(queryPack.queries)) {
     const queryPackRelativePath = import_path.default.relative(queryPack.path, queryPath);
     const parsedQueryPath = import_path.default.parse(queryPackRelativePath);
     const relativeBqrsFilePath = import_path.default.join(
@@ -74943,6 +74940,7 @@ async function getQueryPackRunResults(codeql, databaseName, queryPack) {
     const bqrsInfo = await getBqrsInfo(codeql, bqrsFilePath);
     queries.push({
       queryPath,
+      queryMetadata,
       relativeBqrsFilePath,
       bqrsInfo
     });
@@ -74954,20 +74952,17 @@ async function getQueryPackRunResults(codeql, databaseName, queryPack) {
     queries
   };
 }
-async function querySupportsSarif(codeql, queryPath, bqrsInfo) {
-  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-  const queryMetadata = await getQueryMetadata(codeql, queryPath);
+function querySupportsSarif(queryMetadata, bqrsInfo) {
   const sarifOutputType = getSarifOutputType(
     queryMetadata,
-    compatibleQueryKinds
+    bqrsInfo.compatibleQueryKinds
   );
   return sarifOutputType !== void 0;
 }
-async function queryPackSupportsSarif(codeql, queriesResultInfo) {
+function queryPackSupportsSarif(queriesResultInfo) {
   for (const query of queriesResultInfo.queries) {
-    const supportsSarif = await querySupportsSarif(
-      codeql,
-      query.queryPath,
+    const supportsSarif = querySupportsSarif(
+      query.queryMetadata,
       query.bqrsInfo
     );
     if (!supportsSarif) {
@@ -75054,10 +75049,15 @@ async function getQueryPackInfo(codeql, queryPackPath) {
   queryPackPath = import_path.default.resolve(queryPackPath);
   const name = getQueryPackName(queryPackPath);
   const queryPaths = await getQueryPackQueries(codeql, queryPackPath, name);
+  const queries = {};
+  for (const queryPath of queryPaths) {
+    const queryMetadata = await getQueryMetadata(codeql, queryPath);
+    queries[queryPath] = queryMetadata;
+  }
   return {
     path: queryPackPath,
     name,
-    queryPaths
+    queries
   };
 }
 async function getQueryPackQueries(codeql, queryPackPath, queryPackName) {
