@@ -17,6 +17,7 @@ import {
   getSarifOutputType,
   QueryMetadata,
   getBqrsResultCount,
+  getQueryPackInfo,
 } from "./codeql";
 
 const test = anyTest as TestFn<{ db: string; tmpDir: string }>;
@@ -51,7 +52,7 @@ test.after(async (t) => {
 });
 
 test("running a query in a pack", async (t) => {
-  const queryPack = path.resolve("testdata/test_pack");
+  const queryPack = getQueryPackInfo("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -75,7 +76,7 @@ test("running a query in a pack", async (t) => {
 });
 
 test("running multiple queries in a pack", async (t) => {
-  const queryPack = path.resolve("testdata/test_pack_multiple_queries");
+  const queryPack = getQueryPackInfo("testdata/test_pack_multiple_queries");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -176,7 +177,11 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
 });
 
 test("getting the default query from a pack", async (t) => {
-  t.deepEqual(await getQueryPackQueries("codeql", "testdata/test_pack"), [
+  const queryPack = {
+    path: "testdata/test_pack",
+    name: "codeql/queries",
+  };
+  t.deepEqual(await getQueryPackQueries("codeql", queryPack), [
     path.resolve("testdata/test_pack/x/query.ql"),
   ]);
 });

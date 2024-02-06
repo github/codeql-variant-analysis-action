@@ -74776,7 +74776,7 @@ function parseYamlFromFile(filePath) {
 }
 
 // src/codeql.ts
-async function runQuery(codeql, database, nwo, queryPackPath) {
+async function runQuery(codeql, database, nwo, queryPack) {
   import_fs2.default.mkdirSync("results");
   const databaseName = "db";
   await (0, import_exec.exec)(codeql, [
@@ -74790,24 +74790,23 @@ async function runQuery(codeql, database, nwo, queryPackPath) {
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
-  const queryPackName = getQueryPackName(queryPackPath);
   await (0, import_exec.exec)(codeql, [
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
-    queryPackPath,
+    queryPack.path,
     "--",
     databaseName,
-    queryPackName
+    queryPack.name
   ]);
-  const queryPaths = await getQueryPackQueries(codeql, queryPackPath);
+  const queryPaths = await getQueryPackQueries(codeql, queryPack);
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
     queryPaths,
-    queryPackPath,
-    queryPackName
+    queryPack.path,
+    queryPack.name
   );
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const shouldGenerateSarif = await queryPackSupportsSarif(
@@ -74821,7 +74820,7 @@ async function runQuery(codeql, database, nwo, queryPackPath) {
       codeql,
       nwo,
       databaseName,
-      queryPackPath,
+      queryPack.path,
       databaseSHA
     );
     resultCount = getSarifResultCount(sarif);
@@ -75054,14 +75053,22 @@ function getDatabaseMetadata(database) {
     return {};
   }
 }
-async function getQueryPackQueries(codeql, queryPackPath) {
+function getQueryPackInfo(queryPackPath) {
+  queryPackPath = import_path.default.resolve(queryPackPath);
+  const name = getQueryPackName(queryPackPath);
+  return {
+    path: queryPackPath,
+    name
+  };
+}
+async function getQueryPackQueries(codeql, queryPack) {
   const output = await (0, import_exec.getExecOutput)(codeql, [
     "resolve",
     "queries",
     "--format=json",
     "--additional-packs",
-    queryPackPath,
-    getQueryPackName(queryPackPath)
+    queryPack.path,
+    queryPack.name
   ]);
   return validateObject(JSON.parse(output.stdout), "resolvedQueries");
 }
@@ -75126,6 +75133,7 @@ async function run() {
     }
     return;
   }
+  const queryPackInfo = getQueryPackInfo(queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
     (0, import_process.chdir)(workDir);
@@ -75141,7 +75149,7 @@ async function run() {
         codeql,
         dbZip,
         repo.nwo,
-        queryPackPath
+        queryPackInfo
       );
       if (runQueryResult.resultCount > 0) {
         await uploadRepoResult(

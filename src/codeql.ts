@@ -51,7 +51,7 @@ export async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
-  queryPackPath: string,
+  queryPack: QueryPackInfo,
 ): Promise<RunQueryResult> {
   fs.mkdirSync("results");
 
@@ -69,28 +69,26 @@ export async function runQuery(
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
-  const queryPackName = getQueryPackName(queryPackPath);
-
   await exec(codeql, [
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
-    queryPackPath,
+    queryPack.path,
     "--",
     databaseName,
-    queryPackName,
+    queryPack.name,
   ]);
 
-  const queryPaths = await getQueryPackQueries(codeql, queryPackPath);
+  const queryPaths = await getQueryPackQueries(codeql, queryPack);
 
   // Calculate query run information like BQRS file paths, etc.
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
     queryPaths,
-    queryPackPath,
-    queryPackName,
+    queryPack.path,
+    queryPack.name,
   );
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
@@ -107,7 +105,7 @@ export async function runQuery(
       codeql,
       nwo,
       databaseName,
-      queryPackPath,
+      queryPack.path,
       databaseSHA,
     );
     resultCount = getSarifResultCount(sarif);
@@ -502,6 +500,20 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
   }
 }
 
+interface QueryPackInfo {
+  path: string;
+  name: string;
+}
+
+export function getQueryPackInfo(queryPackPath: string): QueryPackInfo {
+  queryPackPath = path.resolve(queryPackPath);
+  const name = getQueryPackName(queryPackPath);
+  return {
+    path: queryPackPath,
+    name,
+  };
+}
+
 // The expected output from "codeql resolve queries" in getQueryPackQueries
 export type ResolvedQueries = string[];
 
@@ -514,15 +526,15 @@ export type ResolvedQueries = string[];
  */
 export async function getQueryPackQueries(
   codeql: string,
-  queryPackPath: string,
+  queryPack: QueryPackInfo,
 ): Promise<string[]> {
   const output = await getExecOutput(codeql, [
     "resolve",
     "queries",
     "--format=json",
     "--additional-packs",
-    queryPackPath,
-    getQueryPackName(queryPackPath),
+    queryPack.path,
+    queryPack.name,
   ]);
 
   return validateObject(JSON.parse(output.stdout), "resolvedQueries");

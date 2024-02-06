@@ -7,7 +7,12 @@ import { extractTar, HTTPError } from "@actions/tool-cache";
 import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
-import { downloadDatabase, runQuery, RunQueryResult } from "./codeql";
+import {
+  downloadDatabase,
+  getQueryPackInfo,
+  runQuery,
+  RunQueryResult,
+} from "./codeql";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -69,6 +74,8 @@ async function run(): Promise<void> {
     return;
   }
 
+  const queryPackInfo = getQueryPackInfo(queryPackPath);
+
   for (const repo of repos) {
     // Create a new directory to contain all files created during analysis of this repo.
     const workDir = createTempRepoDir(curDir, repo);
@@ -89,7 +96,7 @@ async function run(): Promise<void> {
         codeql,
         dbZip,
         repo.nwo,
-        queryPackPath,
+        queryPackInfo,
       );
 
       if (runQueryResult.resultCount > 0) {
