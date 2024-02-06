@@ -84,9 +84,7 @@ export async function runQuery(
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
-    queryPack.queryPaths,
-    queryPack.path,
-    queryPack.name,
+    queryPack,
   );
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
@@ -271,9 +269,7 @@ interface QueryPackRunResults {
 async function getQueryPackRunResults(
   codeql: string,
   databaseName: string,
-  queryPaths: string[],
-  queryPackPath: string,
-  queryPackName: string,
+  queryPack: QueryPackInfo,
 ): Promise<QueryPackRunResults> {
   // This is where results are saved, according to
   // https://codeql.github.com/docs/codeql-cli/manual/database-run-queries/
@@ -287,12 +283,12 @@ async function getQueryPackRunResults(
 
   let totalResultsCount = 0;
 
-  for (const queryPath of queryPaths) {
+  for (const queryPath of queryPack.queryPaths) {
     // Calculate the BQRS file path
-    const queryPackRelativePath = path.relative(queryPackPath, queryPath);
+    const queryPackRelativePath = path.relative(queryPack.path, queryPath);
     const parsedQueryPath = path.parse(queryPackRelativePath);
     const relativeBqrsFilePath = path.join(
-      queryPackName,
+      queryPack.name,
       parsedQueryPath.dir,
       `${parsedQueryPath.name}.bqrs`,
     );

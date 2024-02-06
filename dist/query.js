@@ -74803,9 +74803,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
-    queryPack.queryPaths,
-    queryPack.path,
-    queryPack.name
+    queryPack
   );
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
   const shouldGenerateSarif = await queryPackSupportsSarif(
@@ -74924,15 +74922,15 @@ async function getSourceLocationPrefix(codeql) {
   );
   return resolvedDatabase.sourceLocationPrefix;
 }
-async function getQueryPackRunResults(codeql, databaseName, queryPaths, queryPackPath, queryPackName) {
+async function getQueryPackRunResults(codeql, databaseName, queryPack) {
   const resultsBasePath = `${databaseName}/results`;
   const queries = [];
   let totalResultsCount = 0;
-  for (const queryPath of queryPaths) {
-    const queryPackRelativePath = import_path.default.relative(queryPackPath, queryPath);
+  for (const queryPath of queryPack.queryPaths) {
+    const queryPackRelativePath = import_path.default.relative(queryPack.path, queryPath);
     const parsedQueryPath = import_path.default.parse(queryPackRelativePath);
     const relativeBqrsFilePath = import_path.default.join(
-      queryPackName,
+      queryPack.name,
       parsedQueryPath.dir,
       `${parsedQueryPath.name}.bqrs`
     );
