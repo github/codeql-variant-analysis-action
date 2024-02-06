@@ -51,6 +51,22 @@ test.after(async (t) => {
   }
 });
 
+test("getting query pack info", (t) => {
+  const queryPackInfo = getQueryPackInfo("testdata/test_pack");
+  t.deepEqual(queryPackInfo, {
+    path: path.resolve("testdata/test_pack"),
+    name: "codeql/queries",
+  });
+});
+
+test("getting query pack info with multiple queries", (t) => {
+  const queryPackInfo = getQueryPackInfo("testdata/test_pack_multiple_queries");
+  t.deepEqual(queryPackInfo, {
+    path: path.resolve("testdata/test_pack_multiple_queries"),
+    name: "codeql/queries",
+  });
+});
+
 test("running a query in a pack", async (t) => {
   const queryPack = getQueryPackInfo("testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
