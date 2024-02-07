@@ -1,3 +1,10 @@
+/**
+ * @name Test query
+ * @description Test query description
+ * @kind table
+ * @id test/query/id
+ */
+
 import y.MyLib
 
 from int i

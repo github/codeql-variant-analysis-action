@@ -55,7 +55,12 @@ test("getting query pack info", async (t) => {
   const queryPackInfo = await getQueryPackInfo("codeql", "testdata/test_pack");
 
   const queries = {};
-  queries[path.resolve("testdata/test_pack/x/query.ql")] = {};
+  queries[path.resolve("testdata/test_pack/x/query.ql")] = {
+    name: "Test query",
+    description: "Test query description",
+    kind: "table",
+    id: "test/query/id",
+  };
   t.deepEqual(queryPackInfo, {
     path: path.resolve("testdata/test_pack"),
     name: "codeql/queries",
@@ -70,8 +75,16 @@ test("getting query pack info with multiple queries", async (t) => {
   );
 
   const queries = {};
-  queries[path.resolve("testdata/test_pack_multiple_queries/x/query.ql")] = {};
-  queries[path.resolve("testdata/test_pack_multiple_queries/z/query.ql")] = {};
+  queries[path.resolve("testdata/test_pack_multiple_queries/x/query.ql")] = {
+    name: "Test query 1",
+    kind: "table",
+    id: "test/query/one",
+  };
+  queries[path.resolve("testdata/test_pack_multiple_queries/z/query.ql")] = {
+    name: "Test query 2",
+    kind: "table",
+    id: "test/query/two",
+  };
   t.deepEqual(queryPackInfo, {
     path: path.resolve("testdata/test_pack_multiple_queries"),
     name: "codeql/queries",
