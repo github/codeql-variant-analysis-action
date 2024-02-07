@@ -1,3 +1,9 @@
+/**
+ * @name Test query 2
+ * @kind table
+ * @id test/query/two
+ */
+
 import y.MyLib
 
 from int i

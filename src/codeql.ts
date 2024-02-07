@@ -51,7 +51,7 @@ export async function runQuery(
   codeql: string,
   database: string,
   nwo: string,
-  queryPackPath: string,
+  queryPack: QueryPackInfo,
 ): Promise<RunQueryResult> {
   fs.mkdirSync("results");
 
@@ -69,36 +69,27 @@ export async function runQuery(
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
-  const queryPackName = getQueryPackName(queryPackPath);
-
   await exec(codeql, [
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
-    queryPackPath,
+    queryPack.path,
     "--",
     databaseName,
-    queryPackName,
+    queryPack.name,
   ]);
-
-  const queryPaths = await getQueryPackQueries(codeql, queryPackPath);
 
   // Calculate query run information like BQRS file paths, etc.
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
     databaseName,
-    queryPaths,
-    queryPackPath,
-    queryPackName,
+    queryPack,
   );
 
   const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
 
-  const shouldGenerateSarif = await queryPackSupportsSarif(
-    codeql,
-    queryPackRunResults,
-  );
+  const shouldGenerateSarif = queryPackSupportsSarif(queryPackRunResults);
 
   let resultCount: number;
   let sarifFilePath: string | undefined;
@@ -107,7 +98,7 @@ export async function runQuery(
       codeql,
       nwo,
       databaseName,
-      queryPackPath,
+      queryPack.path,
       databaseSHA,
     );
     resultCount = getSarifResultCount(sarif);
@@ -265,6 +256,7 @@ async function getSourceLocationPrefix(codeql: string) {
 interface QueryPackRunResults {
   queries: Array<{
     queryPath: string;
+    queryMetadata: QueryMetadata;
     relativeBqrsFilePath: string;
     bqrsInfo: BQRSInfo;
   }>;
@@ -275,9 +267,7 @@ interface QueryPackRunResults {
 async function getQueryPackRunResults(
   codeql: string,
   databaseName: string,
-  queryPaths: string[],
-  queryPackPath: string,
-  queryPackName: string,
+  queryPack: QueryPackInfo,
 ): Promise<QueryPackRunResults> {
   // This is where results are saved, according to
   // https://codeql.github.com/docs/codeql-cli/manual/database-run-queries/
@@ -285,18 +275,19 @@ async function getQueryPackRunResults(
 
   const queries: Array<{
     queryPath: string;
+    queryMetadata: QueryMetadata;
     relativeBqrsFilePath: string;
     bqrsInfo: BQRSInfo;
   }> = [];
 
   let totalResultsCount = 0;
 
-  for (const queryPath of queryPaths) {
+  for (const [queryPath, queryMetadata] of Object.entries(queryPack.queries)) {
     // Calculate the BQRS file path
-    const queryPackRelativePath = path.relative(queryPackPath, queryPath);
+    const queryPackRelativePath = path.relative(queryPack.path, queryPath);
     const parsedQueryPath = path.parse(queryPackRelativePath);
     const relativeBqrsFilePath = path.join(
-      queryPackName,
+      queryPack.name,
       parsedQueryPath.dir,
       `${parsedQueryPath.name}.bqrs`,
     );
@@ -312,6 +303,7 @@ async function getQueryPackRunResults(
 
     queries.push({
       queryPath,
+      queryMetadata,
       relativeBqrsFilePath,
       bqrsInfo,
     });
@@ -326,33 +318,25 @@ async function getQueryPackRunResults(
   };
 }
 
-async function querySupportsSarif(
-  codeql: string,
-  queryPath: string,
+function querySupportsSarif(
+  queryMetadata: QueryMetadata,
   bqrsInfo: BQRSInfo,
-): Promise<boolean> {
-  const compatibleQueryKinds = bqrsInfo.compatibleQueryKinds;
-
-  const queryMetadata = await getQueryMetadata(codeql, queryPath);
-
+): boolean {
   const sarifOutputType = getSarifOutputType(
     queryMetadata,
-    compatibleQueryKinds,
+    bqrsInfo.compatibleQueryKinds,
   );
-
   return sarifOutputType !== undefined;
 }
 
-async function queryPackSupportsSarif(
-  codeql: string,
+function queryPackSupportsSarif(
   queriesResultInfo: QueryPackRunResults,
-) {
+): boolean {
   // Some queries in the pack must support SARIF in order
   // for the query pack to support SARIF.
   for (const query of queriesResultInfo.queries) {
-    const supportsSarif = await querySupportsSarif(
-      codeql,
-      query.queryPath,
+    const supportsSarif = querySupportsSarif(
+      query.queryMetadata,
       query.bqrsInfo,
     );
     if (!supportsSarif) {
@@ -502,6 +486,34 @@ export function getDatabaseMetadata(database: string): DatabaseMetadata {
   }
 }
 
+interface QueryPackInfo {
+  path: string;
+  name: string;
+  queries: { [path: string]: QueryMetadata };
+}
+
+export async function getQueryPackInfo(
+  codeql: string,
+  queryPackPath: string,
+): Promise<QueryPackInfo> {
+  queryPackPath = path.resolve(queryPackPath);
+
+  const name = getQueryPackName(queryPackPath);
+
+  const queryPaths = await getQueryPackQueries(codeql, queryPackPath, name);
+  const queries: { [path: string]: QueryMetadata } = {};
+  for (const queryPath of queryPaths) {
+    const queryMetadata = await getQueryMetadata(codeql, queryPath);
+    queries[queryPath] = queryMetadata;
+  }
+
+  return {
+    path: queryPackPath,
+    name,
+    queries,
+  };
+}
+
 // The expected output from "codeql resolve queries" in getQueryPackQueries
 export type ResolvedQueries = string[];
 
@@ -515,6 +527,7 @@ export type ResolvedQueries = string[];
 export async function getQueryPackQueries(
   codeql: string,
   queryPackPath: string,
+  queryPackName: string,
 ): Promise<string[]> {
   const output = await getExecOutput(codeql, [
     "resolve",
@@ -522,7 +535,7 @@ export async function getQueryPackQueries(
     "--format=json",
     "--additional-packs",
     queryPackPath,
-    getQueryPackName(queryPackPath),
+    queryPackName,
   ]);
 
   return validateObject(JSON.parse(output.stdout), "resolvedQueries");

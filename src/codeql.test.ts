@@ -17,6 +17,7 @@ import {
   getSarifOutputType,
   QueryMetadata,
   getBqrsResultCount,
+  getQueryPackInfo,
 } from "./codeql";
 
 const test = anyTest as TestFn<{ db: string; tmpDir: string }>;
@@ -50,8 +51,49 @@ test.after(async (t) => {
   }
 });
 
+test("getting query pack info", async (t) => {
+  const queryPackInfo = await getQueryPackInfo("codeql", "testdata/test_pack");
+
+  const queries = {};
+  queries[path.resolve("testdata/test_pack/x/query.ql")] = {
+    name: "Test query",
+    description: "Test query description",
+    kind: "table",
+    id: "test/query/id",
+  };
+  t.deepEqual(queryPackInfo, {
+    path: path.resolve("testdata/test_pack"),
+    name: "codeql/queries",
+    queries,
+  });
+});
+
+test("getting query pack info with multiple queries", async (t) => {
+  const queryPackInfo = await getQueryPackInfo(
+    "codeql",
+    "testdata/test_pack_multiple_queries",
+  );
+
+  const queries = {};
+  queries[path.resolve("testdata/test_pack_multiple_queries/x/query.ql")] = {
+    name: "Test query 1",
+    kind: "table",
+    id: "test/query/one",
+  };
+  queries[path.resolve("testdata/test_pack_multiple_queries/z/query.ql")] = {
+    name: "Test query 2",
+    kind: "table",
+    id: "test/query/two",
+  };
+  t.deepEqual(queryPackInfo, {
+    path: path.resolve("testdata/test_pack_multiple_queries"),
+    name: "codeql/queries",
+    queries,
+  });
+});
+
 test("running a query in a pack", async (t) => {
-  const queryPack = path.resolve("testdata/test_pack");
+  const queryPack = await getQueryPackInfo("codeql", "testdata/test_pack");
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -75,7 +117,10 @@ test("running a query in a pack", async (t) => {
 });
 
 test("running multiple queries in a pack", async (t) => {
-  const queryPack = path.resolve("testdata/test_pack_multiple_queries");
+  const queryPack = await getQueryPackInfo(
+    "codeql",
+    "testdata/test_pack_multiple_queries",
+  );
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
@@ -175,10 +220,11 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
   }
 });
 
-test("getting the default query from a pack", async (t) => {
-  t.deepEqual(await getQueryPackQueries("codeql", "testdata/test_pack"), [
-    path.resolve("testdata/test_pack/x/query.ql"),
-  ]);
+test("getting the queries from a pack", async (t) => {
+  t.deepEqual(
+    await getQueryPackQueries("codeql", "testdata/test_pack", "codeql/queries"),
+    [path.resolve("testdata/test_pack/x/query.ql")],
+  );
 });
 
 test("populating the SARIF versionControlProvenance property", (t) => {
