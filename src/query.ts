@@ -13,7 +13,7 @@ import {
   runQuery,
   RunQueryResult,
 } from "./codeql";
-import { BaseCodeqlCli } from "./codeql-cli";
+import { BaseCodeqlCli, CodeqlCliServer } from "./codeql-cli";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -75,7 +75,9 @@ async function run(): Promise<void> {
     return;
   }
 
-  const codeqlCli = new BaseCodeqlCli(codeql);
+  const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER
+    ? new CodeqlCliServer(codeql)
+    : new BaseCodeqlCli(codeql);
 
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 

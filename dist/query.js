@@ -75349,6 +75349,8 @@ function getQueryPackName(queryPackPath) {
 }
 
 // src/codeql-cli.ts
+var import_node_child_process = require("node:child_process");
+var import_node_os = require("node:os");
 var import_core2 = __toESM(require_core());
 var import_exec = __toESM(require_exec());
 var BaseCodeqlCli = class {
@@ -75361,6 +75363,165 @@ var BaseCodeqlCli = class {
       args
     );
     return { stdout, stderr, exitCode };
+  }
+};
+var CodeqlCliServer = class {
+  constructor(codeqlPath) {
+    this.codeqlPath = codeqlPath;
+  }
+  /**
+   * The process for the cli server, or undefined if one doesn't exist yet
+   */
+  process;
+  /**
+   * Queue of future commands
+   */
+  commandQueue = [];
+  /**
+   * Whether a command is running
+   */
+  commandInProcess = false;
+  /**
+   * A buffer with a single null byte.
+   */
+  nullBuffer = Buffer.alloc(1);
+  run(args) {
+    return new Promise((resolve, reject) => {
+      const callback = () => {
+        try {
+          this.runCommandImmediately(args).then(resolve, reject);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      if (this.commandInProcess) {
+        this.commandQueue.push(callback);
+      } else {
+        callback();
+      }
+    });
+  }
+  /**
+   * Launch the cli server
+   */
+  launchProcess() {
+    const args = ["execute", "cli-server"];
+    const argsString = args.join(" ");
+    void (0, import_core2.debug)(`Starting using CodeQL CLI: ${this.codeqlPath} ${argsString}`);
+    const child = (0, import_node_child_process.spawn)(this.codeqlPath, args);
+    if (!child || !child.pid) {
+      throw new Error(
+        `Failed to start using command ${this.codeqlPath} ${argsString}.`
+      );
+    }
+    let lastStdout = void 0;
+    child.stdout.on("data", (data) => {
+      lastStdout = data;
+    });
+    child.on("close", (code, signal) => {
+      if (code !== null) {
+        (0, import_core2.debug)(`Child process exited with code ${code}`);
+      }
+      if (signal) {
+        (0, import_core2.debug)(`Child process exited due to receipt of signal ${signal}`);
+      }
+      if (code !== 0 && lastStdout !== void 0) {
+        (0, import_core2.debug)(`Last stdout was "${lastStdout.toString()}"`);
+      }
+    });
+    return child;
+  }
+  async runCommandImmediately(args) {
+    const stderrBuffers = [];
+    if (this.commandInProcess) {
+      throw new Error(
+        "runCommandImmediately called while command was in process"
+      );
+    }
+    this.commandInProcess = true;
+    try {
+      if (!this.process) {
+        this.process = this.launchProcess();
+      }
+      const process2 = this.process;
+      const stdoutBuffers = [];
+      void (0, import_core2.debug)(`Running using CodeQL CLI: ${args.join(" ")}`);
+      try {
+        await new Promise((resolve, reject) => {
+          process2.stdout.addListener("data", (newData) => {
+            stdoutBuffers.push(newData);
+            if (newData.length > 0 && newData.readUInt8(newData.length - 1) === 0) {
+              resolve();
+            }
+          });
+          process2.stderr.addListener("data", (newData) => {
+            stderrBuffers.push(newData);
+          });
+          process2.addListener(
+            "close",
+            (code) => reject(
+              new Error(
+                `The process ${this.codeqlPath} ${args.join(" ")} exited with code ${code}`
+              )
+            )
+          );
+          process2.stdin.write(JSON.stringify(args), "utf8");
+          process2.stdin.write(this.nullBuffer);
+        });
+        void (0, import_core2.debug)("CLI command succeeded.");
+        const stdoutBuffer = Buffer.concat(stdoutBuffers);
+        return {
+          exitCode: 0,
+          stdout: stdoutBuffer.toString("utf8", 0, stdoutBuffer.length - 1),
+          stderr: Buffer.concat(stderrBuffers).toString("utf8")
+        };
+      } catch (err) {
+        this.killProcessIfRunning();
+        if (stderrBuffers.length > 0) {
+          (0, import_core2.error)(
+            `Failed to run ${args.join(" ")}:${import_node_os.EOL} ${Buffer.concat(stderrBuffers).toString("utf8")}`
+          );
+        }
+        throw err;
+      } finally {
+        (0, import_core2.debug)(Buffer.concat(stderrBuffers).toString("utf8"));
+        process2.stdout.removeAllListeners("data");
+        process2.stderr.removeAllListeners("data");
+        process2.removeAllListeners("close");
+      }
+    } finally {
+      this.commandInProcess = false;
+      this.runNext();
+    }
+  }
+  /**
+   * Run the next command in the queue
+   */
+  runNext() {
+    const callback = this.commandQueue.shift();
+    if (callback) {
+      callback();
+    }
+  }
+  killProcessIfRunning() {
+    if (this.process) {
+      (0, import_core2.debug)("Sending shutdown request");
+      try {
+        this.process.stdin.write(JSON.stringify(["shutdown"]), "utf8");
+        this.process.stdin.write(this.nullBuffer);
+        (0, import_core2.debug)("Sent shutdown request");
+      } catch (e) {
+        (0, import_core2.debug)(
+          `Shutdown request failed: process stdin may have already closed. The error was ${e}`
+        );
+        (0, import_core2.debug)("Stopping the process anyway.");
+      }
+      this.process.stdin.end();
+      this.process.kill();
+      this.process.stdout.destroy();
+      this.process.stderr.destroy();
+      this.process = void 0;
+    }
   }
 };
 
@@ -75406,7 +75567,7 @@ async function run() {
     }
     return;
   }
-  const codeqlCli = new BaseCodeqlCli(codeql);
+  const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER ? new CodeqlCliServer(codeql) : new BaseCodeqlCli(codeql);
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
