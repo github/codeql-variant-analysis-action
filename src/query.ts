@@ -28,6 +28,8 @@ import {
   Repo,
 } from "./inputs";
 
+const shutdownHandlers: Array<() => void> = [];
+
 async function run(): Promise<void> {
   const controllerRepoId = getControllerRepoId();
   const queryPackUrl = getInput("query_pack_url", { required: true });
@@ -78,6 +80,13 @@ async function run(): Promise<void> {
   const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER
     ? new CodeqlCliServer(codeql)
     : new BaseCodeqlCli(codeql);
+
+  if (codeqlCli instanceof CodeqlCliServer) {
+    // Shut down the CLI server when the action is done
+    shutdownHandlers.push(() => {
+      codeqlCli.shutdown();
+    });
+  }
 
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 
@@ -213,4 +222,8 @@ function createTempRepoDir(curDir: string, repo: Repo): string {
   return workDir;
 }
 
-void run();
+void run().finally(() => {
+  for (const handler of shutdownHandlers) {
+    handler();
+  }
+});

@@ -75401,6 +75401,9 @@ var CodeqlCliServer = class {
       }
     });
   }
+  shutdown() {
+    this.killProcessIfRunning();
+  }
   /**
    * Launch the cli server
    */
@@ -75526,6 +75529,7 @@ var CodeqlCliServer = class {
 };
 
 // src/query.ts
+var shutdownHandlers = [];
 async function run() {
   const controllerRepoId = getControllerRepoId();
   const queryPackUrl = (0, import_core3.getInput)("query_pack_url", { required: true });
@@ -75568,6 +75572,11 @@ async function run() {
     return;
   }
   const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER ? new CodeqlCliServer(codeql) : new BaseCodeqlCli(codeql);
+  if (codeqlCli instanceof CodeqlCliServer) {
+    shutdownHandlers.push(() => {
+      codeqlCli.shutdown();
+    });
+  }
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
@@ -75665,7 +75674,11 @@ function createTempRepoDir(curDir, repo) {
   const workDir = import_fs3.default.mkdtempSync(import_path2.default.join(curDir, repo.id.toString()));
   return workDir;
 }
-void run();
+void run().finally(() => {
+  for (const handler of shutdownHandlers) {
+    handler();
+  }
+});
 /*! Bundled license information:
 
 undici/lib/fetch/body.js:

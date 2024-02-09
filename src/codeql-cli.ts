@@ -67,6 +67,10 @@ export class CodeqlCliServer implements CodeqlCli {
     });
   }
 
+  shutdown() {
+    this.killProcessIfRunning();
+  }
+
   /**
    * Launch the cli server
    */
