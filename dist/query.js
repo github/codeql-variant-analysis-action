@@ -75041,14 +75041,15 @@ function parseYamlFromFile(filePath) {
 // src/codeql.ts
 async function runQuery(codeql, database, nwo, queryPack) {
   import_fs2.default.mkdirSync("results");
-  const databaseName = "db";
+  const databasePath = import_path.default.resolve("db");
   await (0, import_exec.exec)(codeql, [
     "database",
     "unbundle",
     database,
-    `--name=${databaseName}`
+    `--name=${import_path.default.basename(databasePath)}`,
+    `--target=${import_path.default.dirname(databasePath)}`
   ]);
-  const dbMetadata = getDatabaseMetadata(databaseName);
+  const dbMetadata = getDatabaseMetadata(databasePath);
   console.log(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
@@ -75060,15 +75061,18 @@ async function runQuery(codeql, database, nwo, queryPack) {
     "--additional-packs",
     queryPack.path,
     "--",
-    databaseName,
+    databasePath,
     queryPack.name
   ]);
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
-    databaseName,
+    databasePath,
     queryPack
   );
-  const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
+  const sourceLocationPrefix = await getSourceLocationPrefix(
+    codeql,
+    databasePath
+  );
   const shouldGenerateSarif = queryPackSupportsSarif(queryPackRunResults);
   let resultCount;
   let sarifFilePath;
@@ -75076,12 +75080,12 @@ async function runQuery(codeql, database, nwo, queryPack) {
     const sarif = await generateSarif(
       codeql,
       nwo,
-      databaseName,
+      databasePath,
       queryPack.path,
       databaseSHA
     );
     resultCount = getSarifResultCount(sarif);
-    sarifFilePath = import_path.default.join("results", "results.sarif");
+    sarifFilePath = import_path.default.resolve("results", "results.sarif");
     import_fs2.default.writeFileSync(sarifFilePath, JSON.stringify(sarif));
   } else {
     resultCount = queryPackRunResults.totalResultsCount;
@@ -75090,7 +75094,6 @@ async function runQuery(codeql, database, nwo, queryPack) {
   return {
     resultCount,
     databaseSHA,
-    databaseName,
     sourceLocationPrefix,
     bqrsFilePaths,
     sarifFilePath
@@ -75102,7 +75105,7 @@ async function adjustBqrsFiles(queryPackRunResults) {
       queryPackRunResults.resultsBasePath,
       queryPackRunResults.queries[0].relativeBqrsFilePath
     );
-    const newBqrsFilePath = import_path.default.join("results", "results.bqrs");
+    const newBqrsFilePath = import_path.default.resolve("results", "results.bqrs");
     await import_fs2.default.promises.rename(currentBqrsFilePath, newBqrsFilePath);
     return { basePath: "results", relativeFilePaths: ["results.bqrs"] };
   }
@@ -75170,11 +75173,11 @@ async function getBqrsInfo(codeql, bqrs) {
     "bqrsInfo"
   );
 }
-async function getSourceLocationPrefix(codeql) {
+async function getSourceLocationPrefix(codeql, databasePath) {
   const resolveDbOutput = await (0, import_exec.getExecOutput)(codeql, [
     "resolve",
     "database",
-    "db"
+    databasePath
   ]);
   const resolvedDatabase = validateObject(
     JSON.parse(resolveDbOutput.stdout),
@@ -75182,8 +75185,8 @@ async function getSourceLocationPrefix(codeql) {
   );
   return resolvedDatabase.sourceLocationPrefix;
 }
-async function getQueryPackRunResults(codeql, databaseName, queryPack) {
-  const resultsBasePath = `${databaseName}/results`;
+async function getQueryPackRunResults(codeql, databasePath, queryPack) {
+  const resultsBasePath = import_path.default.resolve(databasePath, "results");
   const queries = [];
   let totalResultsCount = 0;
   for (const [queryPath, queryMetadata] of Object.entries(queryPack.queries)) {
@@ -75237,8 +75240,8 @@ function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
     return void 0;
   }
 }
-async function generateSarif(codeql, nwo, databaseName, queryPackPath, databaseSHA) {
-  const sarifFile = import_path.default.join("results", "results.sarif");
+async function generateSarif(codeql, nwo, databasePath, queryPackPath, databaseSHA) {
+  const sarifFile = import_path.default.resolve("results", "results.sarif");
   await (0, import_exec.exec)(codeql, [
     "database",
     "interpret-results",
@@ -75246,7 +75249,7 @@ async function generateSarif(codeql, nwo, databaseName, queryPackPath, databaseS
     `--output=${sarifFile}`,
     "--sarif-add-snippets",
     "--no-group-results",
-    databaseName,
+    databasePath,
     queryPackPath
   ]);
   const sarif = validateObject(
@@ -75291,10 +75294,10 @@ function getBqrsResultCount(bqrsInfo) {
     `BQRS does not contain any result sets matching known names. Expected one of ${KNOWN_RESULT_SET_NAMES.join(" or ")} but found ${resultSetNames.join(", ")}`
   );
 }
-function getDatabaseMetadata(database) {
+function getDatabaseMetadata(databasePath) {
   try {
     return parseYamlFromFile(
-      import_path.default.join(database, "codeql-database.yml")
+      import_path.default.join(databasePath, "codeql-database.yml")
     );
   } catch (error) {
     console.log(`Unable to read codeql-database.yml: ${error}`);
@@ -75399,10 +75402,11 @@ async function run() {
         repo.id
       );
       const dbZip = await getDatabase(repo, language);
+      const dbZipPath = import_path2.default.resolve(dbZip);
       console.log("Running query");
       const runQueryResult = await runQuery(
         codeql,
-        dbZip,
+        dbZipPath,
         repo.nwo,
         queryPackInfo
       );

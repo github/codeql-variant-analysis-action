@@ -90,11 +90,12 @@ async function run(): Promise<void> {
       );
 
       const dbZip = await getDatabase(repo, language);
+      const dbZipPath = path.resolve(dbZip);
 
       console.log("Running query");
       const runQueryResult = await runQuery(
         codeql,
-        dbZip,
+        dbZipPath,
         repo.nwo,
         queryPackInfo,
       );
