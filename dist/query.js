@@ -74854,6 +74854,9 @@ async function uploadArtifact(policy, artifactContents) {
       if (err instanceof HTTPError && err.httpStatusCode) {
         return err.httpStatusCode === 504;
       }
+      if (err.message.includes("Request timeout")) {
+        return true;
+      }
       return false;
     }
   );
