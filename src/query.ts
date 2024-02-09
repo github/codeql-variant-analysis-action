@@ -13,6 +13,7 @@ import {
   runQuery,
   RunQueryResult,
 } from "./codeql";
+import { BaseCodeqlCli } from "./codeql-cli";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -74,7 +75,9 @@ async function run(): Promise<void> {
     return;
   }
 
-  const queryPackInfo = await getQueryPackInfo(codeql, queryPackPath);
+  const codeqlCli = new BaseCodeqlCli(codeql);
+
+  const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 
   for (const repo of repos) {
     // Create a new directory to contain all files created during analysis of this repo.
@@ -94,7 +97,7 @@ async function run(): Promise<void> {
 
       console.log("Running query");
       const runQueryResult = await runQuery(
-        codeql,
+        codeqlCli,
         dbZipPath,
         repo.nwo,
         queryPackInfo,

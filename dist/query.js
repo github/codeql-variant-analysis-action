@@ -20209,7 +20209,7 @@ var require_exec = __commonJS({
     exports2.getExecOutput = exports2.exec = void 0;
     var string_decoder_1 = require("string_decoder");
     var tr = __importStar(require_toolrunner());
-    function exec2(commandLine, args, options) {
+    function exec(commandLine, args, options) {
       return __awaiter(this, void 0, void 0, function* () {
         const commandArgs = tr.argStringToArray(commandLine);
         if (commandArgs.length === 0) {
@@ -20221,7 +20221,7 @@ var require_exec = __commonJS({
         return runner.exec();
       });
     }
-    exports2.exec = exec2;
+    exports2.exec = exec;
     function getExecOutput2(commandLine, args, options) {
       var _a, _b;
       return __awaiter(this, void 0, void 0, function* () {
@@ -20244,7 +20244,7 @@ var require_exec = __commonJS({
           }
         };
         const listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener });
-        const exitCode = yield exec2(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
+        const exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
         stdout += stdoutDecoder.end();
         stderr += stderrDecoder.end();
         return {
@@ -74894,7 +74894,6 @@ async function uploadArtifactImpl(policy, artifactContents) {
 // src/codeql.ts
 var import_fs2 = __toESM(require("fs"));
 var import_path = __toESM(require("path"));
-var import_exec = __toESM(require_exec());
 
 // src/deserialize.ts
 function camelize(_, value) {
@@ -75042,7 +75041,7 @@ function parseYamlFromFile(filePath) {
 async function runQuery(codeql, database, nwo, queryPack) {
   import_fs2.default.mkdirSync("results");
   const databasePath = import_path.default.resolve("db");
-  await (0, import_exec.exec)(codeql, [
+  await codeql.run([
     "database",
     "unbundle",
     database,
@@ -75054,7 +75053,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
-  await (0, import_exec.exec)(codeql, [
+  await codeql.run([
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
@@ -75140,7 +75139,7 @@ async function downloadDatabase(repoId, repoName, language, pat) {
   }
 }
 async function getQueryMetadata(codeql, query) {
-  const queryMetadataOutput = await (0, import_exec.getExecOutput)(codeql, [
+  const queryMetadataOutput = await codeql.run([
     "resolve",
     "metadata",
     "--format=json",
@@ -75157,7 +75156,7 @@ async function getQueryMetadata(codeql, query) {
   );
 }
 async function getBqrsInfo(codeql, bqrs) {
-  const bqrsInfoOutput = await (0, import_exec.getExecOutput)(codeql, [
+  const bqrsInfoOutput = await codeql.run([
     "bqrs",
     "info",
     "--format=json",
@@ -75174,7 +75173,7 @@ async function getBqrsInfo(codeql, bqrs) {
   );
 }
 async function getSourceLocationPrefix(codeql, databasePath) {
-  const resolveDbOutput = await (0, import_exec.getExecOutput)(codeql, [
+  const resolveDbOutput = await codeql.run([
     "resolve",
     "database",
     databasePath
@@ -75242,7 +75241,7 @@ function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
 }
 async function generateSarif(codeql, nwo, databasePath, queryPackPath, databaseSHA) {
   const sarifFile = import_path.default.resolve("results", "results.sarif");
-  await (0, import_exec.exec)(codeql, [
+  await codeql.run([
     "database",
     "interpret-results",
     "--format=sarif-latest",
@@ -75320,7 +75319,7 @@ async function getQueryPackInfo(codeql, queryPackPath) {
   };
 }
 async function getQueryPackQueries(codeql, queryPackPath, queryPackName) {
-  const output = await (0, import_exec.getExecOutput)(codeql, [
+  const output = await codeql.run([
     "resolve",
     "queries",
     "--format=json",
@@ -75348,6 +75347,21 @@ function getQueryPackName(queryPackPath) {
   const packContents = parseYamlFromFile(packFile);
   return packContents.name;
 }
+
+// src/codeql-cli.ts
+var import_exec = __toESM(require_exec());
+var BaseCodeqlCli = class {
+  constructor(codeqlPath) {
+    this.codeqlPath = codeqlPath;
+  }
+  async run(args) {
+    const { stdout, stderr, exitCode } = await (0, import_exec.getExecOutput)(
+      this.codeqlPath,
+      args
+    );
+    return { stdout, stderr, exitCode };
+  }
+};
 
 // src/query.ts
 async function run() {
@@ -75391,7 +75405,8 @@ async function run() {
     }
     return;
   }
-  const queryPackInfo = await getQueryPackInfo(codeql, queryPackPath);
+  const codeqlCli = new BaseCodeqlCli(codeql);
+  const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
     (0, import_process.chdir)(workDir);
@@ -75405,7 +75420,7 @@ async function run() {
       const dbZipPath = import_path2.default.resolve(dbZip);
       console.log("Running query");
       const runQueryResult = await runQuery(
-        codeql,
+        codeqlCli,
         dbZipPath,
         repo.nwo,
         queryPackInfo

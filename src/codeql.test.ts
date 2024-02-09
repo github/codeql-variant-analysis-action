@@ -2,7 +2,6 @@ import fs from "fs";
 import { tmpdir } from "os";
 import path from "path";
 
-import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
 import anyTest, { TestFn } from "ava";
 
@@ -20,12 +19,13 @@ import {
   getBqrsResultCount,
   getQueryPackInfo,
 } from "./codeql";
+import { BaseCodeqlCli, CodeqlCli } from "./codeql-cli";
 
 const test = anyTest as TestFn<{
   db: string;
   tmpDir: string;
   dbTmpDir: string;
-  codeql: string;
+  codeql: CodeqlCli;
 }>;
 
 test.before(async (t) => {
@@ -38,9 +38,9 @@ test.before(async (t) => {
   const testFile = path.join(projectDir, "test.js");
   fs.writeFileSync(testFile, "const x = 1;");
 
-  const codeql = process.env.CODEQL_BIN_PATH || "codeql";
+  const codeql = new BaseCodeqlCli(process.env.CODEQL_BIN_PATH || "codeql");
 
-  await exec(codeql, [
+  await codeql.run([
     "database",
     "create",
     "--language=javascript",
@@ -49,7 +49,7 @@ test.before(async (t) => {
   ]);
 
   const dbZip = path.join(dbTmpDir, "database.zip");
-  await exec(codeql, ["database", "bundle", `--output=${dbZip}`, dbDir]);
+  await codeql.run(["database", "bundle", `--output=${dbZip}`, dbDir]);
   t.context.db = dbZip;
 
   t.context.codeql = codeql;

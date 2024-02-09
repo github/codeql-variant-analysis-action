@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { exec, getExecOutput } from "@actions/exec";
-
+import { CodeqlCli } from "./codeql-cli";
 import { camelize } from "./deserialize";
 import { download } from "./download";
 import { HTTPError } from "./http-error";
@@ -39,7 +38,7 @@ export interface Sarif {
  * - query/    (query.ql and any other supporting files)
  * - results/  (results.{bqrs,sarif})
  *
- * @param     codeql                    The path to the codeql binary
+ * @param     codeql                    A runner of the CodeQL CLI to execute commands
  * @param     database                  The path to the bundled database zip file
  * @param     nwo                       The name of the repository
  * @param     queryPackPath             The path to the query pack
@@ -47,7 +46,7 @@ export interface Sarif {
  * about the query result and paths to the result files.
  */
 export async function runQuery(
-  codeql: string,
+  codeql: CodeqlCli,
   database: string,
   nwo: string,
   queryPack: QueryPackInfo,
@@ -55,7 +54,7 @@ export async function runQuery(
   fs.mkdirSync("results");
 
   const databasePath = path.resolve("db");
-  await exec(codeql, [
+  await codeql.run([
     "database",
     "unbundle",
     database,
@@ -69,7 +68,7 @@ export async function runQuery(
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
-  await exec(codeql, [
+  await codeql.run([
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
@@ -187,10 +186,10 @@ export type QueryMetadata = {
 
 // Calls `resolve metadata` for the given query file and returns JSON output
 async function getQueryMetadata(
-  codeql: string,
+  codeql: CodeqlCli,
   query: string,
 ): Promise<QueryMetadata> {
-  const queryMetadataOutput = await getExecOutput(codeql, [
+  const queryMetadataOutput = await codeql.run([
     "resolve",
     "metadata",
     "--format=json",
@@ -217,10 +216,10 @@ export interface BQRSInfo {
 
 // Calls `bqrs info` for the given bqrs file and returns JSON output
 export async function getBqrsInfo(
-  codeql: string,
+  codeql: CodeqlCli,
   bqrs: string,
 ): Promise<BQRSInfo> {
-  const bqrsInfoOutput = await getExecOutput(codeql, [
+  const bqrsInfoOutput = await codeql.run([
     "bqrs",
     "info",
     "--format=json",
@@ -242,8 +241,11 @@ export interface ResolvedDatabase {
   sourceLocationPrefix: string;
 }
 
-async function getSourceLocationPrefix(codeql: string, databasePath: string) {
-  const resolveDbOutput = await getExecOutput(codeql, [
+async function getSourceLocationPrefix(
+  codeql: CodeqlCli,
+  databasePath: string,
+) {
+  const resolveDbOutput = await codeql.run([
     "resolve",
     "database",
     databasePath,
@@ -267,7 +269,7 @@ interface QueryPackRunResults {
 }
 
 async function getQueryPackRunResults(
-  codeql: string,
+  codeql: CodeqlCli,
   databasePath: string,
   queryPack: QueryPackInfo,
 ): Promise<QueryPackRunResults> {
@@ -368,14 +370,14 @@ export function getSarifOutputType(
 
 // Generates sarif from the given bqrs file, if query kind supports it
 async function generateSarif(
-  codeql: string,
+  codeql: CodeqlCli,
   nwo: string,
   databasePath: string,
   queryPackPath: string,
   databaseSHA?: string,
 ): Promise<Sarif> {
   const sarifFile = path.resolve("results", "results.sarif");
-  await exec(codeql, [
+  await codeql.run([
     "database",
     "interpret-results",
     "--format=sarif-latest",
@@ -489,7 +491,7 @@ interface QueryPackInfo {
 }
 
 export async function getQueryPackInfo(
-  codeql: string,
+  codeql: CodeqlCli,
   queryPackPath: string,
 ): Promise<QueryPackInfo> {
   queryPackPath = path.resolve(queryPackPath);
@@ -521,11 +523,11 @@ export type ResolvedQueries = string[];
  * @returns The path to a query file.
  */
 export async function getQueryPackQueries(
-  codeql: string,
+  codeql: CodeqlCli,
   queryPackPath: string,
   queryPackName: string,
 ): Promise<string[]> {
-  const output = await getExecOutput(codeql, [
+  const output = await codeql.run([
     "resolve",
     "queries",
     "--format=json",
