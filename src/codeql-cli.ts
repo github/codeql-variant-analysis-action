@@ -5,7 +5,7 @@ import { Writable } from "node:stream";
 import { debug, error } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 
-export interface CodeqlCliOutput {
+interface CodeqlCliOutput {
   exitCode: number;
   stdout: string;
   stderr: string;
