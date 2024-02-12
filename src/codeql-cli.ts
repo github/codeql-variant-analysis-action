@@ -1,5 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { EOL } from "node:os";
+import { Writable } from "node:stream";
 
 import { debug, error } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
@@ -113,6 +114,7 @@ export class CodeqlCliServer implements CodeqlCli {
     args: string[],
   ): Promise<CodeqlCliOutput> {
     const stderrBuffers: Buffer[] = [];
+    const parentProcess = process;
     if (this.commandInProcess) {
       throw new Error(
         "runCommandImmediately called while command was in process",
@@ -131,9 +133,31 @@ export class CodeqlCliServer implements CodeqlCli {
       void debug(`Running using CodeQL CLI: ${args.join(" ")}`);
       try {
         await new Promise<void>((resolve, reject) => {
+          // Follow standard Actions behavior and print any lines to stdout/stderr immediately
+          let parentStdout: Writable;
+          if (parentProcess.stdout instanceof Writable) {
+            parentStdout = parentProcess.stdout;
+          }
+          let parentStderr: Writable | undefined = undefined;
+          if (parentProcess.stderr instanceof Writable) {
+            parentStderr = parentProcess.stderr;
+          }
+
           // Start listening to stdout
           process.stdout.addListener("data", (newData: Buffer) => {
             stdoutBuffers.push(newData);
+
+            if (
+              newData.length > 0 &&
+              newData.readUInt8(newData.length - 1) === 0
+            ) {
+              if (newData.length > 1) {
+                parentStdout?.write(newData.subarray(0, newData.length - 1));
+              }
+            } else {
+              parentStdout?.write(newData);
+            }
+
             // If the buffer ends in '0' then exit.
             // We don't have to check the middle as no output will be written after the null until
             // the next command starts
@@ -147,6 +171,8 @@ export class CodeqlCliServer implements CodeqlCli {
           // Listen to stderr
           process.stderr.addListener("data", (newData: Buffer) => {
             stderrBuffers.push(newData);
+
+            parentStderr?.write(newData);
           });
           // Listen for process exit.
           process.addListener("close", (code) =>

@@ -15686,7 +15686,7 @@ var require_frame = __commonJS({
 var require_receiver = __commonJS({
   "node_modules/undici/lib/websocket/receiver.js"(exports2, module2) {
     "use strict";
-    var { Writable } = require("stream");
+    var { Writable: Writable2 } = require("stream");
     var diagnosticsChannel = require("diagnostics_channel");
     var { parserStates, opcodes, states, emptyBuffer } = require_constants4();
     var { kReadyState, kSentClose, kResponse, kReceivedClose } = require_symbols5();
@@ -15695,7 +15695,7 @@ var require_receiver = __commonJS({
     var channels = {};
     channels.ping = diagnosticsChannel.channel("undici:websocket:ping");
     channels.pong = diagnosticsChannel.channel("undici:websocket:pong");
-    var ByteParser = class extends Writable {
+    var ByteParser = class extends Writable2 {
       #buffers = [];
       #byteOffset = 0;
       #state = parserStates.INFO;
@@ -21309,7 +21309,7 @@ var require_stream_writable = __commonJS({
   "node_modules/readable-stream/lib/_stream_writable.js"(exports2, module2) {
     "use strict";
     var pna = require_process_nextick_args();
-    module2.exports = Writable;
+    module2.exports = Writable2;
     function CorkedRequest(state) {
       var _this = this;
       this.next = null;
@@ -21320,7 +21320,7 @@ var require_stream_writable = __commonJS({
     }
     var asyncWrite = !process.browser && ["v0.10", "v0.9."].indexOf(process.version.slice(0, 5)) > -1 ? setImmediate : pna.nextTick;
     var Duplex;
-    Writable.WritableState = WritableState;
+    Writable2.WritableState = WritableState;
     var util2 = Object.create(require_util8());
     util2.inherits = require_inherits();
     var internalUtil = {
@@ -21337,7 +21337,7 @@ var require_stream_writable = __commonJS({
       return Buffer2.isBuffer(obj) || obj instanceof OurUint8Array;
     }
     var destroyImpl = require_destroy();
-    util2.inherits(Writable, Stream);
+    util2.inherits(Writable2, Stream);
     function nop() {
     }
     function WritableState(options, stream2) {
@@ -21406,11 +21406,11 @@ var require_stream_writable = __commonJS({
     var realHasInstance;
     if (typeof Symbol === "function" && Symbol.hasInstance && typeof Function.prototype[Symbol.hasInstance] === "function") {
       realHasInstance = Function.prototype[Symbol.hasInstance];
-      Object.defineProperty(Writable, Symbol.hasInstance, {
+      Object.defineProperty(Writable2, Symbol.hasInstance, {
         value: function(object) {
           if (realHasInstance.call(this, object))
             return true;
-          if (this !== Writable)
+          if (this !== Writable2)
             return false;
           return object && object._writableState instanceof WritableState;
         }
@@ -21420,10 +21420,10 @@ var require_stream_writable = __commonJS({
         return object instanceof this;
       };
     }
-    function Writable(options) {
+    function Writable2(options) {
       Duplex = Duplex || require_stream_duplex();
-      if (!realHasInstance.call(Writable, this) && !(this instanceof Duplex)) {
-        return new Writable(options);
+      if (!realHasInstance.call(Writable2, this) && !(this instanceof Duplex)) {
+        return new Writable2(options);
       }
       this._writableState = new WritableState(options, this);
       this.writable = true;
@@ -21439,7 +21439,7 @@ var require_stream_writable = __commonJS({
       }
       Stream.call(this);
     }
-    Writable.prototype.pipe = function() {
+    Writable2.prototype.pipe = function() {
       this.emit("error", new Error("Cannot pipe, not readable"));
     };
     function writeAfterEnd(stream2, cb) {
@@ -21462,7 +21462,7 @@ var require_stream_writable = __commonJS({
       }
       return valid;
     }
-    Writable.prototype.write = function(chunk, encoding, cb) {
+    Writable2.prototype.write = function(chunk, encoding, cb) {
       var state = this._writableState;
       var ret = false;
       var isBuf = !state.objectMode && _isUint8Array(chunk);
@@ -21487,11 +21487,11 @@ var require_stream_writable = __commonJS({
       }
       return ret;
     };
-    Writable.prototype.cork = function() {
+    Writable2.prototype.cork = function() {
       var state = this._writableState;
       state.corked++;
     };
-    Writable.prototype.uncork = function() {
+    Writable2.prototype.uncork = function() {
       var state = this._writableState;
       if (state.corked) {
         state.corked--;
@@ -21499,7 +21499,7 @@ var require_stream_writable = __commonJS({
           clearBuffer(this, state);
       }
     };
-    Writable.prototype.setDefaultEncoding = function setDefaultEncoding(encoding) {
+    Writable2.prototype.setDefaultEncoding = function setDefaultEncoding(encoding) {
       if (typeof encoding === "string")
         encoding = encoding.toLowerCase();
       if (!(["hex", "utf8", "utf-8", "ascii", "binary", "base64", "ucs2", "ucs-2", "utf16le", "utf-16le", "raw"].indexOf((encoding + "").toLowerCase()) > -1))
@@ -21513,7 +21513,7 @@ var require_stream_writable = __commonJS({
       }
       return chunk;
     }
-    Object.defineProperty(Writable.prototype, "writableHighWaterMark", {
+    Object.defineProperty(Writable2.prototype, "writableHighWaterMark", {
       // making it explicit this property is not enumerable
       // because otherwise some prototype manipulation in
       // userland will fail
@@ -21666,11 +21666,11 @@ var require_stream_writable = __commonJS({
       state.bufferedRequest = entry;
       state.bufferProcessing = false;
     }
-    Writable.prototype._write = function(chunk, encoding, cb) {
+    Writable2.prototype._write = function(chunk, encoding, cb) {
       cb(new Error("_write() is not implemented"));
     };
-    Writable.prototype._writev = null;
-    Writable.prototype.end = function(chunk, encoding, cb) {
+    Writable2.prototype._writev = null;
+    Writable2.prototype.end = function(chunk, encoding, cb) {
       var state = this._writableState;
       if (typeof chunk === "function") {
         cb = chunk;
@@ -21753,7 +21753,7 @@ var require_stream_writable = __commonJS({
         state.corkedRequestsFree = corkReq;
       }
     }
-    Object.defineProperty(Writable.prototype, "destroyed", {
+    Object.defineProperty(Writable2.prototype, "destroyed", {
       get: function() {
         if (this._writableState === void 0) {
           return false;
@@ -21767,9 +21767,9 @@ var require_stream_writable = __commonJS({
         this._writableState.destroyed = value;
       }
     });
-    Writable.prototype.destroy = destroyImpl.destroy;
-    Writable.prototype._undestroy = destroyImpl.undestroy;
-    Writable.prototype._destroy = function(err, cb) {
+    Writable2.prototype.destroy = destroyImpl.destroy;
+    Writable2.prototype._undestroy = destroyImpl.undestroy;
+    Writable2.prototype._destroy = function(err, cb) {
       this.end();
       cb(err);
     };
@@ -21792,14 +21792,14 @@ var require_stream_duplex = __commonJS({
     var util2 = Object.create(require_util8());
     util2.inherits = require_inherits();
     var Readable = require_stream_readable();
-    var Writable = require_stream_writable();
+    var Writable2 = require_stream_writable();
     util2.inherits(Duplex, Readable);
     {
-      keys = objectKeys(Writable.prototype);
+      keys = objectKeys(Writable2.prototype);
       for (v = 0; v < keys.length; v++) {
         method = keys[v];
         if (!Duplex.prototype[method])
-          Duplex.prototype[method] = Writable.prototype[method];
+          Duplex.prototype[method] = Writable2.prototype[method];
       }
     }
     var keys;
@@ -21809,7 +21809,7 @@ var require_stream_duplex = __commonJS({
       if (!(this instanceof Duplex))
         return new Duplex(options);
       Readable.call(this, options);
-      Writable.call(this, options);
+      Writable2.call(this, options);
       if (options && options.readable === false)
         this.readable = false;
       if (options && options.writable === false)
@@ -57955,7 +57955,7 @@ var require_frame2 = __commonJS({
 var require_receiver2 = __commonJS({
   "node_modules/@octokit/action/node_modules/undici/lib/websocket/receiver.js"(exports2, module2) {
     "use strict";
-    var { Writable } = require("stream");
+    var { Writable: Writable2 } = require("stream");
     var diagnosticsChannel = require("diagnostics_channel");
     var { parserStates, opcodes, states, emptyBuffer } = require_constants10();
     var { kReadyState, kSentClose, kResponse, kReceivedClose } = require_symbols10();
@@ -57964,7 +57964,7 @@ var require_receiver2 = __commonJS({
     var channels = {};
     channels.ping = diagnosticsChannel.channel("undici:websocket:ping");
     channels.pong = diagnosticsChannel.channel("undici:websocket:pong");
-    var ByteParser = class extends Writable {
+    var ByteParser = class extends Writable2 {
       #buffers = [];
       #byteOffset = 0;
       #state = parserStates.INFO;
@@ -75351,6 +75351,7 @@ function getQueryPackName(queryPackPath) {
 // src/codeql-cli.ts
 var import_node_child_process = require("node:child_process");
 var import_node_os = require("node:os");
+var import_node_stream = require("node:stream");
 var import_core2 = __toESM(require_core());
 var import_exec = __toESM(require_exec());
 var BaseCodeqlCli = class {
@@ -75436,6 +75437,7 @@ var CodeqlCliServer = class {
   }
   async runCommandImmediately(args) {
     const stderrBuffers = [];
+    const parentProcess = process;
     if (this.commandInProcess) {
       throw new Error(
         "runCommandImmediately called while command was in process"
@@ -75451,14 +75453,30 @@ var CodeqlCliServer = class {
       void (0, import_core2.debug)(`Running using CodeQL CLI: ${args.join(" ")}`);
       try {
         await new Promise((resolve, reject) => {
+          let parentStdout;
+          if (parentProcess.stdout instanceof import_node_stream.Writable) {
+            parentStdout = parentProcess.stdout;
+          }
+          let parentStderr = void 0;
+          if (parentProcess.stderr instanceof import_node_stream.Writable) {
+            parentStderr = parentProcess.stderr;
+          }
           process2.stdout.addListener("data", (newData) => {
             stdoutBuffers.push(newData);
+            if (newData.length > 0 && newData.readUInt8(newData.length - 1) === 0) {
+              if (newData.length > 1) {
+                parentStdout?.write(newData.subarray(0, newData.length - 1));
+              }
+            } else {
+              parentStdout?.write(newData);
+            }
             if (newData.length > 0 && newData.readUInt8(newData.length - 1) === 0) {
               resolve();
             }
           });
           process2.stderr.addListener("data", (newData) => {
             stderrBuffers.push(newData);
+            parentStderr?.write(newData);
           });
           process2.addListener(
             "close",
