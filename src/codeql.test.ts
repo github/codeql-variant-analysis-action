@@ -20,7 +20,7 @@ import {
   getQueryPackInfo,
 } from "./codeql";
 
-const test = anyTest as TestFn<{ db: string; tmpDir: string }>;
+const test = anyTest as TestFn<{ db: string; tmpDir: string; codeql: string }>;
 
 test.before(async (t) => {
   const tmpDir = path.resolve(fs.mkdtempSync("tmp"));
@@ -32,7 +32,9 @@ test.before(async (t) => {
   const testFile = path.join(projectDir, "test.js");
   fs.writeFileSync(testFile, "const x = 1;");
 
-  await exec("codeql", [
+  const codeql = process.env.CODEQL_BIN_PATH || "codeql";
+
+  await exec(codeql, [
     "database",
     "create",
     "--language=javascript",
@@ -41,8 +43,10 @@ test.before(async (t) => {
   ]);
 
   const dbZip = path.join(tmpDir, "database.zip");
-  await exec("codeql", ["database", "bundle", `--output=${dbZip}`, dbDir]);
+  await exec(codeql, ["database", "bundle", `--output=${dbZip}`, dbDir]);
   t.context.db = dbZip;
+
+  t.context.codeql = codeql;
 });
 
 test.after(async (t) => {
@@ -52,7 +56,10 @@ test.after(async (t) => {
 });
 
 test("getting query pack info", async (t) => {
-  const queryPackInfo = await getQueryPackInfo("codeql", "testdata/test_pack");
+  const queryPackInfo = await getQueryPackInfo(
+    t.context.codeql,
+    "testdata/test_pack",
+  );
 
   const queries = {};
   queries[path.resolve("testdata/test_pack/x/query.ql")] = {
@@ -70,7 +77,7 @@ test("getting query pack info", async (t) => {
 
 test("getting query pack info with multiple queries", async (t) => {
   const queryPackInfo = await getQueryPackInfo(
-    "codeql",
+    t.context.codeql,
     "testdata/test_pack_multiple_queries",
   );
 
@@ -93,18 +100,21 @@ test("getting query pack info with multiple queries", async (t) => {
 });
 
 test("running a query in a pack", async (t) => {
-  const queryPack = await getQueryPackInfo("codeql", "testdata/test_pack");
+  const queryPack = await getQueryPackInfo(
+    t.context.codeql,
+    "testdata/test_pack",
+  );
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
   try {
-    await runQuery("codeql", t.context.db, "a/b", queryPack);
+    await runQuery(t.context.codeql, t.context.db, "a/b", queryPack);
 
     t.true(fs.existsSync(path.join("results", "results.bqrs")));
     t.false(fs.existsSync(path.join("results", "codeql/queries/x/query.bqrs")));
 
     const bqrsInfo: BQRSInfo = await getBqrsInfo(
-      "codeql",
+      t.context.codeql,
       path.join("results", "results.bqrs"),
     );
     t.is(1, bqrsInfo.resultSets.length);
@@ -118,19 +128,19 @@ test("running a query in a pack", async (t) => {
 
 test("running multiple queries in a pack", async (t) => {
   const queryPack = await getQueryPackInfo(
-    "codeql",
+    t.context.codeql,
     "testdata/test_pack_multiple_queries",
   );
   const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
   process.chdir(tmpDir);
   try {
-    await runQuery("codeql", t.context.db, "a/b", queryPack);
+    await runQuery(t.context.codeql, t.context.db, "a/b", queryPack);
 
     const bqrsFilePath1 = "db/results/codeql/queries/x/query.bqrs";
     t.true(fs.existsSync(bqrsFilePath1));
 
-    const bqrsInfo1 = await getBqrsInfo("codeql", bqrsFilePath1);
+    const bqrsInfo1 = await getBqrsInfo(t.context.codeql, bqrsFilePath1);
     t.is(1, bqrsInfo1.resultSets.length);
     t.is("#select", bqrsInfo1.resultSets[0].name);
     t.true(bqrsInfo1.compatibleQueryKinds.includes("Table"));
@@ -138,7 +148,7 @@ test("running multiple queries in a pack", async (t) => {
     const bqrsFilePath2 = "db/results/codeql/queries/z/query.bqrs";
     t.true(fs.existsSync(bqrsFilePath2));
 
-    const bqrsInfo2 = await getBqrsInfo("codeql", bqrsFilePath2);
+    const bqrsInfo2 = await getBqrsInfo(t.context.codeql, bqrsFilePath2);
     t.is(1, bqrsInfo2.resultSets.length);
     t.is("#select", bqrsInfo2.resultSets[0].name);
     t.true(bqrsInfo2.compatibleQueryKinds.includes("Table"));
@@ -222,7 +232,11 @@ test("getting the commit SHA when the codeql-database.yml does not exist", async
 
 test("getting the queries from a pack", async (t) => {
   t.deepEqual(
-    await getQueryPackQueries("codeql", "testdata/test_pack", "codeql/queries"),
+    await getQueryPackQueries(
+      t.context.codeql,
+      "testdata/test_pack",
+      "codeql/queries",
+    ),
     [path.resolve("testdata/test_pack/x/query.ql")],
   );
 });
