@@ -24,6 +24,13 @@ export async function uploadArtifact(
         return err.httpStatusCode === 504;
       }
 
+      if (err.message.includes("Request timeout")) {
+        // Retry on request timeout
+        // Error is created here:
+        // https://github.com/actions/toolkit/blob/415c42d27ca2a24f3801dd9406344aaea00b7866/packages/http-client/src/index.ts#L535
+        return true;
+      }
+
       // Otherwise abort
       return false;
     },
