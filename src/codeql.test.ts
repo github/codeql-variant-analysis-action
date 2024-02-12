@@ -1,4 +1,5 @@
 import fs from "fs";
+import { tmpdir } from "os";
 import path from "path";
 
 import { exec } from "@actions/exec";
@@ -20,14 +21,18 @@ import {
   getQueryPackInfo,
 } from "./codeql";
 
-const test = anyTest as TestFn<{ db: string; tmpDir: string }>;
+const test = anyTest as TestFn<{
+  db: string;
+  tmpDir: string;
+  dbTmpDir: string;
+}>;
 
 test.before(async (t) => {
-  const tmpDir = path.resolve(fs.mkdtempSync("tmp"));
-  t.context.tmpDir = tmpDir;
+  const dbTmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "db-")));
+  t.context.dbTmpDir = dbTmpDir;
 
-  const projectDir = path.join(tmpDir, "project");
-  const dbDir = path.join(tmpDir, "db");
+  const projectDir = path.join(dbTmpDir, "project");
+  const dbDir = path.join(dbTmpDir, "db");
   fs.mkdirSync(projectDir);
   const testFile = path.join(projectDir, "test.js");
   fs.writeFileSync(testFile, "const x = 1;");
@@ -40,12 +45,23 @@ test.before(async (t) => {
     dbDir,
   ]);
 
-  const dbZip = path.join(tmpDir, "database.zip");
+  const dbZip = path.join(dbTmpDir, "database.zip");
   await exec("codeql", ["database", "bundle", `--output=${dbZip}`, dbDir]);
   t.context.db = dbZip;
 });
 
 test.after(async (t) => {
+  if (t.context?.dbTmpDir) {
+    await rmRF(t.context.dbTmpDir);
+  }
+});
+
+test.beforeEach((t) => {
+  // Use a different temporary directory that tests can use
+  t.context.tmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "tmp-")));
+});
+
+test.afterEach(async (t) => {
   if (t.context?.tmpDir !== undefined) {
     await rmRF(t.context.tmpDir);
   }
@@ -94,9 +110,8 @@ test("getting query pack info with multiple queries", async (t) => {
 
 test("running a query in a pack", async (t) => {
   const queryPack = await getQueryPackInfo("codeql", "testdata/test_pack");
-  const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
-  process.chdir(tmpDir);
+  process.chdir(t.context.tmpDir);
   try {
     await runQuery("codeql", t.context.db, "a/b", queryPack);
 
@@ -112,7 +127,7 @@ test("running a query in a pack", async (t) => {
     t.true(bqrsInfo.compatibleQueryKinds.includes("Table"));
   } finally {
     process.chdir(cwd);
-    await rmRF(tmpDir);
+    await rmRF(t.context.tmpDir);
   }
 });
 
@@ -121,9 +136,8 @@ test("running multiple queries in a pack", async (t) => {
     "codeql",
     "testdata/test_pack_multiple_queries",
   );
-  const tmpDir = fs.mkdtempSync("tmp");
   const cwd = process.cwd();
-  process.chdir(tmpDir);
+  process.chdir(t.context.tmpDir);
   try {
     await runQuery("codeql", t.context.db, "a/b", queryPack);
 
@@ -146,16 +160,13 @@ test("running multiple queries in a pack", async (t) => {
     t.false(fs.existsSync(path.join("results", "results.bqrs")));
   } finally {
     process.chdir(cwd);
-    await rmRF(tmpDir);
   }
 });
 
-test("getting the commit SHA and CLI version from a database", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    fs.writeFileSync(
-      path.join(tmpDir, "codeql-database.yml"),
-      `---
+test("getting the commit SHA and CLI version from a database", (t) => {
+  fs.writeFileSync(
+    path.join(t.context.tmpDir, "codeql-database.yml"),
+    `---
 sourceLocationPrefix: "hello-world"
 baselineLinesOfCode: 1
 unicodeNewlines: true
@@ -166,58 +177,43 @@ creationMetadata:
   cliVersion: "2.7.2"
   creationTime: "2021-11-08T12:58:40.345998Z"
 `,
-    );
-    t.is(
-      getDatabaseMetadata(tmpDir).creationMetadata?.sha,
-      "ccf1e13626d97b009b4da78f719f028d9f7cdf80",
-    );
-    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.cliVersion, "2.7.2");
-  } finally {
-    await rmRF(tmpDir);
-  }
+  );
+  t.is(
+    getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha,
+    "ccf1e13626d97b009b4da78f719f028d9f7cdf80",
+  );
+  t.is(
+    getDatabaseMetadata(t.context.tmpDir).creationMetadata?.cliVersion,
+    "2.7.2",
+  );
 });
 
-test("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    fs.writeFileSync(
-      path.join(tmpDir, "codeql-database.yml"),
-      `---
+test("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", (t) => {
+  fs.writeFileSync(
+    path.join(t.context.tmpDir, "codeql-database.yml"),
+    `---
 sourceLocationPrefix: "hello-world"
 baselineLinesOfCode: 17442
 unicodeNewlines: true
 columnKind: "utf16"
 primaryLanguage: "javascript"
 `,
-    );
-    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
-  } finally {
-    await rmRF(tmpDir);
-  }
+  );
+  t.is(getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha, undefined);
 });
 
-test("getting the commit SHA when codeql-database.yml exists, but is invalid", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    fs.writeFileSync(
-      path.join(tmpDir, "codeql-database.yml"),
-      `    foo:"
+test("getting the commit SHA when codeql-database.yml exists, but is invalid", (t) => {
+  fs.writeFileSync(
+    path.join(t.context.tmpDir, "codeql-database.yml"),
+    `    foo:"
 bar
 `,
-    );
-    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
-  } finally {
-    await rmRF(tmpDir);
-  }
+  );
+  t.is(getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha, undefined);
 });
 
-test("getting the commit SHA when the codeql-database.yml does not exist", async (t) => {
-  const tmpDir = fs.mkdtempSync("tmp");
-  try {
-    t.is(getDatabaseMetadata(tmpDir).creationMetadata?.sha, undefined);
-  } finally {
-    await rmRF(tmpDir);
-  }
+test("getting the commit SHA when the codeql-database.yml does not exist", (t) => {
+  t.is(getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha, undefined);
 });
 
 test("getting the queries from a pack", async (t) => {
