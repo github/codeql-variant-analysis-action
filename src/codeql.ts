@@ -329,11 +329,13 @@ function querySupportsSarif(
   return sarifOutputType !== undefined;
 }
 
+/**
+ * All queries in the pack must support SARIF in order
+ * for the query pack to support SARIF.
+ */
 function queryPackSupportsSarif(
   queriesResultInfo: QueryPackRunResults,
 ): boolean {
-  // Some queries in the pack must support SARIF in order
-  // for the query pack to support SARIF.
   for (const query of queriesResultInfo.queries) {
     const supportsSarif = querySupportsSarif(
       query.queryMetadata,
