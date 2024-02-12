@@ -336,17 +336,9 @@ function querySupportsSarif(
 function queryPackSupportsSarif(
   queriesResultInfo: QueryPackRunResults,
 ): boolean {
-  for (const query of queriesResultInfo.queries) {
-    const supportsSarif = querySupportsSarif(
-      query.queryMetadata,
-      query.bqrsInfo,
-    );
-    if (!supportsSarif) {
-      return false;
-    }
-  }
-
-  return true;
+  return queriesResultInfo.queries.every((q) =>
+    querySupportsSarif(q.queryMetadata, q.bqrsInfo),
+  );
 }
 
 /**

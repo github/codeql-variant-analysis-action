@@ -75220,16 +75220,9 @@ function querySupportsSarif(queryMetadata, bqrsInfo) {
   return sarifOutputType !== void 0;
 }
 function queryPackSupportsSarif(queriesResultInfo) {
-  for (const query of queriesResultInfo.queries) {
-    const supportsSarif = querySupportsSarif(
-      query.queryMetadata,
-      query.bqrsInfo
-    );
-    if (!supportsSarif) {
-      return false;
-    }
-  }
-  return true;
+  return queriesResultInfo.queries.every(
+    (q) => querySupportsSarif(q.queryMetadata, q.bqrsInfo)
+  );
 }
 function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
   const queryKind = queryMetadata.kind;
