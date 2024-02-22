@@ -13,6 +13,7 @@ import {
   runQuery,
   RunQueryResult,
 } from "./codeql";
+import { BaseCodeqlCli, CodeqlCliServer } from "./codeql-cli";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -26,6 +27,8 @@ import {
   getVariantAnalysisId,
   Repo,
 } from "./inputs";
+
+const shutdownHandlers: Array<() => void> = [];
 
 async function run(): Promise<void> {
   const controllerRepoId = getControllerRepoId();
@@ -74,7 +77,18 @@ async function run(): Promise<void> {
     return;
   }
 
-  const queryPackInfo = await getQueryPackInfo(codeql, queryPackPath);
+  const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER
+    ? new CodeqlCliServer(codeql)
+    : new BaseCodeqlCli(codeql);
+
+  if (codeqlCli instanceof CodeqlCliServer) {
+    // Shut down the CLI server when the action is done
+    shutdownHandlers.push(() => {
+      codeqlCli.shutdown();
+    });
+  }
+
+  const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 
   for (const repo of repos) {
     // Create a new directory to contain all files created during analysis of this repo.
@@ -90,11 +104,12 @@ async function run(): Promise<void> {
       );
 
       const dbZip = await getDatabase(repo, language);
+      const dbZipPath = path.resolve(dbZip);
 
       console.log("Running query");
       const runQueryResult = await runQuery(
-        codeql,
-        dbZip,
+        codeqlCli,
+        dbZipPath,
         repo.nwo,
         queryPackInfo,
       );
@@ -207,4 +222,8 @@ function createTempRepoDir(curDir: string, repo: Repo): string {
   return workDir;
 }
 
-void run();
+void run().finally(() => {
+  for (const handler of shutdownHandlers) {
+    handler();
+  }
+});

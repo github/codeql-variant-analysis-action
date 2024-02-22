@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { exec, getExecOutput } from "@actions/exec";
-
+import { CodeqlCli } from "./codeql-cli";
 import { camelize } from "./deserialize";
 import { download } from "./download";
 import { HTTPError } from "./http-error";
@@ -13,7 +12,6 @@ import { parseYamlFromFile } from "./yaml";
 export interface RunQueryResult {
   resultCount: number;
   databaseSHA: string | undefined;
-  databaseName: string;
   sourceLocationPrefix: string;
   bqrsFilePaths: BqrsFilePaths;
   sarifFilePath?: string;
@@ -40,7 +38,7 @@ export interface Sarif {
  * - query/    (query.ql and any other supporting files)
  * - results/  (results.{bqrs,sarif})
  *
- * @param     codeql                    The path to the codeql binary
+ * @param     codeql                    A runner of the CodeQL CLI to execute commands
  * @param     database                  The path to the bundled database zip file
  * @param     nwo                       The name of the repository
  * @param     queryPackPath             The path to the query pack
@@ -48,46 +46,50 @@ export interface Sarif {
  * about the query result and paths to the result files.
  */
 export async function runQuery(
-  codeql: string,
+  codeql: CodeqlCli,
   database: string,
   nwo: string,
   queryPack: QueryPackInfo,
 ): Promise<RunQueryResult> {
   fs.mkdirSync("results");
 
-  const databaseName = "db";
-  await exec(codeql, [
+  const databasePath = path.resolve("db");
+  await codeql.run([
     "database",
     "unbundle",
     database,
-    `--name=${databaseName}`,
+    `--name=${path.basename(databasePath)}`,
+    `--target=${path.dirname(databasePath)}`,
   ]);
 
-  const dbMetadata = getDatabaseMetadata(databaseName);
+  const dbMetadata = getDatabaseMetadata(databasePath);
   console.log(
     `This database was created using CodeQL CLI version ${dbMetadata.creationMetadata?.cliVersion}`,
   );
   const databaseSHA = dbMetadata.creationMetadata?.sha?.toString();
 
-  await exec(codeql, [
+  await codeql.run([
     "database",
     "run-queries",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
     queryPack.path,
     "--",
-    databaseName,
+    databasePath,
     queryPack.name,
   ]);
 
   // Calculate query run information like BQRS file paths, etc.
   const queryPackRunResults = await getQueryPackRunResults(
     codeql,
-    databaseName,
+    databasePath,
     queryPack,
   );
 
-  const sourceLocationPrefix = await getSourceLocationPrefix(codeql);
+  const sourceLocationPrefix = await getSourceLocationPrefix(
+    codeql,
+    databasePath,
+  );
 
   const shouldGenerateSarif = queryPackSupportsSarif(queryPackRunResults);
 
@@ -97,12 +99,12 @@ export async function runQuery(
     const sarif = await generateSarif(
       codeql,
       nwo,
-      databaseName,
+      databasePath,
       queryPack.path,
       databaseSHA,
     );
     resultCount = getSarifResultCount(sarif);
-    sarifFilePath = path.join("results", "results.sarif");
+    sarifFilePath = path.resolve("results", "results.sarif");
     fs.writeFileSync(sarifFilePath, JSON.stringify(sarif));
   } else {
     resultCount = queryPackRunResults.totalResultsCount;
@@ -113,7 +115,6 @@ export async function runQuery(
   return {
     resultCount,
     databaseSHA,
-    databaseName,
     sourceLocationPrefix,
     bqrsFilePaths,
     sarifFilePath,
@@ -131,7 +132,7 @@ async function adjustBqrsFiles(
       queryPackRunResults.resultsBasePath,
       queryPackRunResults.queries[0].relativeBqrsFilePath,
     );
-    const newBqrsFilePath = path.join("results", "results.bqrs");
+    const newBqrsFilePath = path.resolve("results", "results.bqrs");
     await fs.promises.rename(currentBqrsFilePath, newBqrsFilePath);
     return { basePath: "results", relativeFilePaths: ["results.bqrs"] };
   }
@@ -185,10 +186,10 @@ export type QueryMetadata = {
 
 // Calls `resolve metadata` for the given query file and returns JSON output
 async function getQueryMetadata(
-  codeql: string,
+  codeql: CodeqlCli,
   query: string,
 ): Promise<QueryMetadata> {
-  const queryMetadataOutput = await getExecOutput(codeql, [
+  const queryMetadataOutput = await codeql.run([
     "resolve",
     "metadata",
     "--format=json",
@@ -215,10 +216,10 @@ export interface BQRSInfo {
 
 // Calls `bqrs info` for the given bqrs file and returns JSON output
 export async function getBqrsInfo(
-  codeql: string,
+  codeql: CodeqlCli,
   bqrs: string,
 ): Promise<BQRSInfo> {
-  const bqrsInfoOutput = await getExecOutput(codeql, [
+  const bqrsInfoOutput = await codeql.run([
     "bqrs",
     "info",
     "--format=json",
@@ -240,11 +241,14 @@ export interface ResolvedDatabase {
   sourceLocationPrefix: string;
 }
 
-async function getSourceLocationPrefix(codeql: string) {
-  const resolveDbOutput = await getExecOutput(codeql, [
+async function getSourceLocationPrefix(
+  codeql: CodeqlCli,
+  databasePath: string,
+) {
+  const resolveDbOutput = await codeql.run([
     "resolve",
     "database",
-    "db",
+    databasePath,
   ]);
   const resolvedDatabase = validateObject(
     JSON.parse(resolveDbOutput.stdout),
@@ -265,13 +269,13 @@ interface QueryPackRunResults {
 }
 
 async function getQueryPackRunResults(
-  codeql: string,
-  databaseName: string,
+  codeql: CodeqlCli,
+  databasePath: string,
   queryPack: QueryPackInfo,
 ): Promise<QueryPackRunResults> {
   // This is where results are saved, according to
   // https://codeql.github.com/docs/codeql-cli/manual/database-run-queries/
-  const resultsBasePath = `${databaseName}/results`;
+  const resultsBasePath = path.resolve(databasePath, "results");
 
   const queries: Array<{
     queryPath: string;
@@ -366,21 +370,21 @@ export function getSarifOutputType(
 
 // Generates sarif from the given bqrs file, if query kind supports it
 async function generateSarif(
-  codeql: string,
+  codeql: CodeqlCli,
   nwo: string,
-  databaseName: string,
+  databasePath: string,
   queryPackPath: string,
   databaseSHA?: string,
 ): Promise<Sarif> {
-  const sarifFile = path.join("results", "results.sarif");
-  await exec(codeql, [
+  const sarifFile = path.resolve("results", "results.sarif");
+  await codeql.run([
     "database",
     "interpret-results",
     "--format=sarif-latest",
     `--output=${sarifFile}`,
     "--sarif-add-snippets",
     "--no-group-results",
-    databaseName,
+    databasePath,
     queryPackPath,
   ]);
   const sarif = validateObject(
@@ -466,13 +470,13 @@ interface DatabaseMetadata {
  * catch errors for now. The caller must decide what to do in the case of
  * missing information.
  *
- * @param database The name of the database.
+ * @param databasePath The path to the database.
  * @returns The database metadata.
  */
-export function getDatabaseMetadata(database: string): DatabaseMetadata {
+export function getDatabaseMetadata(databasePath: string): DatabaseMetadata {
   try {
     return parseYamlFromFile<DatabaseMetadata>(
-      path.join(database, "codeql-database.yml"),
+      path.join(databasePath, "codeql-database.yml"),
     );
   } catch (error) {
     console.log(`Unable to read codeql-database.yml: ${error}`);
@@ -487,7 +491,7 @@ interface QueryPackInfo {
 }
 
 export async function getQueryPackInfo(
-  codeql: string,
+  codeql: CodeqlCli,
   queryPackPath: string,
 ): Promise<QueryPackInfo> {
   queryPackPath = path.resolve(queryPackPath);
@@ -519,11 +523,11 @@ export type ResolvedQueries = string[];
  * @returns The path to a query file.
  */
 export async function getQueryPackQueries(
-  codeql: string,
+  codeql: CodeqlCli,
   queryPackPath: string,
   queryPackName: string,
 ): Promise<string[]> {
-  const output = await getExecOutput(codeql, [
+  const output = await codeql.run([
     "resolve",
     "queries",
     "--format=json",
