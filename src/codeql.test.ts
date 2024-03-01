@@ -319,6 +319,36 @@ test("getting the SARIF output type when the `@kind` metadata is compatible with
   t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
 });
 
+test("getting the SARIF output type when the `@kind` metadata is an alert alias", (t) => {
+  const queryMetadata: QueryMetadata = {
+    kind: "alert",
+  };
+
+  const compatibleQueryKinds = [
+    "Problem",
+    "PathProblem",
+    "Table",
+    "Diagnostic",
+  ];
+
+  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
+});
+
+test("getting the SARIF output type when the `@kind` metadata is a path-alert alias", (t) => {
+  const queryMetadata: QueryMetadata = {
+    kind: "path-alert",
+  };
+
+  const compatibleQueryKinds = [
+    "Problem",
+    "PathProblem",
+    "Table",
+    "Diagnostic",
+  ];
+
+  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "path-problem");
+});
+
 test("uses result count from #select result set if it exists", (t) => {
   const bqrsInfo: BQRSInfo = {
     resultSets: [{ name: "#select", rows: 3 }],
