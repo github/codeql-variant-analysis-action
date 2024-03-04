@@ -76705,9 +76705,15 @@ function queryPackSupportsSarif(queriesResultInfo) {
 }
 function getSarifOutputType(queryMetadata, compatibleQueryKinds) {
   const queryKind = queryMetadata.kind;
-  if (queryKind === "path-problem" && compatibleQueryKinds.includes("PathProblem")) {
+  if (
+    // path-alert is an alias of path-problem
+    (queryKind === "path-problem" || queryKind === "path-alert") && compatibleQueryKinds.includes("PathProblem")
+  ) {
     return "path-problem";
-  } else if (queryKind === "problem" && compatibleQueryKinds.includes("Problem")) {
+  } else if (
+    // alert is an alias of problem
+    (queryKind === "problem" || queryKind === "alert") && compatibleQueryKinds.includes("Problem")
+  ) {
     return "problem";
   } else {
     return void 0;

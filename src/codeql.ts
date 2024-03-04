@@ -354,12 +354,14 @@ export function getSarifOutputType(
 ): SarifOutputType | undefined {
   const queryKind = queryMetadata.kind;
   if (
-    queryKind === "path-problem" &&
+    // path-alert is an alias of path-problem
+    (queryKind === "path-problem" || queryKind === "path-alert") &&
     compatibleQueryKinds.includes("PathProblem")
   ) {
     return "path-problem";
   } else if (
-    queryKind === "problem" &&
+    // alert is an alias of problem
+    (queryKind === "problem" || queryKind === "alert") &&
     compatibleQueryKinds.includes("Problem")
   ) {
     return "problem";
