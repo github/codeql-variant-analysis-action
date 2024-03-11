@@ -6769,7 +6769,7 @@ var require_client = __commonJS({
           const requests = this[kQueue].splice(this[kPendingIdx]);
           for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
-            errorRequest(this, request, err);
+            errorRequest2(this, request, err);
           }
           const callback = () => {
             if (this[kClosedResolve]) {
@@ -6818,12 +6818,12 @@ var require_client = __commonJS({
         const requests = client[kQueue].splice(client[kRunningIdx]);
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i];
-          errorRequest(this, request, err);
+          errorRequest2(this, request, err);
         }
       } else if (client[kRunning] > 0) {
         const request = client[kQueue][client[kRunningIdx]];
         client[kQueue][client[kRunningIdx]++] = null;
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       client[kPendingIdx] = client[kRunningIdx];
       assert(client[kRunning] === 0);
@@ -7287,7 +7287,7 @@ var require_client = __commonJS({
         const requests = client[kQueue].splice(client[kRunningIdx]);
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i];
-          errorRequest(client, request, err);
+          errorRequest2(client, request, err);
         }
         assert(client[kSize] === 0);
       }
@@ -7318,12 +7318,12 @@ var require_client = __commonJS({
         const requests = client[kQueue].splice(client[kRunningIdx]);
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i];
-          errorRequest(client, request, err);
+          errorRequest2(client, request, err);
         }
       } else if (client[kRunning] > 0 && err.code !== "UND_ERR_INFO") {
         const request = client[kQueue][client[kRunningIdx]];
         client[kQueue][client[kRunningIdx]++] = null;
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       client[kPendingIdx] = client[kRunningIdx];
       assert(client[kRunning] === 0);
@@ -7457,7 +7457,7 @@ var require_client = __commonJS({
           assert(client[kRunning] === 0);
           while (client[kPending] > 0 && client[kQueue][client[kPendingIdx]].servername === client[kServerName]) {
             const request = client[kQueue][client[kPendingIdx]++];
-            errorRequest(client, request, err);
+            errorRequest2(client, request, err);
           }
         } else {
           onError(client, err);
@@ -7594,7 +7594,7 @@ var require_client = __commonJS({
       }
       if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength !== null && request.contentLength !== contentLength) {
         if (client[kStrictContentLength]) {
-          errorRequest(client, request, new RequestContentLengthMismatchError());
+          errorRequest2(client, request, new RequestContentLengthMismatchError());
           return false;
         }
         process.emitWarning(new RequestContentLengthMismatchError());
@@ -7605,11 +7605,11 @@ var require_client = __commonJS({
           if (request.aborted || request.completed) {
             return;
           }
-          errorRequest(client, request, err || new RequestAbortedError());
+          errorRequest2(client, request, err || new RequestAbortedError());
           util2.destroy(socket, new InformationalError("aborted"));
         });
       } catch (err) {
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       if (request.aborted) {
         return false;
@@ -7699,7 +7699,7 @@ upgrade: ${upgrade}\r
       else
         headers = reqHeaders;
       if (upgrade) {
-        errorRequest(client, request, new Error("Upgrade not supported for H2"));
+        errorRequest2(client, request, new Error("Upgrade not supported for H2"));
         return false;
       }
       try {
@@ -7707,10 +7707,10 @@ upgrade: ${upgrade}\r
           if (request.aborted || request.completed) {
             return;
           }
-          errorRequest(client, request, err || new RequestAbortedError());
+          errorRequest2(client, request, err || new RequestAbortedError());
         });
       } catch (err) {
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       if (request.aborted) {
         return false;
@@ -7753,7 +7753,7 @@ upgrade: ${upgrade}\r
       }
       if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength != null && request.contentLength !== contentLength) {
         if (client[kStrictContentLength]) {
-          errorRequest(client, request, new RequestContentLengthMismatchError());
+          errorRequest2(client, request, new RequestContentLengthMismatchError());
           return false;
         }
         process.emitWarning(new RequestContentLengthMismatchError());
@@ -7804,7 +7804,7 @@ upgrade: ${upgrade}\r
       });
       stream2.once("frameError", (type, code) => {
         const err = new InformationalError(`HTTP/2: "frameError" received - type ${type}, code ${code}`);
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
         if (client[kHTTP2Session] && !client[kHTTP2Session].destroyed && !this.closed && !this.destroyed) {
           h2State.streams -= 1;
           util2.destroy(stream2, err);
@@ -8149,7 +8149,7 @@ ${len.toString(16)}\r
         }
       }
     };
-    function errorRequest(client, request, err) {
+    function errorRequest2(client, request, err) {
       try {
         request.onError(err);
         assert(request.aborted);
@@ -8798,7 +8798,7 @@ var require_readable = __commonJS({
     var kBody = Symbol("kBody");
     var kAbort = Symbol("abort");
     var kContentType = Symbol("kContentType");
-    var noop = () => {
+    var noop2 = () => {
     };
     module2.exports = class BodyReadable extends Readable {
       constructor({
@@ -8920,7 +8920,7 @@ var require_readable = __commonJS({
         return new Promise((resolve, reject) => {
           const signalListenerCleanup = signal ? util2.addAbortListener(signal, () => {
             this.destroy();
-          }) : noop;
+          }) : noop2;
           this.on("close", function() {
             signalListenerCleanup();
             if (signal && signal.aborted) {
@@ -8928,7 +8928,7 @@ var require_readable = __commonJS({
             } else {
               resolve(null);
             }
-          }).on("error", noop).on("data", function(chunk) {
+          }).on("error", noop2).on("data", function(chunk) {
             limit -= chunk.length;
             if (limit <= 0) {
               this.destroy();
@@ -40615,16 +40615,16 @@ var require_form_data = __commonJS({
   }
 });
 
-// node_modules/universal-user-agent/dist-node/index.js
+// node_modules/@octokit/action/node_modules/universal-user-agent/dist-node/index.js
 var require_dist_node = __commonJS({
-  "node_modules/universal-user-agent/dist-node/index.js"(exports2) {
+  "node_modules/@octokit/action/node_modules/universal-user-agent/dist-node/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     function getUserAgent() {
       if (typeof navigator === "object" && "userAgent" in navigator) {
         return navigator.userAgent;
       }
-      if (typeof process === "object" && "version" in process) {
+      if (typeof process === "object" && process.version !== void 0) {
         return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
       }
       return "<environment undetectable>";
@@ -40633,9 +40633,9 @@ var require_dist_node = __commonJS({
   }
 });
 
-// node_modules/before-after-hook/lib/register.js
+// node_modules/@octokit/action/node_modules/before-after-hook/lib/register.js
 var require_register = __commonJS({
-  "node_modules/before-after-hook/lib/register.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/before-after-hook/lib/register.js"(exports2, module2) {
     module2.exports = register;
     function register(state, name, method, options) {
       if (typeof method !== "function") {
@@ -40661,9 +40661,9 @@ var require_register = __commonJS({
   }
 });
 
-// node_modules/before-after-hook/lib/add.js
+// node_modules/@octokit/action/node_modules/before-after-hook/lib/add.js
 var require_add = __commonJS({
-  "node_modules/before-after-hook/lib/add.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/before-after-hook/lib/add.js"(exports2, module2) {
     module2.exports = addHook;
     function addHook(state, kind, name, hook) {
       var orig = hook;
@@ -40701,9 +40701,9 @@ var require_add = __commonJS({
   }
 });
 
-// node_modules/before-after-hook/lib/remove.js
+// node_modules/@octokit/action/node_modules/before-after-hook/lib/remove.js
 var require_remove = __commonJS({
-  "node_modules/before-after-hook/lib/remove.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/before-after-hook/lib/remove.js"(exports2, module2) {
     module2.exports = removeHook;
     function removeHook(state, name, method) {
       if (!state.registry[name]) {
@@ -40720,16 +40720,19 @@ var require_remove = __commonJS({
   }
 });
 
-// node_modules/before-after-hook/index.js
+// node_modules/@octokit/action/node_modules/before-after-hook/index.js
 var require_before_after_hook = __commonJS({
-  "node_modules/before-after-hook/index.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/before-after-hook/index.js"(exports2, module2) {
     var register = require_register();
     var addHook = require_add();
     var removeHook = require_remove();
     var bind = Function.bind;
     var bindable = bind.bind(bind);
     function bindApi(hook, state, name) {
-      var removeHookRef = bindable(removeHook, null).apply(null, name ? [state, name] : [state]);
+      var removeHookRef = bindable(removeHook, null).apply(
+        null,
+        name ? [state, name] : [state]
+      );
       hook.api = { remove: removeHookRef };
       hook.remove = removeHookRef;
       ["before", "error", "after", "wrap"].forEach(function(kind) {
@@ -40757,7 +40760,9 @@ var require_before_after_hook = __commonJS({
     var collectionHookDeprecationMessageDisplayed = false;
     function Hook() {
       if (!collectionHookDeprecationMessageDisplayed) {
-        console.warn('[before-after-hook]: "Hook()" repurposing warning, use "Hook.Collection()". Read more: https://git.io/upgrade-before-after-hook-to-1.4');
+        console.warn(
+          '[before-after-hook]: "Hook()" repurposing warning, use "Hook.Collection()". Read more: https://git.io/upgrade-before-after-hook-to-1.4'
+        );
         collectionHookDeprecationMessageDisplayed = true;
       }
       return HookCollection();
@@ -40771,36 +40776,9 @@ var require_before_after_hook = __commonJS({
   }
 });
 
-// node_modules/is-plain-object/dist/is-plain-object.js
-var require_is_plain_object = __commonJS({
-  "node_modules/is-plain-object/dist/is-plain-object.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    function isObject(o) {
-      return Object.prototype.toString.call(o) === "[object Object]";
-    }
-    function isPlainObject(o) {
-      var ctor, prot;
-      if (isObject(o) === false)
-        return false;
-      ctor = o.constructor;
-      if (ctor === void 0)
-        return true;
-      prot = ctor.prototype;
-      if (isObject(prot) === false)
-        return false;
-      if (prot.hasOwnProperty("isPrototypeOf") === false) {
-        return false;
-      }
-      return true;
-    }
-    exports2.isPlainObject = isPlainObject;
-  }
-});
-
-// node_modules/@octokit/endpoint/dist-node/index.js
+// node_modules/@octokit/action/node_modules/@octokit/endpoint/dist-node/index.js
 var require_dist_node2 = __commonJS({
-  "node_modules/@octokit/endpoint/dist-node/index.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/@octokit/endpoint/dist-node/index.js"(exports2, module2) {
     "use strict";
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -40825,8 +40803,8 @@ var require_dist_node2 = __commonJS({
     });
     module2.exports = __toCommonJS2(dist_src_exports);
     var import_universal_user_agent = require_dist_node();
-    var VERSION = "9.0.0";
-    var userAgent2 = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
+    var VERSION3 = "9.0.4";
+    var userAgent2 = `octokit-endpoint.js/${VERSION3} ${(0, import_universal_user_agent.getUserAgent)()}`;
     var DEFAULTS = {
       method: "GET",
       baseUrl: "https://api.github.com",
@@ -40847,11 +40825,21 @@ var require_dist_node2 = __commonJS({
         return newObj;
       }, {});
     }
-    var import_is_plain_object = require_is_plain_object();
+    function isPlainObject(value) {
+      if (typeof value !== "object" || value === null)
+        return false;
+      if (Object.prototype.toString.call(value) !== "[object Object]")
+        return false;
+      const proto = Object.getPrototypeOf(value);
+      if (proto === null)
+        return true;
+      const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+      return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+    }
     function mergeDeep(defaults, options) {
       const result = Object.assign({}, defaults);
       Object.keys(options).forEach((key) => {
-        if ((0, import_is_plain_object.isPlainObject)(options[key])) {
+        if (isPlainObject(options[key])) {
           if (!(key in defaults))
             Object.assign(result, { [key]: options[key] });
           else
@@ -40916,10 +40904,13 @@ var require_dist_node2 = __commonJS({
       return matches.map(removeNonChars).reduce((a, b) => a.concat(b), []);
     }
     function omit(object, keysToOmit) {
-      return Object.keys(object).filter((option) => !keysToOmit.includes(option)).reduce((obj, key) => {
-        obj[key] = object[key];
-        return obj;
-      }, {});
+      const result = { __proto__: null };
+      for (const key of Object.keys(object)) {
+        if (keysToOmit.indexOf(key) === -1) {
+          result[key] = object[key];
+        }
+      }
+      return result;
     }
     function encodeReserved(str) {
       return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
@@ -41015,7 +41006,7 @@ var require_dist_node2 = __commonJS({
     }
     function expand(template, context) {
       var operators = ["+", "#", ".", "/", ";", "?", "&"];
-      return template.replace(
+      template = template.replace(
         /\{([^\{\}]+)\}|([^\{\}]+)/g,
         function(_, expression, literal) {
           if (expression) {
@@ -41045,6 +41036,11 @@ var require_dist_node2 = __commonJS({
           }
         }
       );
+      if (template === "/") {
+        return template;
+      } else {
+        return template.replace(/\/$/, "");
+      }
     }
     function parse3(options) {
       let method = options.method.toUpperCase();
@@ -41253,14 +41249,14 @@ var require_dist_node4 = __commonJS({
     var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
     __export2(dist_src_exports, {
-      RequestError: () => RequestError
+      RequestError: () => RequestError2
     });
     module2.exports = __toCommonJS2(dist_src_exports);
     var import_deprecation = require_dist_node3();
     var import_once = __toESM2(require_once());
     var logOnceCode = (0, import_once.default)((deprecation) => console.warn(deprecation));
     var logOnceHeaders = (0, import_once.default)((deprecation) => console.warn(deprecation));
-    var RequestError = class extends Error {
+    var RequestError2 = class extends Error {
       constructor(message, statusCode, options) {
         super(message);
         if (Error.captureStackTrace) {
@@ -41312,9 +41308,9 @@ var require_dist_node4 = __commonJS({
   }
 });
 
-// node_modules/@octokit/request/dist-node/index.js
+// node_modules/@octokit/action/node_modules/@octokit/request/dist-node/index.js
 var require_dist_node5 = __commonJS({
-  "node_modules/@octokit/request/dist-node/index.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/@octokit/request/dist-node/index.js"(exports2, module2) {
     "use strict";
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -41340,9 +41336,19 @@ var require_dist_node5 = __commonJS({
     module2.exports = __toCommonJS2(dist_src_exports);
     var import_endpoint = require_dist_node2();
     var import_universal_user_agent = require_dist_node();
-    var VERSION = "8.1.1";
-    var import_is_plain_object = require_is_plain_object();
-    var import_request_error = require_dist_node4();
+    var VERSION3 = "8.2.0";
+    function isPlainObject(value) {
+      if (typeof value !== "object" || value === null)
+        return false;
+      if (Object.prototype.toString.call(value) !== "[object Object]")
+        return false;
+      const proto = Object.getPrototypeOf(value);
+      if (proto === null)
+        return true;
+      const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+      return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+    }
+    var import_request_error2 = require_dist_node4();
     function getBufferResponse(response) {
       return response.arrayBuffer();
     }
@@ -41350,7 +41356,7 @@ var require_dist_node5 = __commonJS({
       var _a, _b, _c;
       const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
       const parseSuccessResponseBody = ((_a = requestOptions.request) == null ? void 0 : _a.parseSuccessResponseBody) !== false;
-      if ((0, import_is_plain_object.isPlainObject)(requestOptions.body) || Array.isArray(requestOptions.body)) {
+      if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
         requestOptions.body = JSON.stringify(requestOptions.body);
       }
       let headers = {};
@@ -41393,7 +41399,7 @@ var require_dist_node5 = __commonJS({
           if (status < 400) {
             return;
           }
-          throw new import_request_error.RequestError(response.statusText, status, {
+          throw new import_request_error2.RequestError(response.statusText, status, {
             response: {
               url,
               status,
@@ -41404,7 +41410,7 @@ var require_dist_node5 = __commonJS({
           });
         }
         if (status === 304) {
-          throw new import_request_error.RequestError("Not modified", status, {
+          throw new import_request_error2.RequestError("Not modified", status, {
             response: {
               url,
               status,
@@ -41416,7 +41422,7 @@ var require_dist_node5 = __commonJS({
         }
         if (status >= 400) {
           const data = await getResponseData(response);
-          const error2 = new import_request_error.RequestError(toErrorMessage(data), status, {
+          const error2 = new import_request_error2.RequestError(toErrorMessage(data), status, {
             response: {
               url,
               status,
@@ -41436,11 +41442,19 @@ var require_dist_node5 = __commonJS({
           data
         };
       }).catch((error2) => {
-        if (error2 instanceof import_request_error.RequestError)
+        if (error2 instanceof import_request_error2.RequestError)
           throw error2;
         else if (error2.name === "AbortError")
           throw error2;
-        throw new import_request_error.RequestError(error2.message, 500, {
+        let message = error2.message;
+        if (error2.name === "TypeError" && "cause" in error2) {
+          if (error2.cause instanceof Error) {
+            message = error2.cause.message;
+          } else if (typeof error2.cause === "string") {
+            message = error2.cause;
+          }
+        }
+        throw new import_request_error2.RequestError(message, 500, {
           request: requestOptions
         });
       });
@@ -41448,7 +41462,7 @@ var require_dist_node5 = __commonJS({
     async function getResponseData(response) {
       const contentType = response.headers.get("content-type");
       if (/application\/json/.test(contentType)) {
-        return response.json();
+        return response.json().catch(() => response.text()).catch(() => "");
       }
       if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
         return response.text();
@@ -41458,11 +41472,17 @@ var require_dist_node5 = __commonJS({
     function toErrorMessage(data) {
       if (typeof data === "string")
         return data;
+      let suffix;
+      if ("documentation_url" in data) {
+        suffix = ` - ${data.documentation_url}`;
+      } else {
+        suffix = "";
+      }
       if ("message" in data) {
         if (Array.isArray(data.errors)) {
-          return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}`;
+          return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}${suffix}`;
         }
-        return data.message;
+        return `${data.message}${suffix}`;
       }
       return `Unknown error: ${JSON.stringify(data)}`;
     }
@@ -41491,15 +41511,15 @@ var require_dist_node5 = __commonJS({
     }
     var request = withDefaults(import_endpoint.endpoint, {
       headers: {
-        "user-agent": `octokit-request.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
+        "user-agent": `octokit-request.js/${VERSION3} ${(0, import_universal_user_agent.getUserAgent)()}`
       }
     });
   }
 });
 
-// node_modules/@octokit/graphql/dist-node/index.js
+// node_modules/@octokit/action/node_modules/@octokit/graphql/dist-node/index.js
 var require_dist_node6 = __commonJS({
-  "node_modules/@octokit/graphql/dist-node/index.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/@octokit/graphql/dist-node/index.js"(exports2, module2) {
     "use strict";
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -41527,7 +41547,7 @@ var require_dist_node6 = __commonJS({
     module2.exports = __toCommonJS2(dist_src_exports);
     var import_request3 = require_dist_node5();
     var import_universal_user_agent = require_dist_node();
-    var VERSION = "7.0.1";
+    var VERSION3 = "7.0.2";
     var import_request2 = require_dist_node5();
     var import_request = require_dist_node5();
     function _buildMessageForResponseErrors(data) {
@@ -41621,7 +41641,7 @@ var require_dist_node6 = __commonJS({
     }
     var graphql2 = withDefaults(import_request3.request, {
       headers: {
-        "user-agent": `octokit-graphql.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
+        "user-agent": `octokit-graphql.js/${VERSION3} ${(0, import_universal_user_agent.getUserAgent)()}`
       },
       method: "POST",
       url: "/graphql"
@@ -41706,9 +41726,9 @@ var require_dist_node7 = __commonJS({
   }
 });
 
-// node_modules/@octokit/core/dist-node/index.js
+// node_modules/@octokit/action/node_modules/@octokit/core/dist-node/index.js
 var require_dist_node8 = __commonJS({
-  "node_modules/@octokit/core/dist-node/index.js"(exports2, module2) {
+  "node_modules/@octokit/action/node_modules/@octokit/core/dist-node/index.js"(exports2, module2) {
     "use strict";
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -41737,10 +41757,15 @@ var require_dist_node8 = __commonJS({
     var import_request = require_dist_node5();
     var import_graphql = require_dist_node6();
     var import_auth_token = require_dist_node7();
-    var VERSION = "5.0.1";
+    var VERSION3 = "5.1.0";
+    var noop2 = () => {
+    };
+    var consoleWarn = console.warn.bind(console);
+    var consoleError = console.error.bind(console);
+    var userAgentTrail = `octokit-core.js/${VERSION3} ${(0, import_universal_user_agent.getUserAgent)()}`;
     var Octokit2 = class {
       static {
-        this.VERSION = VERSION;
+        this.VERSION = VERSION3;
       }
       static defaults(defaults) {
         const OctokitWithDefaults = class extends this {
@@ -41798,10 +41823,7 @@ var require_dist_node8 = __commonJS({
             format: ""
           }
         };
-        requestDefaults.headers["user-agent"] = [
-          options.userAgent,
-          `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
-        ].filter(Boolean).join(" ");
+        requestDefaults.headers["user-agent"] = options.userAgent ? `${options.userAgent} ${userAgentTrail}` : userAgentTrail;
         if (options.baseUrl) {
           requestDefaults.baseUrl = options.baseUrl;
         }
@@ -41815,12 +41837,10 @@ var require_dist_node8 = __commonJS({
         this.graphql = (0, import_graphql.withCustomRequest)(this.request).defaults(requestDefaults);
         this.log = Object.assign(
           {
-            debug: () => {
-            },
-            info: () => {
-            },
-            warn: console.warn.bind(console),
-            error: console.error.bind(console)
+            debug: noop2,
+            info: noop2,
+            warn: consoleWarn,
+            error: consoleError
           },
           options.log
         );
@@ -41857,9 +41877,9 @@ var require_dist_node8 = __commonJS({
           this.auth = auth;
         }
         const classConstructor = this.constructor;
-        classConstructor.plugins.forEach((plugin) => {
-          Object.assign(this, plugin(this, options));
-        });
+        for (let i = 0; i < classConstructor.plugins.length; ++i) {
+          Object.assign(this, classConstructor.plugins[i](this, options));
+        }
       }
     };
   }
@@ -41948,7 +41968,7 @@ var require_dist_node10 = __commonJS({
       paginatingEndpoints: () => paginatingEndpoints
     });
     module2.exports = __toCommonJS2(dist_src_exports);
-    var VERSION = "9.0.0";
+    var VERSION3 = "9.0.0";
     function normalizePaginatedListResponse(response) {
       if (!response.data) {
         return {
@@ -42289,7 +42309,7 @@ var require_dist_node10 = __commonJS({
         })
       };
     }
-    paginateRest.VERSION = VERSION;
+    paginateRest.VERSION = VERSION3;
   }
 });
 
@@ -42320,7 +42340,7 @@ var require_dist_node11 = __commonJS({
       restEndpointMethods: () => restEndpointMethods
     });
     module2.exports = __toCommonJS2(dist_src_exports);
-    var VERSION = "10.0.1";
+    var VERSION3 = "10.0.1";
     var Endpoints = {
       actions: {
         addCustomLabelsToSelfHostedRunnerForOrg: [
@@ -44302,7 +44322,7 @@ var require_dist_node11 = __commonJS({
         rest: api
       };
     }
-    restEndpointMethods.VERSION = VERSION;
+    restEndpointMethods.VERSION = VERSION3;
     function legacyRestEndpointMethods(octokit) {
       const api = endpointsToMethods(octokit);
       return {
@@ -44310,7 +44330,7 @@ var require_dist_node11 = __commonJS({
         rest: api
       };
     }
-    legacyRestEndpointMethods.VERSION = VERSION;
+    legacyRestEndpointMethods.VERSION = VERSION3;
   }
 });
 
@@ -49458,7 +49478,7 @@ var require_client2 = __commonJS({
           const requests = this[kQueue].splice(this[kPendingIdx]);
           for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
-            errorRequest(this, request, err);
+            errorRequest2(this, request, err);
           }
           const callback = () => {
             if (this[kClosedResolve]) {
@@ -49507,12 +49527,12 @@ var require_client2 = __commonJS({
         const requests = client[kQueue].splice(client[kRunningIdx]);
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i];
-          errorRequest(this, request, err);
+          errorRequest2(this, request, err);
         }
       } else if (client[kRunning] > 0) {
         const request = client[kQueue][client[kRunningIdx]];
         client[kQueue][client[kRunningIdx]++] = null;
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       client[kPendingIdx] = client[kRunningIdx];
       assert(client[kRunning] === 0);
@@ -49980,7 +50000,7 @@ var require_client2 = __commonJS({
         const requests = client[kQueue].splice(client[kRunningIdx]);
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i];
-          errorRequest(client, request, err);
+          errorRequest2(client, request, err);
         }
         assert(client[kSize] === 0);
       }
@@ -50011,12 +50031,12 @@ var require_client2 = __commonJS({
         const requests = client[kQueue].splice(client[kRunningIdx]);
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i];
-          errorRequest(client, request, err);
+          errorRequest2(client, request, err);
         }
       } else if (client[kRunning] > 0 && err.code !== "UND_ERR_INFO") {
         const request = client[kQueue][client[kRunningIdx]];
         client[kQueue][client[kRunningIdx]++] = null;
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       client[kPendingIdx] = client[kRunningIdx];
       assert(client[kRunning] === 0);
@@ -50153,7 +50173,7 @@ var require_client2 = __commonJS({
           assert(client[kRunning] === 0);
           while (client[kPending] > 0 && client[kQueue][client[kPendingIdx]].servername === client[kServerName]) {
             const request = client[kQueue][client[kPendingIdx]++];
-            errorRequest(client, request, err);
+            errorRequest2(client, request, err);
           }
         } else {
           onError(client, err);
@@ -50290,7 +50310,7 @@ var require_client2 = __commonJS({
       }
       if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength !== null && request.contentLength !== contentLength) {
         if (client[kStrictContentLength]) {
-          errorRequest(client, request, new RequestContentLengthMismatchError());
+          errorRequest2(client, request, new RequestContentLengthMismatchError());
           return false;
         }
         process.emitWarning(new RequestContentLengthMismatchError());
@@ -50301,11 +50321,11 @@ var require_client2 = __commonJS({
           if (request.aborted || request.completed) {
             return;
           }
-          errorRequest(client, request, err || new RequestAbortedError());
+          errorRequest2(client, request, err || new RequestAbortedError());
           util2.destroy(socket, new InformationalError("aborted"));
         });
       } catch (err) {
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       if (request.aborted) {
         return false;
@@ -50395,7 +50415,7 @@ upgrade: ${upgrade}\r
       else
         headers = reqHeaders;
       if (upgrade) {
-        errorRequest(client, request, new Error("Upgrade not supported for H2"));
+        errorRequest2(client, request, new Error("Upgrade not supported for H2"));
         return false;
       }
       if (request.aborted) {
@@ -50418,10 +50438,10 @@ upgrade: ${upgrade}\r
               session.unref();
             }
           }
-          errorRequest(client, request, err);
+          errorRequest2(client, request, err);
         });
       } catch (err) {
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
       }
       if (method === "CONNECT") {
         session.ref();
@@ -50457,7 +50477,7 @@ upgrade: ${upgrade}\r
       }
       if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength != null && request.contentLength !== contentLength) {
         if (client[kStrictContentLength]) {
-          errorRequest(client, request, new RequestContentLengthMismatchError());
+          errorRequest2(client, request, new RequestContentLengthMismatchError());
           return false;
         }
         process.emitWarning(new RequestContentLengthMismatchError());
@@ -50509,7 +50529,7 @@ upgrade: ${upgrade}\r
       });
       stream2.once("frameError", (type, code) => {
         const err = new InformationalError(`HTTP/2: "frameError" received - type ${type}, code ${code}`);
-        errorRequest(client, request, err);
+        errorRequest2(client, request, err);
         if (client[kHTTP2Session] && !client[kHTTP2Session].destroyed && !this.closed && !this.destroyed) {
           h2State.streams -= 1;
           util2.destroy(stream2, err);
@@ -50856,7 +50876,7 @@ ${len.toString(16)}\r
         }
       }
     };
-    function errorRequest(client, request, err) {
+    function errorRequest2(client, request, err) {
       try {
         request.onError(err);
         assert(request.aborted);
@@ -51442,7 +51462,7 @@ var require_readable3 = __commonJS({
     var kBody = Symbol("kBody");
     var kAbort = Symbol("abort");
     var kContentType = Symbol("kContentType");
-    var noop = () => {
+    var noop2 = () => {
     };
     module2.exports = class BodyReadable extends Readable {
       constructor({
@@ -51561,7 +51581,7 @@ var require_readable3 = __commonJS({
             } else {
               resolve(null);
             }
-          }).on("error", noop).on("data", function(chunk) {
+          }).on("error", noop2).on("data", function(chunk) {
             limit -= chunk.length;
             if (limit <= 0) {
               this.destroy();
@@ -60232,12 +60252,12 @@ var require_dist_node12 = __commonJS({
     var import_auth_action = require_dist_node9();
     var import_plugin_paginate_rest = require_dist_node10();
     var import_plugin_rest_endpoint_methods = require_dist_node11();
-    var VERSION = "6.0.7";
+    var VERSION3 = "6.0.7";
     var import_undici = require_undici2();
     var DEFAULTS = {
       authStrategy: import_auth_action.createActionAuth,
       baseUrl: getApiBaseUrl(),
-      userAgent: `octokit-action.js/${VERSION}`
+      userAgent: `octokit-action.js/${VERSION3}`
     };
     function getProxyAgent() {
       const httpProxy = process.env["HTTP_PROXY"] || process.env["http_proxy"];
@@ -61168,7 +61188,7 @@ var require_light = __commonJS({
       var Batcher_1 = Batcher;
       var require$$4$1 = () => console.log("You must import the full version of Bottleneck in order to use this feature.");
       var require$$8 = getCjsExportFromNamespace(version$2);
-      var Bottleneck, DEFAULT_PRIORITY$1, Events$4, Job$1, LocalDatastore$1, NUM_PRIORITIES$1, Queues$1, RedisDatastore$1, States$1, Sync$1, parser$5, splice = [].splice;
+      var Bottleneck2, DEFAULT_PRIORITY$1, Events$4, Job$1, LocalDatastore$1, NUM_PRIORITIES$1, Queues$1, RedisDatastore$1, States$1, Sync$1, parser$5, splice = [].splice;
       NUM_PRIORITIES$1 = 10;
       DEFAULT_PRIORITY$1 = 5;
       parser$5 = parser;
@@ -61179,8 +61199,8 @@ var require_light = __commonJS({
       Events$4 = Events_1;
       States$1 = States_1;
       Sync$1 = Sync_1;
-      Bottleneck = function() {
-        class Bottleneck2 {
+      Bottleneck2 = function() {
+        class Bottleneck3 {
           constructor(options = {}, ...invalid) {
             var storeInstanceOptions, storeOptions;
             this._addToQueue = this._addToQueue.bind(this);
@@ -61202,7 +61222,7 @@ var require_light = __commonJS({
                 storeInstanceOptions = parser$5.load(options, this.localStoreDefaults, {});
                 return new LocalDatastore$1(this, storeOptions, storeInstanceOptions);
               } else {
-                throw new Bottleneck2.prototype.BottleneckError(`Invalid datastore type: ${this.datastore}`);
+                throw new Bottleneck3.prototype.BottleneckError(`Invalid datastore type: ${this.datastore}`);
               }
             }.call(this);
             this._queues.on("leftzero", () => {
@@ -61216,7 +61236,7 @@ var require_light = __commonJS({
           }
           _validateOptions(options, invalid) {
             if (!(options != null && typeof options === "object" && invalid.length === 0)) {
-              throw new Bottleneck2.prototype.BottleneckError("Bottleneck v2 takes a single object argument. Refer to https://github.com/SGrondin/bottleneck#upgrading-to-v2 if you're upgrading from Bottleneck v1.");
+              throw new Bottleneck3.prototype.BottleneckError("Bottleneck v2 takes a single object argument. Refer to https://github.com/SGrondin/bottleneck#upgrading-to-v2 if you're upgrading from Bottleneck v1.");
             }
           }
           ready() {
@@ -61413,10 +61433,10 @@ var require_light = __commonJS({
               return waitForExecuting(1);
             });
             this._receive = function(job) {
-              return job._reject(new Bottleneck2.prototype.BottleneckError(options.enqueueErrorMessage));
+              return job._reject(new Bottleneck3.prototype.BottleneckError(options.enqueueErrorMessage));
             };
             this.stop = () => {
-              return this.Promise.reject(new Bottleneck2.prototype.BottleneckError("stop() has already been called"));
+              return this.Promise.reject(new Bottleneck3.prototype.BottleneckError("stop() has already been called"));
             };
             return done;
           }
@@ -61435,11 +61455,11 @@ var require_light = __commonJS({
               job.doDrop();
               return true;
             } else if (reachedHWM) {
-              shifted = strategy === Bottleneck2.prototype.strategy.LEAK ? this._queues.shiftLastFrom(options.priority) : strategy === Bottleneck2.prototype.strategy.OVERFLOW_PRIORITY ? this._queues.shiftLastFrom(options.priority + 1) : strategy === Bottleneck2.prototype.strategy.OVERFLOW ? job : void 0;
+              shifted = strategy === Bottleneck3.prototype.strategy.LEAK ? this._queues.shiftLastFrom(options.priority) : strategy === Bottleneck3.prototype.strategy.OVERFLOW_PRIORITY ? this._queues.shiftLastFrom(options.priority + 1) : strategy === Bottleneck3.prototype.strategy.OVERFLOW ? job : void 0;
               if (shifted != null) {
                 shifted.doDrop();
               }
-              if (shifted == null || strategy === Bottleneck2.prototype.strategy.OVERFLOW) {
+              if (shifted == null || strategy === Bottleneck3.prototype.strategy.OVERFLOW) {
                 if (shifted == null) {
                   job.doDrop();
                 }
@@ -61453,7 +61473,7 @@ var require_light = __commonJS({
           }
           _receive(job) {
             if (this._states.jobStatus(job.options.id) != null) {
-              job._reject(new Bottleneck2.prototype.BottleneckError(`A job with the same id already exists (id=${job.options.id})`));
+              job._reject(new Bottleneck3.prototype.BottleneckError(`A job with the same id already exists (id=${job.options.id})`));
               return false;
             } else {
               job.doReceive();
@@ -61523,31 +61543,31 @@ var require_light = __commonJS({
             return this._store.__incrementReservoir__(incr);
           }
         }
-        Bottleneck2.default = Bottleneck2;
-        Bottleneck2.Events = Events$4;
-        Bottleneck2.version = Bottleneck2.prototype.version = require$$8.version;
-        Bottleneck2.strategy = Bottleneck2.prototype.strategy = {
+        Bottleneck3.default = Bottleneck3;
+        Bottleneck3.Events = Events$4;
+        Bottleneck3.version = Bottleneck3.prototype.version = require$$8.version;
+        Bottleneck3.strategy = Bottleneck3.prototype.strategy = {
           LEAK: 1,
           OVERFLOW: 2,
           OVERFLOW_PRIORITY: 4,
           BLOCK: 3
         };
-        Bottleneck2.BottleneckError = Bottleneck2.prototype.BottleneckError = BottleneckError_1;
-        Bottleneck2.Group = Bottleneck2.prototype.Group = Group_1;
-        Bottleneck2.RedisConnection = Bottleneck2.prototype.RedisConnection = require$$2;
-        Bottleneck2.IORedisConnection = Bottleneck2.prototype.IORedisConnection = require$$3;
-        Bottleneck2.Batcher = Bottleneck2.prototype.Batcher = Batcher_1;
-        Bottleneck2.prototype.jobDefaults = {
+        Bottleneck3.BottleneckError = Bottleneck3.prototype.BottleneckError = BottleneckError_1;
+        Bottleneck3.Group = Bottleneck3.prototype.Group = Group_1;
+        Bottleneck3.RedisConnection = Bottleneck3.prototype.RedisConnection = require$$2;
+        Bottleneck3.IORedisConnection = Bottleneck3.prototype.IORedisConnection = require$$3;
+        Bottleneck3.Batcher = Bottleneck3.prototype.Batcher = Batcher_1;
+        Bottleneck3.prototype.jobDefaults = {
           priority: DEFAULT_PRIORITY$1,
           weight: 1,
           expiration: null,
           id: "<no-id>"
         };
-        Bottleneck2.prototype.storeDefaults = {
+        Bottleneck3.prototype.storeDefaults = {
           maxConcurrent: null,
           minTime: 0,
           highWater: null,
-          strategy: Bottleneck2.prototype.strategy.LEAK,
+          strategy: Bottleneck3.prototype.strategy.LEAK,
           penalty: null,
           reservoir: null,
           reservoirRefreshInterval: null,
@@ -61556,12 +61576,12 @@ var require_light = __commonJS({
           reservoirIncreaseAmount: null,
           reservoirIncreaseMaximum: null
         };
-        Bottleneck2.prototype.localStoreDefaults = {
+        Bottleneck3.prototype.localStoreDefaults = {
           Promise,
           timeout: null,
           heartbeatInterval: 250
         };
-        Bottleneck2.prototype.redisStoreDefaults = {
+        Bottleneck3.prototype.redisStoreDefaults = {
           Promise,
           timeout: null,
           heartbeatInterval: 5e3,
@@ -61572,7 +61592,7 @@ var require_light = __commonJS({
           clearDatastore: false,
           connection: null
         };
-        Bottleneck2.prototype.instanceDefaults = {
+        Bottleneck3.prototype.instanceDefaults = {
           datastore: "local",
           connection: null,
           id: "<no-id>",
@@ -61580,367 +61600,17 @@ var require_light = __commonJS({
           trackDoneStatus: false,
           Promise
         };
-        Bottleneck2.prototype.stopDefaults = {
+        Bottleneck3.prototype.stopDefaults = {
           enqueueErrorMessage: "This limiter has been stopped and cannot accept new jobs.",
           dropWaitingJobs: true,
           dropErrorMessage: "This limiter has been stopped."
         };
-        return Bottleneck2;
+        return Bottleneck3;
       }.call(commonjsGlobal);
-      var Bottleneck_1 = Bottleneck;
+      var Bottleneck_1 = Bottleneck2;
       var lib = Bottleneck_1;
       return lib;
     });
-  }
-});
-
-// node_modules/@octokit/plugin-retry/dist-node/index.js
-var require_dist_node13 = __commonJS({
-  "node_modules/@octokit/plugin-retry/dist-node/index.js"(exports2, module2) {
-    "use strict";
-    var __create2 = Object.create;
-    var __defProp2 = Object.defineProperty;
-    var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-    var __getOwnPropNames2 = Object.getOwnPropertyNames;
-    var __getProtoOf2 = Object.getPrototypeOf;
-    var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
-      for (var name in all)
-        __defProp2(target, name, { get: all[name], enumerable: true });
-    };
-    var __copyProps2 = (to, from, except, desc) => {
-      if (from && typeof from === "object" || typeof from === "function") {
-        for (let key of __getOwnPropNames2(from))
-          if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
-      }
-      return to;
-    };
-    var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
-      // If the importer is in node compatibility mode or this is not an ESM
-      // file that has been converted to a CommonJS file using a Babel-
-      // compatible transform (i.e. "__esModule" has not been set), then set
-      // "default" to the CommonJS "module.exports" for node compatibility.
-      isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
-      mod
-    ));
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
-    var dist_src_exports = {};
-    __export2(dist_src_exports, {
-      VERSION: () => VERSION,
-      retry: () => retry2
-    });
-    module2.exports = __toCommonJS2(dist_src_exports);
-    var import_core4 = require_dist_node8();
-    async function errorRequest(state, octokit, error2, options) {
-      if (!error2.request || !error2.request.request) {
-        throw error2;
-      }
-      if (error2.status >= 400 && !state.doNotRetry.includes(error2.status)) {
-        const retries = options.request.retries != null ? options.request.retries : state.retries;
-        const retryAfter = Math.pow((options.request.retryCount || 0) + 1, 2);
-        throw octokit.retry.retryRequest(error2, retries, retryAfter);
-      }
-      throw error2;
-    }
-    var import_light = __toESM2(require_light());
-    var import_request_error = require_dist_node4();
-    async function wrapRequest(state, octokit, request, options) {
-      const limiter = new import_light.default();
-      limiter.on("failed", function(error2, info2) {
-        const maxRetries = ~~error2.request.request.retries;
-        const after = ~~error2.request.request.retryAfter;
-        options.request.retryCount = info2.retryCount + 1;
-        if (maxRetries > info2.retryCount) {
-          return after * state.retryAfterBaseValue;
-        }
-      });
-      return limiter.schedule(
-        requestWithGraphqlErrorHandling.bind(null, state, octokit, request),
-        options
-      );
-    }
-    async function requestWithGraphqlErrorHandling(state, octokit, request, options) {
-      const response = await request(request, options);
-      if (response.data && response.data.errors && /Something went wrong while executing your query/.test(
-        response.data.errors[0].message
-      )) {
-        const error2 = new import_request_error.RequestError(response.data.errors[0].message, 500, {
-          request: options,
-          response
-        });
-        return errorRequest(state, octokit, error2, options);
-      }
-      return response;
-    }
-    var VERSION = "6.0.1";
-    function retry2(octokit, octokitOptions) {
-      const state = Object.assign(
-        {
-          enabled: true,
-          retryAfterBaseValue: 1e3,
-          doNotRetry: [400, 401, 403, 404, 422, 451],
-          retries: 3
-        },
-        octokitOptions.retry
-      );
-      if (state.enabled) {
-        octokit.hook.error("request", errorRequest.bind(null, state, octokit));
-        octokit.hook.wrap("request", wrapRequest.bind(null, state, octokit));
-      }
-      return {
-        retry: {
-          retryRequest: (error2, retries, retryAfter) => {
-            error2.request.request = Object.assign({}, error2.request.request, {
-              retries,
-              retryAfter
-            });
-            return error2;
-          }
-        }
-      };
-    }
-    retry2.VERSION = VERSION;
-  }
-});
-
-// node_modules/@octokit/plugin-throttling/dist-node/index.js
-var require_dist_node14 = __commonJS({
-  "node_modules/@octokit/plugin-throttling/dist-node/index.js"(exports2, module2) {
-    "use strict";
-    var __create2 = Object.create;
-    var __defProp2 = Object.defineProperty;
-    var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-    var __getOwnPropNames2 = Object.getOwnPropertyNames;
-    var __getProtoOf2 = Object.getPrototypeOf;
-    var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
-      for (var name in all)
-        __defProp2(target, name, { get: all[name], enumerable: true });
-    };
-    var __copyProps2 = (to, from, except, desc) => {
-      if (from && typeof from === "object" || typeof from === "function") {
-        for (let key of __getOwnPropNames2(from))
-          if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
-      }
-      return to;
-    };
-    var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
-      // If the importer is in node compatibility mode or this is not an ESM
-      // file that has been converted to a CommonJS file using a Babel-
-      // compatible transform (i.e. "__esModule" has not been set), then set
-      // "default" to the CommonJS "module.exports" for node compatibility.
-      isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
-      mod
-    ));
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
-    var dist_src_exports = {};
-    __export2(dist_src_exports, {
-      throttling: () => throttling2
-    });
-    module2.exports = __toCommonJS2(dist_src_exports);
-    var import_light = __toESM2(require_light());
-    var import_core4 = require_dist_node8();
-    var VERSION = "8.1.3";
-    var noop = () => Promise.resolve();
-    function wrapRequest(state, request, options) {
-      return state.retryLimiter.schedule(doRequest, state, request, options);
-    }
-    async function doRequest(state, request, options) {
-      const isWrite = options.method !== "GET" && options.method !== "HEAD";
-      const { pathname } = new URL(options.url, "http://github.test");
-      const isSearch = options.method === "GET" && pathname.startsWith("/search/");
-      const isGraphQL = pathname.startsWith("/graphql");
-      const retryCount = ~~request.retryCount;
-      const jobOptions = retryCount > 0 ? { priority: 0, weight: 0 } : {};
-      if (state.clustering) {
-        jobOptions.expiration = 1e3 * 60;
-      }
-      if (isWrite || isGraphQL) {
-        await state.write.key(state.id).schedule(jobOptions, noop);
-      }
-      if (isWrite && state.triggersNotification(pathname)) {
-        await state.notifications.key(state.id).schedule(jobOptions, noop);
-      }
-      if (isSearch) {
-        await state.search.key(state.id).schedule(jobOptions, noop);
-      }
-      const req = state.global.key(state.id).schedule(
-        jobOptions,
-        request,
-        options
-      );
-      if (isGraphQL) {
-        const res = await req;
-        if (res.data.errors != null && res.data.errors.some((error2) => error2.type === "RATE_LIMITED")) {
-          const error2 = Object.assign(new Error("GraphQL Rate Limit Exceeded"), {
-            response: res,
-            data: res.data
-          });
-          throw error2;
-        }
-      }
-      return req;
-    }
-    var triggers_notification_paths_default = [
-      "/orgs/{org}/invitations",
-      "/orgs/{org}/invitations/{invitation_id}",
-      "/orgs/{org}/teams/{team_slug}/discussions",
-      "/orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments",
-      "/repos/{owner}/{repo}/collaborators/{username}",
-      "/repos/{owner}/{repo}/commits/{commit_sha}/comments",
-      "/repos/{owner}/{repo}/issues",
-      "/repos/{owner}/{repo}/issues/{issue_number}/comments",
-      "/repos/{owner}/{repo}/pulls",
-      "/repos/{owner}/{repo}/pulls/{pull_number}/comments",
-      "/repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies",
-      "/repos/{owner}/{repo}/pulls/{pull_number}/merge",
-      "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers",
-      "/repos/{owner}/{repo}/pulls/{pull_number}/reviews",
-      "/repos/{owner}/{repo}/releases",
-      "/teams/{team_id}/discussions",
-      "/teams/{team_id}/discussions/{discussion_number}/comments"
-    ];
-    function routeMatcher(paths) {
-      const regexes = paths.map(
-        (path4) => path4.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
-      );
-      const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
-      return new RegExp(regex2, "i");
-    }
-    var regex = routeMatcher(triggers_notification_paths_default);
-    var triggersNotification = regex.test.bind(regex);
-    var groups = {};
-    var createGroups = function(Bottleneck, common) {
-      groups.global = new Bottleneck.Group({
-        id: "octokit-global",
-        maxConcurrent: 10,
-        ...common
-      });
-      groups.search = new Bottleneck.Group({
-        id: "octokit-search",
-        maxConcurrent: 1,
-        minTime: 2e3,
-        ...common
-      });
-      groups.write = new Bottleneck.Group({
-        id: "octokit-write",
-        maxConcurrent: 1,
-        minTime: 1e3,
-        ...common
-      });
-      groups.notifications = new Bottleneck.Group({
-        id: "octokit-notifications",
-        maxConcurrent: 1,
-        minTime: 3e3,
-        ...common
-      });
-    };
-    function throttling2(octokit, octokitOptions) {
-      const {
-        enabled = true,
-        Bottleneck = import_light.default,
-        id = "no-id",
-        timeout = 1e3 * 60 * 2,
-        // Redis TTL: 2 minutes
-        connection
-      } = octokitOptions.throttle || {};
-      if (!enabled) {
-        return {};
-      }
-      const common = { connection, timeout };
-      if (groups.global == null) {
-        createGroups(Bottleneck, common);
-      }
-      const state = Object.assign(
-        {
-          clustering: connection != null,
-          triggersNotification,
-          fallbackSecondaryRateRetryAfter: 60,
-          retryAfterBaseValue: 1e3,
-          retryLimiter: new Bottleneck(),
-          id,
-          ...groups
-        },
-        octokitOptions.throttle
-      );
-      if (typeof state.onSecondaryRateLimit !== "function" || typeof state.onRateLimit !== "function") {
-        throw new Error(`octokit/plugin-throttling error:
-        You must pass the onSecondaryRateLimit and onRateLimit error handlers.
-        See https://octokit.github.io/rest.js/#throttling
-
-        const octokit = new Octokit({
-          throttle: {
-            onSecondaryRateLimit: (retryAfter, options) => {/* ... */},
-            onRateLimit: (retryAfter, options) => {/* ... */}
-          }
-        })
-    `);
-      }
-      const events = {};
-      const emitter = new Bottleneck.Events(events);
-      events.on("secondary-limit", state.onSecondaryRateLimit);
-      events.on("rate-limit", state.onRateLimit);
-      events.on(
-        "error",
-        (e) => octokit.log.warn("Error in throttling-plugin limit handler", e)
-      );
-      state.retryLimiter.on("failed", async function(error2, info2) {
-        const [state2, request, options] = info2.args;
-        const { pathname } = new URL(options.url, "http://github.test");
-        const shouldRetryGraphQL = pathname.startsWith("/graphql") && error2.status !== 401;
-        if (!(shouldRetryGraphQL || error2.status === 403)) {
-          return;
-        }
-        const retryCount = ~~request.retryCount;
-        request.retryCount = retryCount;
-        options.request.retryCount = retryCount;
-        const { wantRetry, retryAfter = 0 } = await async function() {
-          if (/\bsecondary rate\b/i.test(error2.message)) {
-            const retryAfter2 = Number(error2.response.headers["retry-after"]) || state2.fallbackSecondaryRateRetryAfter;
-            const wantRetry2 = await emitter.trigger(
-              "secondary-limit",
-              retryAfter2,
-              options,
-              octokit,
-              retryCount
-            );
-            return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
-          }
-          if (error2.response.headers != null && error2.response.headers["x-ratelimit-remaining"] === "0" || (error2.response.data?.errors ?? []).some(
-            (error22) => error22.type === "RATE_LIMITED"
-          )) {
-            const rateLimitReset = new Date(
-              ~~error2.response.headers["x-ratelimit-reset"] * 1e3
-            ).getTime();
-            const retryAfter2 = Math.max(
-              // Add one second so we retry _after_ the reset time
-              // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#exceeding-the-rate-limit
-              Math.ceil((rateLimitReset - Date.now()) / 1e3) + 1,
-              0
-            );
-            const wantRetry2 = await emitter.trigger(
-              "rate-limit",
-              retryAfter2,
-              options,
-              octokit,
-              retryCount
-            );
-            return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
-          }
-          return {};
-        }();
-        if (wantRetry) {
-          request.retryCount++;
-          return retryAfter * state2.retryAfterBaseValue;
-        }
-      });
-      octokit.hook.wrap("request", wrapRequest.bind(null, state));
-      return {};
-    }
-    throttling2.VERSION = VERSION;
-    throttling2.triggersNotification = triggersNotification;
   }
 });
 
@@ -63348,15 +63018,15 @@ var require_rules = __commonJS({
     }
     exports2.isJSONType = isJSONType;
     function getRules() {
-      const groups = {
+      const groups2 = {
         number: { type: "number", rules: [] },
         string: { type: "string", rules: [] },
         array: { type: "array", rules: [] },
         object: { type: "object", rules: [] }
       };
       return {
-        types: { ...groups, integer: true, boolean: true, null: true },
-        rules: [{ rules: [] }, groups.number, groups.string, groups.array, groups.object],
+        types: { ...groups2, integer: true, boolean: true, null: true },
+        rules: [{ rules: [] }, groups2.number, groups2.string, groups2.array, groups2.object],
         post: { rules: [] },
         all: {},
         keywords: {}
@@ -66477,10 +66147,10 @@ var require_core2 = __commonJS({
         }
         return metaSchema;
       }
-      _removeAllSchemas(schemas, regex) {
+      _removeAllSchemas(schemas, regex2) {
         for (const keyRef in schemas) {
           const sch = schemas[keyRef];
-          if (!regex || regex.test(keyRef)) {
+          if (!regex2 || regex2.test(keyRef)) {
             if (typeof sch == "string") {
               delete schemas[keyRef];
             } else if (sch && !sch.meta) {
@@ -75843,8 +75513,315 @@ var httpm = __toESM(require_lib());
 
 // src/gh-api-client.ts
 var import_action = __toESM(require_dist_node12());
-var import_plugin_retry = __toESM(require_dist_node13());
-var import_plugin_throttling = __toESM(require_dist_node14());
+
+// node_modules/@octokit/plugin-retry/dist-bundle/index.js
+var import_light = __toESM(require_light(), 1);
+
+// node_modules/@octokit/plugin-retry/node_modules/@octokit/request-error/dist-src/index.js
+var RequestError = class extends Error {
+  name;
+  /**
+   * http status code
+   */
+  status;
+  /**
+   * Request options that lead to the error.
+   */
+  request;
+  /**
+   * Response object if a response was received
+   */
+  response;
+  constructor(message, statusCode, options) {
+    super(message);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+    this.name = "HttpError";
+    this.status = statusCode;
+    if ("response" in options) {
+      this.response = options.response;
+    }
+    const requestCopy = Object.assign({}, options.request);
+    if (options.request.headers.authorization) {
+      requestCopy.headers = Object.assign({}, options.request.headers, {
+        authorization: options.request.headers.authorization.replace(
+          / .*$/,
+          " [REDACTED]"
+        )
+      });
+    }
+    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
+    this.request = requestCopy;
+  }
+};
+
+// node_modules/@octokit/plugin-retry/dist-bundle/index.js
+async function errorRequest(state, octokit, error2, options) {
+  if (!error2.request || !error2.request.request) {
+    throw error2;
+  }
+  if (error2.status >= 400 && !state.doNotRetry.includes(error2.status)) {
+    const retries = options.request.retries != null ? options.request.retries : state.retries;
+    const retryAfter = Math.pow((options.request.retryCount || 0) + 1, 2);
+    throw octokit.retry.retryRequest(error2, retries, retryAfter);
+  }
+  throw error2;
+}
+async function wrapRequest(state, octokit, request, options) {
+  const limiter = new import_light.default();
+  limiter.on("failed", function(error2, info2) {
+    const maxRetries = ~~error2.request.request.retries;
+    const after = ~~error2.request.request.retryAfter;
+    options.request.retryCount = info2.retryCount + 1;
+    if (maxRetries > info2.retryCount) {
+      return after * state.retryAfterBaseValue;
+    }
+  });
+  return limiter.schedule(
+    requestWithGraphqlErrorHandling.bind(null, state, octokit, request),
+    options
+  );
+}
+async function requestWithGraphqlErrorHandling(state, octokit, request, options) {
+  const response = await request(request, options);
+  if (response.data && response.data.errors && /Something went wrong while executing your query/.test(
+    response.data.errors[0].message
+  )) {
+    const error2 = new RequestError(response.data.errors[0].message, 500, {
+      request: options,
+      response
+    });
+    return errorRequest(state, octokit, error2, options);
+  }
+  return response;
+}
+var VERSION = "0.0.0-development";
+function retry(octokit, octokitOptions) {
+  const state = Object.assign(
+    {
+      enabled: true,
+      retryAfterBaseValue: 1e3,
+      doNotRetry: [400, 401, 403, 404, 422, 451],
+      retries: 3
+    },
+    octokitOptions.retry
+  );
+  if (state.enabled) {
+    octokit.hook.error("request", errorRequest.bind(null, state, octokit));
+    octokit.hook.wrap("request", wrapRequest.bind(null, state, octokit));
+  }
+  return {
+    retry: {
+      retryRequest: (error2, retries, retryAfter) => {
+        error2.request.request = Object.assign({}, error2.request.request, {
+          retries,
+          retryAfter
+        });
+        return error2;
+      }
+    }
+  };
+}
+retry.VERSION = VERSION;
+
+// node_modules/@octokit/plugin-throttling/dist-bundle/index.js
+var import_light2 = __toESM(require_light(), 1);
+var VERSION2 = "0.0.0-development";
+var noop = () => Promise.resolve();
+function wrapRequest2(state, request, options) {
+  return state.retryLimiter.schedule(doRequest, state, request, options);
+}
+async function doRequest(state, request, options) {
+  const isWrite = options.method !== "GET" && options.method !== "HEAD";
+  const { pathname } = new URL(options.url, "http://github.test");
+  const isSearch = options.method === "GET" && pathname.startsWith("/search/");
+  const isGraphQL = pathname.startsWith("/graphql");
+  const retryCount = ~~request.retryCount;
+  const jobOptions = retryCount > 0 ? { priority: 0, weight: 0 } : {};
+  if (state.clustering) {
+    jobOptions.expiration = 1e3 * 60;
+  }
+  if (isWrite || isGraphQL) {
+    await state.write.key(state.id).schedule(jobOptions, noop);
+  }
+  if (isWrite && state.triggersNotification(pathname)) {
+    await state.notifications.key(state.id).schedule(jobOptions, noop);
+  }
+  if (isSearch) {
+    await state.search.key(state.id).schedule(jobOptions, noop);
+  }
+  const req = state.global.key(state.id).schedule(jobOptions, request, options);
+  if (isGraphQL) {
+    const res = await req;
+    if (res.data.errors != null && res.data.errors.some((error2) => error2.type === "RATE_LIMITED")) {
+      const error2 = Object.assign(new Error("GraphQL Rate Limit Exceeded"), {
+        response: res,
+        data: res.data
+      });
+      throw error2;
+    }
+  }
+  return req;
+}
+var triggers_notification_paths_default = [
+  "/orgs/{org}/invitations",
+  "/orgs/{org}/invitations/{invitation_id}",
+  "/orgs/{org}/teams/{team_slug}/discussions",
+  "/orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments",
+  "/repos/{owner}/{repo}/collaborators/{username}",
+  "/repos/{owner}/{repo}/commits/{commit_sha}/comments",
+  "/repos/{owner}/{repo}/issues",
+  "/repos/{owner}/{repo}/issues/{issue_number}/comments",
+  "/repos/{owner}/{repo}/pulls",
+  "/repos/{owner}/{repo}/pulls/{pull_number}/comments",
+  "/repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies",
+  "/repos/{owner}/{repo}/pulls/{pull_number}/merge",
+  "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers",
+  "/repos/{owner}/{repo}/pulls/{pull_number}/reviews",
+  "/repos/{owner}/{repo}/releases",
+  "/teams/{team_id}/discussions",
+  "/teams/{team_id}/discussions/{discussion_number}/comments"
+];
+function routeMatcher(paths) {
+  const regexes = paths.map(
+    (path4) => path4.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+  );
+  const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
+  return new RegExp(regex2, "i");
+}
+var regex = routeMatcher(triggers_notification_paths_default);
+var triggersNotification = regex.test.bind(regex);
+var groups = {};
+var createGroups = function(Bottleneck2, common) {
+  groups.global = new Bottleneck2.Group({
+    id: "octokit-global",
+    maxConcurrent: 10,
+    ...common
+  });
+  groups.search = new Bottleneck2.Group({
+    id: "octokit-search",
+    maxConcurrent: 1,
+    minTime: 2e3,
+    ...common
+  });
+  groups.write = new Bottleneck2.Group({
+    id: "octokit-write",
+    maxConcurrent: 1,
+    minTime: 1e3,
+    ...common
+  });
+  groups.notifications = new Bottleneck2.Group({
+    id: "octokit-notifications",
+    maxConcurrent: 1,
+    minTime: 3e3,
+    ...common
+  });
+};
+function throttling(octokit, octokitOptions) {
+  const {
+    enabled = true,
+    Bottleneck: Bottleneck2 = import_light2.default,
+    id = "no-id",
+    timeout = 1e3 * 60 * 2,
+    // Redis TTL: 2 minutes
+    connection
+  } = octokitOptions.throttle || {};
+  if (!enabled) {
+    return {};
+  }
+  const common = { connection, timeout };
+  if (groups.global == null) {
+    createGroups(Bottleneck2, common);
+  }
+  const state = Object.assign(
+    {
+      clustering: connection != null,
+      triggersNotification,
+      fallbackSecondaryRateRetryAfter: 60,
+      retryAfterBaseValue: 1e3,
+      retryLimiter: new Bottleneck2(),
+      id,
+      ...groups
+    },
+    octokitOptions.throttle
+  );
+  if (typeof state.onSecondaryRateLimit !== "function" || typeof state.onRateLimit !== "function") {
+    throw new Error(`octokit/plugin-throttling error:
+        You must pass the onSecondaryRateLimit and onRateLimit error handlers.
+        See https://octokit.github.io/rest.js/#throttling
+
+        const octokit = new Octokit({
+          throttle: {
+            onSecondaryRateLimit: (retryAfter, options) => {/* ... */},
+            onRateLimit: (retryAfter, options) => {/* ... */}
+          }
+        })
+    `);
+  }
+  const events = {};
+  const emitter = new Bottleneck2.Events(events);
+  events.on("secondary-limit", state.onSecondaryRateLimit);
+  events.on("rate-limit", state.onRateLimit);
+  events.on(
+    "error",
+    (e) => octokit.log.warn("Error in throttling-plugin limit handler", e)
+  );
+  state.retryLimiter.on("failed", async function(error2, info2) {
+    const [state2, request, options] = info2.args;
+    const { pathname } = new URL(options.url, "http://github.test");
+    const shouldRetryGraphQL = pathname.startsWith("/graphql") && error2.status !== 401;
+    if (!(shouldRetryGraphQL || error2.status === 403)) {
+      return;
+    }
+    const retryCount = ~~request.retryCount;
+    request.retryCount = retryCount;
+    options.request.retryCount = retryCount;
+    const { wantRetry, retryAfter = 0 } = await async function() {
+      if (/\bsecondary rate\b/i.test(error2.message)) {
+        const retryAfter2 = Number(error2.response.headers["retry-after"]) || state2.fallbackSecondaryRateRetryAfter;
+        const wantRetry2 = await emitter.trigger(
+          "secondary-limit",
+          retryAfter2,
+          options,
+          octokit,
+          retryCount
+        );
+        return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
+      }
+      if (error2.response.headers != null && error2.response.headers["x-ratelimit-remaining"] === "0" || (error2.response.data?.errors ?? []).some(
+        (error22) => error22.type === "RATE_LIMITED"
+      )) {
+        const rateLimitReset = new Date(
+          ~~error2.response.headers["x-ratelimit-reset"] * 1e3
+        ).getTime();
+        const retryAfter2 = Math.max(
+          // Add one second so we retry _after_ the reset time
+          // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#exceeding-the-rate-limit
+          Math.ceil((rateLimitReset - Date.now()) / 1e3) + 1,
+          0
+        );
+        const wantRetry2 = await emitter.trigger(
+          "rate-limit",
+          retryAfter2,
+          options,
+          octokit,
+          retryCount
+        );
+        return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
+      }
+      return {};
+    }();
+    if (wantRetry) {
+      request.retryCount++;
+      return retryAfter * state2.retryAfterBaseValue;
+    }
+  });
+  octokit.hook.wrap("request", wrapRequest2.bind(null, state));
+  return {};
+}
+throttling.VERSION = VERSION2;
+throttling.triggersNotification = triggersNotification;
 
 // src/inputs.ts
 var import_core = __toESM(require_core());
@@ -76164,10 +76141,10 @@ function getRepos() {
 // src/gh-api-client.ts
 var userAgent = "GitHub multi-repository variant analysis action";
 function getOctokit() {
-  const throttlingOctokit = import_action.Octokit.plugin(import_plugin_throttling.throttling);
+  const throttlingOctokit = import_action.Octokit.plugin(throttling);
   const octokit = new throttlingOctokit({
     userAgent,
-    retry: import_plugin_retry.retry,
+    retry,
     authStrategy: () => {
       return {
         hook: (request, options) => {
@@ -77212,14 +77189,6 @@ mime-types/index.js:
    * Copyright(c) 2014 Jonathan Ong
    * Copyright(c) 2015 Douglas Christopher Wilson
    * MIT Licensed
-   *)
-
-is-plain-object/dist/is-plain-object.js:
-  (*!
-   * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
-   *
-   * Copyright (c) 2014-2017, Jon Schlinkert.
-   * Released under the MIT License.
    *)
 
 undici/lib/fetch/body.js:
