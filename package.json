@@ -45,7 +45,7 @@
   ],
   "devDependencies": {
     "@ava/typescript": "^4.1.0",
-    "@octokit/types": "^12.5.0",
+    "@octokit/types": "^12.6.0",
     "@types/archiver": "^6.0.2",
     "@types/node": "^20.10.5",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
