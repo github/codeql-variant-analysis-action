@@ -11,3 +11,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "@actions/*"
+      octokit:
+        patterns:
+          - "@octokit/*"
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
