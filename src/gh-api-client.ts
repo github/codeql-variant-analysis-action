@@ -3,6 +3,7 @@ import { Octokit } from "@octokit/action";
 import { retry } from "@octokit/plugin-retry";
 import { throttling } from "@octokit/plugin-throttling";
 import {
+  EndpointDefaults,
   EndpointOptions,
   RequestError,
   RequestInterface,
@@ -30,13 +31,13 @@ function getOctokit(): Octokit {
     },
     throttle: {
       enabled: !!process.env.CODEQL_VARIANT_ANALYSIS_ACTION_WAIT_ON_RATE_LIMIT,
-      onRateLimit: (retryAfter, options) => {
+      onRateLimit: (retryAfter: number, options: EndpointDefaults) => {
         console.log(
           `Rate limit exhausted for request ${options.method} ${options.url}, retrying after ${retryAfter} seconds`,
         );
         return true;
       },
-      onSecondaryRateLimit: (retryAfter, options) => {
+      onSecondaryRateLimit: (retryAfter: number, options: EndpointDefaults) => {
         console.log(
           `Secondary rate limit triggered for request ${options.method} ${options.url}, retrying after ${retryAfter} seconds`,
         );
