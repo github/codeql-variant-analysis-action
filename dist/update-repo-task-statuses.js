@@ -45711,7 +45711,7 @@ var require_dist_node12 = __commonJS({
     var import_auth_action = require_dist_node9();
     var import_plugin_paginate_rest = require_dist_node10();
     var import_plugin_rest_endpoint_methods = require_dist_node11();
-    var VERSION = "6.0.7";
+    var VERSION = "6.1.0";
     var import_undici = require_undici2();
     var DEFAULTS = {
       authStrategy: import_auth_action.createActionAuth,
