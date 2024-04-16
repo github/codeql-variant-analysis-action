@@ -18,6 +18,9 @@ updates:
       octokit:
         patterns:
           - "@octokit/*"
+        update-types:
+          - "minor"
+          - "patch"
       typescript-eslint:
         patterns:
           - "@typescript-eslint/*"
