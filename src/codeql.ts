@@ -158,7 +158,7 @@ export async function downloadDatabase(
 
   try {
     return await download(
-      `https://api.github.com/repos/${repoName}/code-scanning/codeql/databases/${language}`,
+      `${process.env.GITHUB_API_URL || "https://api.github.com"}/repos/${repoName}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
       authHeader,
       "application/zip",
