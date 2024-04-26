@@ -158,7 +158,7 @@ export async function downloadDatabase(
 
   try {
     return await download(
-      `https://api.github.com/repos/${repoName}/code-scanning/codeql/databases/${language}`,
+      `${process.env.GITHUB_API_URL || "https://api.github.com"}/repos/${repoName}/code-scanning/codeql/databases/${language}`,
       `${repoId}.zip`,
       authHeader,
       "application/zip",
@@ -409,14 +409,15 @@ export function injectVersionControlInfo(
 ): void {
   for (const run of sarif.runs) {
     run.versionControlProvenance = run.versionControlProvenance || [];
+    const repositoryUri = `${process.env.GITHUB_SERVER_URL || "https://github.com"}/${nwo}`;
     if (databaseSHA) {
       run.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`,
+        repositoryUri,
         revisionId: databaseSHA,
       });
     } else {
       run.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`,
+        repositoryUri,
       });
     }
   }
