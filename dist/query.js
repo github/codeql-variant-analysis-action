@@ -77806,14 +77806,15 @@ async function generateSarif(codeql, nwo, databasePath, queryPackPath, databaseS
 function injectVersionControlInfo(sarif, nwo, databaseSHA) {
   for (const run2 of sarif.runs) {
     run2.versionControlProvenance = run2.versionControlProvenance || [];
+    const repositoryUri = `${process.env.GITHUB_SERVER_URL || "https://github.com"}/${nwo}`;
     if (databaseSHA) {
       run2.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`,
+        repositoryUri,
         revisionId: databaseSHA
       });
     } else {
       run2.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`
+        repositoryUri
       });
     }
   }

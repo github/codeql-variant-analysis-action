@@ -409,14 +409,15 @@ export function injectVersionControlInfo(
 ): void {
   for (const run of sarif.runs) {
     run.versionControlProvenance = run.versionControlProvenance || [];
+    const repositoryUri = `${process.env.GITHUB_SERVER_URL || "https://github.com"}/${nwo}`;
     if (databaseSHA) {
       run.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`,
+        repositoryUri,
         revisionId: databaseSHA,
       });
     } else {
       run.versionControlProvenance.push({
-        repositoryUri: `https://github.com/${nwo}`,
+        repositoryUri,
       });
     }
   }
