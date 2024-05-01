@@ -111,10 +111,11 @@ jobs:
           echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
 
       - name: Run query
-        uses: github/codeql-variant-analysis-action/query@${{ github.event.inputs.action_repo_ref }}
+        uses: github/codeql-variant-analysis-action/query
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          ref: ${{ github.event.inputs.action_repo_ref }}
           controller_repo_id: ${{ github.repository_id }}
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
@@ -125,10 +126,11 @@ jobs:
 
       - name: Handle workflow failed
         if: failure() && github.run_attempt == 1
-        uses: github/codeql-variant-analysis-action/update-repo-task-status@${{ github.event.inputs.action_repo_ref }}
+        uses: github/codeql-variant-analysis-action/update-repo-task-status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          ref: ${{ github.event.inputs.action_repo_ref }}
           workflow_status: "failed"
           controller_repo_id: ${{ github.repository_id }}
           repositories: ${{ steps.repos.outputs.repositories }}
@@ -172,10 +174,11 @@ jobs:
           echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
 
       - name: Handle workflow cancelled
-        uses: github/codeql-variant-analysis-action/update-repo-task-status@${{ github.event.inputs.action_repo_ref }}
+        uses: github/codeql-variant-analysis-action/update-repo-task-status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          ref: ${{ github.event.inputs.action_repo_ref }}
           workflow_status: "canceled"
           controller_repo_id: ${{ github.repository_id }}
           instructions_path: instructions.json
@@ -213,10 +216,11 @@ jobs:
             xargs -I {} echo "::add-mask::{}"
 
       - name: Handle workflow cancelled
-        uses: github/codeql-variant-analysis-action/update-repo-task-statuses@${{ github.event.inputs.action_repo_ref }}
+        uses: github/codeql-variant-analysis-action/update-repo-task-statuses
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          ref: ${{ github.event.inputs.action_repo_ref }}
           workflow_status: "failed"
           controller_repo_id: ${{ github.repository_id }}
           instructions_path: instructions.json
