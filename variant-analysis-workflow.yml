@@ -54,12 +54,6 @@ jobs:
         run: |
           echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
           exit 1
-      # To use the action in this repository, we need to check out the repository
-      - name: Checkout codeql-variant-analysis-action repository
-        uses: actions/checkout@v4
-        with:
-          repository: "github/codeql-variant-analysis-action"
-          ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask signed auth token
         run: |
@@ -117,7 +111,7 @@ jobs:
           echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
 
       - name: Run query
-        uses: ./query
+        uses: github/codeql-variant-analysis-action/query@${{ github.event.inputs.action_repo_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -131,7 +125,7 @@ jobs:
 
       - name: Handle workflow failed
         if: failure() && github.run_attempt == 1
-        uses: ./update-repo-task-status
+        uses: github/codeql-variant-analysis-action/update-repo-task-status@${{ github.event.inputs.action_repo_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -154,12 +148,6 @@ jobs:
         run: |
           echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
           exit 1
-      # To use the action in this repository, we need to check out the repository
-      - name: Checkout codeql-variant-analysis-action repository
-        uses: actions/checkout@v4
-        with:
-          repository: "github/codeql-variant-analysis-action"
-          ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask signed auth token
         run: |
@@ -184,7 +172,7 @@ jobs:
           echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
 
       - name: Handle workflow cancelled
-        uses: ./update-repo-task-statuses
+        uses: github/codeql-variant-analysis-action/update-repo-task-status@${{ github.event.inputs.action_repo_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -207,12 +195,6 @@ jobs:
         run: |
           echo "::error title=Reruns not supported::Multi-repository variant analysis does not support reruns. Please create a new variant analysis to run again."
           exit 1
-      # To use the action in this repository, we need to check out the repository
-      - name: Checkout codeql-variant-analysis-action repository
-        uses: actions/checkout@v4
-        with:
-          repository: "github/codeql-variant-analysis-action"
-          ref: ${{ github.event.inputs.action_repo_ref }}
 
       - name: Mask signed auth token
         run: |
@@ -231,7 +213,7 @@ jobs:
             xargs -I {} echo "::add-mask::{}"
 
       - name: Handle workflow cancelled
-        uses: ./update-repo-task-statuses
+        uses: github/codeql-variant-analysis-action/update-repo-task-statuses@${{ github.event.inputs.action_repo_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
