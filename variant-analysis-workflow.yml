@@ -126,6 +126,7 @@ jobs:
           repositories: ${{ steps.repos.outputs.repositories }}
           codeql: ${{ steps.init.outputs.codeql-path }}
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+          instructions_path: instructions.json
           signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
 
       - name: Handle workflow failed

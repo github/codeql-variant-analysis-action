@@ -26,6 +26,10 @@ inputs:
     description: "The ID of the variant analysis"
     required: true
 
+  instructions_path:
+    description: "The path to the instructions file."
+    required: false
+
   signed_auth_token:
     description: "The signed auth token to authenticate against the GitHub API"
     required: true

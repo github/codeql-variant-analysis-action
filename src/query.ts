@@ -1,8 +1,16 @@
 import fs from "fs";
+import { tmpdir } from "os";
 import path from "path";
 import { chdir, cwd } from "process";
 
-import { getInput, setSecret, setFailed } from "@actions/core";
+import {
+  endGroup,
+  error,
+  getInput,
+  setFailed,
+  setSecret,
+  startGroup,
+} from "@actions/core";
 import { extractTar, HTTPError } from "@actions/tool-cache";
 import JSZip from "jszip";
 
@@ -14,6 +22,8 @@ import {
   RunQueryResult,
 } from "./codeql";
 import { CodeqlCliServer } from "./codeql-cli";
+import { setupCodeQLBundle } from "./codeql-setup";
+import { getDefaultCliVersion } from "./codeql-version";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -23,6 +33,7 @@ import {
 } from "./gh-api-client";
 import {
   getControllerRepoId,
+  getInstructions,
   getRepos,
   getVariantAnalysisId,
   Repo,
@@ -35,8 +46,9 @@ async function run(): Promise<void> {
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
   const repos: Repo[] = getRepos();
-  const codeql = getInput("codeql", { required: true });
+  let codeql = getInput("codeql", { required: true });
   const variantAnalysisId = getVariantAnalysisId();
+  const instructions = await getInstructions(false);
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -47,6 +59,32 @@ async function run(): Promise<void> {
     }
   }
 
+  if (instructions?.features) {
+    startGroup("Setup CodeQL CLI");
+    const cliVersion = getDefaultCliVersion(instructions.features);
+    if (cliVersion) {
+      const codeqlBundlePath = await setupCodeQLBundle(
+        process.env.RUNNER_TEMP ?? tmpdir(),
+        cliVersion,
+      );
+
+      let codeqlCmd = path.join(codeqlBundlePath, "codeql", "codeql");
+      if (process.platform === "win32") {
+        codeqlCmd += ".exe";
+      } else if (
+        process.platform !== "linux" &&
+        process.platform !== "darwin"
+      ) {
+        error(
+          `Unsupported platform: ${process.platform}, using version from tool cache`,
+        );
+      }
+
+      codeql = codeqlCmd;
+    }
+    endGroup();
+  }
+
   const curDir = cwd();
 
   let queryPackPath: string;
@@ -55,10 +93,10 @@ async function run(): Promise<void> {
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     queryPackPath = await extractTar(queryPackArchive);
-  } catch (error: unknown) {
-    console.error(error);
-    const errorMessage = error instanceof Error ? error.message : `${error}`;
-    if (error instanceof HTTPError && error.httpStatusCode === 403) {
+  } catch (e: unknown) {
+    console.error(e);
+    const errorMessage = e instanceof Error ? e.message : `${e}`;
+    if (e instanceof HTTPError && e.httpStatusCode === 403) {
       setFailed(
         `${errorMessage}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`,
       );
@@ -126,10 +164,10 @@ async function run(): Promise<void> {
         runQueryResult.resultCount,
         runQueryResult.databaseSHA || "HEAD",
       );
-    } catch (error: unknown) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : `${error}`;
-      if (error instanceof HTTPError && error.httpStatusCode === 403) {
+    } catch (e: unknown) {
+      console.error(e);
+      const errorMessage = e instanceof Error ? e.message : `${e}`;
+      if (e instanceof HTTPError && e.httpStatusCode === 403) {
         setFailed(
           `${errorMessage}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`,
         );
