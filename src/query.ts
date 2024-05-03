@@ -5,13 +5,18 @@ import { chdir, cwd } from "process";
 
 import {
   endGroup,
-  error,
   getInput,
   setFailed,
   setSecret,
   startGroup,
+  info,
+  warning,
 } from "@actions/core";
-import { extractTar, HTTPError } from "@actions/tool-cache";
+import {
+  find as findInToolCache,
+  extractTar,
+  HTTPError,
+} from "@actions/tool-cache";
 import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
@@ -46,7 +51,6 @@ async function run(): Promise<void> {
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
   const repos: Repo[] = getRepos();
-  let codeql = getInput("codeql", { required: true });
   const variantAnalysisId = getVariantAnalysisId();
   const instructions = await getInstructions(false);
 
@@ -59,31 +63,35 @@ async function run(): Promise<void> {
     }
   }
 
+  startGroup("Setup CodeQL CLI");
+  let codeqlBundlePath: string | undefined;
+
   if (instructions?.features) {
-    startGroup("Setup CodeQL CLI");
     const cliVersion = getDefaultCliVersion(instructions.features);
     if (cliVersion) {
-      const codeqlBundlePath = await setupCodeQLBundle(
+      codeqlBundlePath = await setupCodeQLBundle(
         process.env.RUNNER_TEMP ?? tmpdir(),
         cliVersion,
       );
-
-      let codeqlCmd = path.join(codeqlBundlePath, "codeql", "codeql");
-      if (process.platform === "win32") {
-        codeqlCmd += ".exe";
-      } else if (
-        process.platform !== "linux" &&
-        process.platform !== "darwin"
-      ) {
-        error(
-          `Unsupported platform: ${process.platform}, using version from tool cache`,
-        );
-      }
-
-      codeql = codeqlCmd;
+    } else {
+      warning(
+        `Unable to determine CodeQL version from feature flags, using latest version in tool cache`,
+      );
     }
-    endGroup();
   }
+
+  if (!codeqlBundlePath) {
+    codeqlBundlePath = findInToolCache("CodeQL", "*");
+
+    info(`Using CodeQL CLI from tool cache: ${codeqlBundlePath}`);
+  }
+
+  let codeqlCmd = path.join(codeqlBundlePath, "codeql", "codeql");
+  if (process.platform === "win32") {
+    codeqlCmd += ".exe";
+  }
+
+  endGroup();
 
   const curDir = cwd();
 
@@ -115,11 +123,14 @@ async function run(): Promise<void> {
     return;
   }
 
-  const codeqlCli = new CodeqlCliServer(codeql);
+  const codeqlCli = new CodeqlCliServer(codeqlCmd);
 
   shutdownHandlers.push(() => {
     codeqlCli.shutdown();
   });
+
+  const codeqlVersionInfo = await codeqlCli.run(["version", "--format=json"]);
+  console.log(codeqlVersionInfo.stdout);
 
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 

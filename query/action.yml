@@ -19,8 +19,8 @@ inputs:
     required: true
 
   codeql:
-    description: "Path to CodeQL binary to use"
-    required: true
+    description: "Path to CodeQL binary to use. Legacy and not used."
+    required: false
 
   variant_analysis_id:
     description: "The ID of the variant analysis"
