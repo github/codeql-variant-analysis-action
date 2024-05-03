@@ -47478,6 +47478,12 @@ var Instructions_default = {
   definitions: {
     Instructions: {
       properties: {
+        features: {
+          additionalProperties: {
+            type: "boolean"
+          },
+          type: "object"
+        },
         repositories: {
           items: {
             $ref: "#/definitions/Repo"
