@@ -77900,18 +77900,6 @@ var import_node_os = require("node:os");
 var import_node_stream = require("node:stream");
 var import_core2 = __toESM(require_core());
 var import_exec = __toESM(require_exec());
-var BaseCodeqlCli = class {
-  constructor(codeqlPath) {
-    this.codeqlPath = codeqlPath;
-  }
-  async run(args) {
-    const { stdout, stderr, exitCode } = await (0, import_exec.getExecOutput)(
-      this.codeqlPath,
-      args
-    );
-    return { stdout, stderr, exitCode };
-  }
-};
 var CodeqlCliServer = class {
   constructor(codeqlPath) {
     this.codeqlPath = codeqlPath;
@@ -78135,12 +78123,10 @@ async function run() {
     }
     return;
   }
-  const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER ? new CodeqlCliServer(codeql) : new BaseCodeqlCli(codeql);
-  if (codeqlCli instanceof CodeqlCliServer) {
-    shutdownHandlers.push(() => {
-      codeqlCli.shutdown();
-    });
-  }
+  const codeqlCli = new CodeqlCliServer(codeql);
+  shutdownHandlers.push(() => {
+    codeqlCli.shutdown();
+  });
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
