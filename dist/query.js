@@ -78124,11 +78124,9 @@ async function run() {
     return;
   }
   const codeqlCli = new CodeqlCliServer(codeql);
-  if (codeqlCli instanceof CodeqlCliServer) {
-    shutdownHandlers.push(() => {
-      codeqlCli.shutdown();
-    });
-  }
+  shutdownHandlers.push(() => {
+    codeqlCli.shutdown();
+  });
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
   for (const repo of repos) {
     const workDir = createTempRepoDir(curDir, repo);
