@@ -61283,7 +61283,7 @@ var require_dist_node12 = __commonJS({
     var import_auth_action = require_dist_node9();
     var import_plugin_paginate_rest = require_dist_node10();
     var import_plugin_rest_endpoint_methods = require_dist_node11();
-    var VERSION = "6.1.0";
+    var VERSION = "6.0.7";
     var import_undici = require_undici2();
     var DEFAULTS = {
       authStrategy: import_auth_action.createActionAuth,
@@ -72476,7 +72476,7 @@ var require_bool2 = __commonJS({
       identify: (value) => value === false,
       default: true,
       tag: "tag:yaml.org,2002:bool",
-      test: /^(?:N|n|[Nn]o|NO|[Ff]alse|FALSE|[Oo]ff|OFF)$/,
+      test: /^(?:N|n|[Nn]o|NO|[Ff]alse|FALSE|[Oo]ff|OFF)$/i,
       resolve: () => new Scalar.Scalar(false),
       stringify: boolStringify
     };
@@ -77900,18 +77900,6 @@ var import_node_os = require("node:os");
 var import_node_stream = require("node:stream");
 var import_core2 = __toESM(require_core());
 var import_exec = __toESM(require_exec());
-var BaseCodeqlCli = class {
-  constructor(codeqlPath) {
-    this.codeqlPath = codeqlPath;
-  }
-  async run(args) {
-    const { stdout, stderr, exitCode } = await (0, import_exec.getExecOutput)(
-      this.codeqlPath,
-      args
-    );
-    return { stdout, stderr, exitCode };
-  }
-};
 var CodeqlCliServer = class {
   constructor(codeqlPath) {
     this.codeqlPath = codeqlPath;
@@ -78135,7 +78123,7 @@ async function run() {
     }
     return;
   }
-  const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER ? new CodeqlCliServer(codeql) : new BaseCodeqlCli(codeql);
+  const codeqlCli = new CodeqlCliServer(codeql);
   if (codeqlCli instanceof CodeqlCliServer) {
     shutdownHandlers.push(() => {
       codeqlCli.shutdown();

@@ -13,7 +13,7 @@ import {
   runQuery,
   RunQueryResult,
 } from "./codeql";
-import { BaseCodeqlCli, CodeqlCliServer } from "./codeql-cli";
+import { CodeqlCliServer } from "./codeql-cli";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -77,9 +77,7 @@ async function run(): Promise<void> {
     return;
   }
 
-  const codeqlCli = process.env.CODEQL_VARIANT_ANALYSIS_ACTION_USE_CLI_SERVER
-    ? new CodeqlCliServer(codeql)
-    : new BaseCodeqlCli(codeql);
+  const codeqlCli = new CodeqlCliServer(codeql);
 
   if (codeqlCli instanceof CodeqlCliServer) {
     // Shut down the CLI server when the action is done
