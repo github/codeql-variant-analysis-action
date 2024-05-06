@@ -79,12 +79,9 @@ async function run(): Promise<void> {
 
   const codeqlCli = new CodeqlCliServer(codeql);
 
-  if (codeqlCli instanceof CodeqlCliServer) {
-    // Shut down the CLI server when the action is done
-    shutdownHandlers.push(() => {
-      codeqlCli.shutdown();
-    });
-  }
+  shutdownHandlers.push(() => {
+    codeqlCli.shutdown();
+  });
 
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 
