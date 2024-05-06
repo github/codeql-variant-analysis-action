@@ -61283,7 +61283,7 @@ var require_dist_node12 = __commonJS({
     var import_auth_action = require_dist_node9();
     var import_plugin_paginate_rest = require_dist_node10();
     var import_plugin_rest_endpoint_methods = require_dist_node11();
-    var VERSION = "6.0.7";
+    var VERSION = "6.1.0";
     var import_undici = require_undici2();
     var DEFAULTS = {
       authStrategy: import_auth_action.createActionAuth,
@@ -72476,7 +72476,7 @@ var require_bool2 = __commonJS({
       identify: (value) => value === false,
       default: true,
       tag: "tag:yaml.org,2002:bool",
-      test: /^(?:N|n|[Nn]o|NO|[Ff]alse|FALSE|[Oo]ff|OFF)$/i,
+      test: /^(?:N|n|[Nn]o|NO|[Ff]alse|FALSE|[Oo]ff|OFF)$/,
       resolve: () => new Scalar.Scalar(false),
       stringify: boolStringify
     };
