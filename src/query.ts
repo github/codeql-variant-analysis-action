@@ -1,9 +1,22 @@
 import fs from "fs";
+import { tmpdir } from "os";
 import path from "path";
 import { chdir, cwd } from "process";
 
-import { getInput, setSecret, setFailed } from "@actions/core";
-import { extractTar, HTTPError } from "@actions/tool-cache";
+import {
+  endGroup,
+  getInput,
+  setFailed,
+  setSecret,
+  startGroup,
+  info,
+  warning,
+} from "@actions/core";
+import {
+  find as findInToolCache,
+  extractTar,
+  HTTPError,
+} from "@actions/tool-cache";
 import JSZip from "jszip";
 
 import { uploadArtifact } from "./azure-client";
@@ -14,6 +27,8 @@ import {
   RunQueryResult,
 } from "./codeql";
 import { CodeqlCliServer } from "./codeql-cli";
+import { setupCodeQLBundle } from "./codeql-setup";
+import { getDefaultCliVersion } from "./codeql-version";
 import { download } from "./download";
 import {
   getPolicyForRepoArtifact,
@@ -23,6 +38,7 @@ import {
 } from "./gh-api-client";
 import {
   getControllerRepoId,
+  getInstructions,
   getRepos,
   getVariantAnalysisId,
   Repo,
@@ -35,8 +51,8 @@ async function run(): Promise<void> {
   const queryPackUrl = getInput("query_pack_url", { required: true });
   const language = getInput("language", { required: true });
   const repos: Repo[] = getRepos();
-  const codeql = getInput("codeql", { required: true });
   const variantAnalysisId = getVariantAnalysisId();
+  const instructions = await getInstructions(false);
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -47,6 +63,36 @@ async function run(): Promise<void> {
     }
   }
 
+  startGroup("Setup CodeQL CLI");
+  let codeqlBundlePath: string | undefined;
+
+  if (instructions?.features) {
+    const cliVersion = getDefaultCliVersion(instructions.features);
+    if (cliVersion) {
+      codeqlBundlePath = await setupCodeQLBundle(
+        process.env.RUNNER_TEMP ?? tmpdir(),
+        cliVersion,
+      );
+    } else {
+      warning(
+        `Unable to determine CodeQL version from feature flags, using latest version in tool cache`,
+      );
+    }
+  }
+
+  if (!codeqlBundlePath) {
+    codeqlBundlePath = findInToolCache("CodeQL", "*");
+
+    info(`Using CodeQL CLI from tool cache: ${codeqlBundlePath}`);
+  }
+
+  let codeqlCmd = path.join(codeqlBundlePath, "codeql", "codeql");
+  if (process.platform === "win32") {
+    codeqlCmd += ".exe";
+  }
+
+  endGroup();
+
   const curDir = cwd();
 
   let queryPackPath: string;
@@ -55,10 +101,10 @@ async function run(): Promise<void> {
     console.log("Getting query pack");
     const queryPackArchive = await download(queryPackUrl, "query_pack.tar.gz");
     queryPackPath = await extractTar(queryPackArchive);
-  } catch (error: unknown) {
-    console.error(error);
-    const errorMessage = error instanceof Error ? error.message : `${error}`;
-    if (error instanceof HTTPError && error.httpStatusCode === 403) {
+  } catch (e: unknown) {
+    console.error(e);
+    const errorMessage = e instanceof Error ? e.message : `${e}`;
+    if (e instanceof HTTPError && e.httpStatusCode === 403) {
       setFailed(
         `${errorMessage}. The query pack is only available for 24 hours. To retry, create a new variant analysis.`,
       );
@@ -77,11 +123,14 @@ async function run(): Promise<void> {
     return;
   }
 
-  const codeqlCli = new CodeqlCliServer(codeql);
+  const codeqlCli = new CodeqlCliServer(codeqlCmd);
 
   shutdownHandlers.push(() => {
     codeqlCli.shutdown();
   });
+
+  const codeqlVersionInfo = await codeqlCli.run(["version", "--format=json"]);
+  console.log(codeqlVersionInfo.stdout);
 
   const queryPackInfo = await getQueryPackInfo(codeqlCli, queryPackPath);
 
@@ -126,10 +175,10 @@ async function run(): Promise<void> {
         runQueryResult.resultCount,
         runQueryResult.databaseSHA || "HEAD",
       );
-    } catch (error: unknown) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : `${error}`;
-      if (error instanceof HTTPError && error.httpStatusCode === 403) {
+    } catch (e: unknown) {
+      console.error(e);
+      const errorMessage = e instanceof Error ? e.message : `${e}`;
+      if (e instanceof HTTPError && e.httpStatusCode === 403) {
         setFailed(
           `${errorMessage}. Database downloads are only available for 24 hours. To retry, create a new variant analysis.`,
         );

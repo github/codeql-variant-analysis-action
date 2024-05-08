@@ -100,21 +100,6 @@ jobs:
           const githubOutput = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(githubOutput, `repositories=${JSON.stringify(repositories)}`);
 
-      # NOTE: this is only expected to work on github.com hosted runnners.
-      # It will not work on any self-hosted runners.
-      - name: Initialize CodeQL
-        id: init
-        run: |
-          # Take the most modern version
-          VERSION="$(find "${{ runner.tool_cache }}/CodeQL/" -maxdepth 1 -mindepth 1 -type d -print \
-                      | sort \
-                      | tail -n 1 \
-                      | tr -d '\n')"
-
-          CODEQL="$VERSION/x64/codeql/codeql"
-          "${CODEQL}" version --format=json
-          echo "codeql-path=${CODEQL}" >> $GITHUB_OUTPUT
-
       - name: Run query
         uses: ./query
         env:
@@ -124,8 +109,8 @@ jobs:
           query_pack_url: ${{ github.event.inputs.query_pack_url }}
           language: ${{ github.event.inputs.language }}
           repositories: ${{ steps.repos.outputs.repositories }}
-          codeql: ${{ steps.init.outputs.codeql-path }}
           variant_analysis_id: ${{ github.event.inputs.variant_analysis_id }}
+          instructions_path: instructions.json
           signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
 
       - name: Handle workflow failed

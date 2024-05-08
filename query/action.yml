@@ -19,12 +19,16 @@ inputs:
     required: true
 
   codeql:
-    description: "Path to CodeQL binary to use"
-    required: true
+    description: "Path to CodeQL binary to use. Legacy and not used."
+    required: false
 
   variant_analysis_id:
     description: "The ID of the variant analysis"
     required: true
+
+  instructions_path:
+    description: "The path to the instructions file."
+    required: false
 
   signed_auth_token:
     description: "The signed auth token to authenticate against the GitHub API"
