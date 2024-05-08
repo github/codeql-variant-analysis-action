@@ -1,9 +1,8 @@
 import fs from "fs";
 import { tmpdir } from "os";
-import path from "path";
+import path, { join } from "path";
 
 import { rmRF } from "@actions/io";
-import anyTest, { TestFn } from "ava";
 
 import {
   runQuery,
@@ -21,376 +20,414 @@ import {
 } from "./codeql";
 import { BaseCodeqlCli, CodeqlCli } from "./codeql-cli";
 
-const test = anyTest as TestFn<{
-  db: string;
-  tmpDir: string;
-  dbTmpDir: string;
-  codeql: CodeqlCli;
-}>;
-
-test.before(async (t) => {
-  const dbTmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "db-")));
-  t.context.dbTmpDir = dbTmpDir;
-
-  const projectDir = path.join(dbTmpDir, "project");
-  const dbDir = path.join(dbTmpDir, "db");
-  fs.mkdirSync(projectDir);
-  const testFile = path.join(projectDir, "test.js");
-  fs.writeFileSync(testFile, "const x = 1;");
-
-  const codeql = new BaseCodeqlCli(process.env.CODEQL_BIN_PATH || "codeql");
-
-  await codeql.run([
-    "database",
-    "create",
-    "--language=javascript",
-    `--source-root=${projectDir}`,
-    dbDir,
-  ]);
-
-  const dbZip = path.join(dbTmpDir, "database.zip");
-  await codeql.run(["database", "bundle", `--output=${dbZip}`, dbDir]);
-  t.context.db = dbZip;
-
-  t.context.codeql = codeql;
-});
-
-test.after(async (t) => {
-  if (t.context?.dbTmpDir) {
-    await rmRF(t.context.dbTmpDir);
-  }
-});
-
-test.beforeEach((t) => {
-  // Use a different temporary directory that tests can use
-  t.context.tmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "tmp-")));
-});
-
-test.afterEach(async (t) => {
-  if (t.context?.tmpDir !== undefined) {
-    await rmRF(t.context.tmpDir);
-  }
-});
-
-test("getting query pack info", async (t) => {
-  const queryPackInfo = await getQueryPackInfo(
-    t.context.codeql,
-    "testdata/test_pack",
-  );
-
-  const queries = {};
-  queries[path.resolve("testdata/test_pack/x/query.ql")] = {
-    name: "Test query",
-    description: "Test query description",
-    kind: "table",
-    id: "test/query/id",
-  };
-  t.deepEqual(queryPackInfo, {
-    path: path.resolve("testdata/test_pack"),
-    name: "codeql/queries",
-    queries,
-  });
-});
-
-test("getting query pack info with multiple queries", async (t) => {
-  const queryPackInfo = await getQueryPackInfo(
-    t.context.codeql,
-    "testdata/test_pack_multiple_queries",
-  );
-
-  const queries = {};
-  queries[path.resolve("testdata/test_pack_multiple_queries/x/query.ql")] = {
-    name: "Test query 1",
-    kind: "table",
-    id: "test/query/one",
-  };
-  queries[path.resolve("testdata/test_pack_multiple_queries/z/query.ql")] = {
-    name: "Test query 2",
-    kind: "table",
-    id: "test/query/two",
-  };
-  t.deepEqual(queryPackInfo, {
-    path: path.resolve("testdata/test_pack_multiple_queries"),
-    name: "codeql/queries",
-    queries,
-  });
-});
-
-test("running a query in a pack", async (t) => {
-  const queryPack = await getQueryPackInfo(
-    t.context.codeql,
-    "testdata/test_pack",
+describe("codeql", () => {
+  const codeql: CodeqlCli = new BaseCodeqlCli(
+    process.env.CODEQL_BIN_PATH || "codeql",
   );
   const cwd = process.cwd();
-  process.chdir(t.context.tmpDir);
-  try {
-    await runQuery(t.context.codeql, t.context.db, "a/b", queryPack);
 
-    t.true(fs.existsSync(path.join("results", "results.bqrs")));
-    t.false(fs.existsSync(path.join("results", "codeql/queries/x/query.bqrs")));
+  let db: string;
+  let tmpDir: string;
+  let dbTmpDir: string;
 
-    const bqrsInfo: BQRSInfo = await getBqrsInfo(
-      t.context.codeql,
-      path.join("results", "results.bqrs"),
-    );
-    t.is(1, bqrsInfo.resultSets.length);
-    t.is("#select", bqrsInfo.resultSets[0].name);
-    t.true(bqrsInfo.compatibleQueryKinds.includes("Table"));
-  } finally {
-    process.chdir(cwd);
-    await rmRF(t.context.tmpDir);
-  }
-});
+  beforeAll(
+    async () => {
+      dbTmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "db-")));
 
-test("running multiple queries in a pack", async (t) => {
-  const queryPack = await getQueryPackInfo(
-    t.context.codeql,
-    "testdata/test_pack_multiple_queries",
+      const projectDir = path.join(dbTmpDir, "project");
+      const dbDir = path.join(dbTmpDir, "db");
+      fs.mkdirSync(projectDir);
+      const testFile = path.join(projectDir, "test.js");
+      fs.writeFileSync(testFile, "const x = 1;");
+
+      await codeql.run([
+        "database",
+        "create",
+        "--language=javascript",
+        `--source-root=${projectDir}`,
+        dbDir,
+      ]);
+
+      db = path.join(dbTmpDir, "database.zip");
+      await codeql.run(["database", "bundle", `--output=${db}`, dbDir]);
+    },
+    // 5 minute timeout to build a CodeQL database
+    5 * 60 * 1000,
   );
-  const cwd = process.cwd();
-  process.chdir(t.context.tmpDir);
-  try {
-    await runQuery(t.context.codeql, t.context.db, "a/b", queryPack);
 
-    const bqrsFilePath1 = "db/results/codeql/queries/x/query.bqrs";
-    t.true(fs.existsSync(bqrsFilePath1));
-
-    const bqrsInfo1 = await getBqrsInfo(t.context.codeql, bqrsFilePath1);
-    t.is(1, bqrsInfo1.resultSets.length);
-    t.is("#select", bqrsInfo1.resultSets[0].name);
-    t.true(bqrsInfo1.compatibleQueryKinds.includes("Table"));
-
-    const bqrsFilePath2 = "db/results/codeql/queries/z/query.bqrs";
-    t.true(fs.existsSync(bqrsFilePath2));
-
-    const bqrsInfo2 = await getBqrsInfo(t.context.codeql, bqrsFilePath2);
-    t.is(1, bqrsInfo2.resultSets.length);
-    t.is("#select", bqrsInfo2.resultSets[0].name);
-    t.true(bqrsInfo2.compatibleQueryKinds.includes("Table"));
-
-    t.false(fs.existsSync(path.join("results", "results.bqrs")));
-  } finally {
-    process.chdir(cwd);
-  }
-});
-
-test("getting the commit SHA and CLI version from a database", (t) => {
-  fs.writeFileSync(
-    path.join(t.context.tmpDir, "codeql-database.yml"),
-    `---
-sourceLocationPrefix: "hello-world"
-baselineLinesOfCode: 1
-unicodeNewlines: true
-columnKind: "utf16"
-primaryLanguage: "javascript"
-creationMetadata:
-  sha: "ccf1e13626d97b009b4da78f719f028d9f7cdf80"
-  cliVersion: "2.7.2"
-  creationTime: "2021-11-08T12:58:40.345998Z"
-`,
+  afterAll(
+    async () => {
+      if (dbTmpDir) {
+        await rmRF(dbTmpDir);
+      }
+    },
+    // 30 second timeout to delete an unzipped CodeQL database
+    30 * 1000,
   );
-  t.is(
-    getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha,
-    "ccf1e13626d97b009b4da78f719f028d9f7cdf80",
-  );
-  t.is(
-    getDatabaseMetadata(t.context.tmpDir).creationMetadata?.cliVersion,
-    "2.7.2",
-  );
-});
 
-test("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", (t) => {
-  fs.writeFileSync(
-    path.join(t.context.tmpDir, "codeql-database.yml"),
-    `---
-sourceLocationPrefix: "hello-world"
-baselineLinesOfCode: 17442
-unicodeNewlines: true
-columnKind: "utf16"
-primaryLanguage: "javascript"
-`,
-  );
-  t.is(getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha, undefined);
-});
+  beforeEach(() => {
+    // Use a different temporary directory that tests can use
+    tmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "tmp-")));
+  });
 
-test("getting the commit SHA when codeql-database.yml exists, but is invalid", (t) => {
-  fs.writeFileSync(
-    path.join(t.context.tmpDir, "codeql-database.yml"),
-    `    foo:"
-bar
-`,
-  );
-  t.is(getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha, undefined);
-});
+  afterEach(async () => {
+    if (tmpDir !== undefined) {
+      await rmRF(tmpDir);
+    }
+  });
 
-test("getting the commit SHA when the codeql-database.yml does not exist", (t) => {
-  t.is(getDatabaseMetadata(t.context.tmpDir).creationMetadata?.sha, undefined);
-});
+  describe("getQueryPackInfo", () => {
+    it("getting query pack info", async () => {
+      const queryPackInfo = await getQueryPackInfo(
+        codeql,
+        join(cwd, "testdata/test_pack"),
+      );
 
-test("getting the queries from a pack", async (t) => {
-  t.deepEqual(
-    await getQueryPackQueries(
-      t.context.codeql,
-      "testdata/test_pack",
-      "codeql/queries",
-    ),
-    [path.resolve("testdata/test_pack/x/query.ql")],
-  );
-});
+      const queries = {};
+      queries[path.resolve("testdata/test_pack/x/query.ql")] = {
+        name: "Test query",
+        description: "Test query description",
+        kind: "table",
+        id: "test/query/id",
+      };
+      expect(queryPackInfo).toEqual({
+        path: path.resolve("testdata/test_pack"),
+        name: "codeql/queries",
+        queries,
+      });
+    });
 
-test("populating the SARIF versionControlProvenance property", (t) => {
-  const sarif: Sarif = {
-    runs: [
-      {
-        results: [],
+    it("getting query pack info with multiple queries", async () => {
+      const queryPackInfo = await getQueryPackInfo(
+        codeql,
+        join(cwd, "testdata/test_pack_multiple_queries"),
+      );
+
+      const queries = {};
+      queries[path.resolve("testdata/test_pack_multiple_queries/x/query.ql")] =
+        {
+          name: "Test query 1",
+          kind: "table",
+          id: "test/query/one",
+        };
+      queries[path.resolve("testdata/test_pack_multiple_queries/z/query.ql")] =
+        {
+          name: "Test query 2",
+          kind: "table",
+          id: "test/query/two",
+        };
+      expect(queryPackInfo).toEqual({
+        path: path.resolve("testdata/test_pack_multiple_queries"),
+        name: "codeql/queries",
+        queries,
+      });
+    });
+  });
+
+  describe("runQuery", () => {
+    beforeEach(() => {
+      // Change to the temporary directory because some tests write files to the current working directory
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(cwd);
+    });
+
+    it(
+      "running a query in a pack",
+      async () => {
+        const queryPack = await getQueryPackInfo(
+          codeql,
+          join(cwd, "testdata/test_pack"),
+        );
+        await runQuery(codeql, db, "a/b", queryPack);
+
+        expect(fs.existsSync(path.join("results", "results.bqrs"))).toBe(true);
+        expect(
+          fs.existsSync(path.join("results", "codeql/queries/x/query.bqrs")),
+        ).toBe(false);
+
+        const bqrsInfo: BQRSInfo = await getBqrsInfo(
+          codeql,
+          path.join("results", "results.bqrs"),
+        );
+        expect(bqrsInfo.resultSets.length).toBe(1);
+        expect(bqrsInfo.resultSets[0].name).toBe("#select");
+        expect(bqrsInfo.compatibleQueryKinds.includes("Table")).toBe(true);
       },
-    ],
-  };
-  const nwo = "a/b";
-  const sha = "testsha123";
+      // 1 minute timeout to run a CodeQL query
+      60 * 1000,
+    );
 
-  injectVersionControlInfo(sarif, nwo, sha);
-  const expected = {
-    repositoryUri: `https://github.com/${nwo}`,
-    revisionId: sha,
-  };
+    it(
+      "running multiple queries in a pack",
+      async () => {
+        const queryPack = await getQueryPackInfo(
+          codeql,
+          join(cwd, "testdata/test_pack_multiple_queries"),
+        );
+        await runQuery(codeql, db, "a/b", queryPack);
 
-  t.deepEqual(sarif.runs[0].versionControlProvenance?.[0], expected);
-});
+        const bqrsFilePath1 = "db/results/codeql/queries/x/query.bqrs";
+        expect(fs.existsSync(bqrsFilePath1)).toBe(true);
 
-test("counting the number of results in a SARIF file)", (t) => {
-  const sarif: Sarif = {
-    runs: [
-      {
-        results: [
+        const bqrsInfo1 = await getBqrsInfo(codeql, bqrsFilePath1);
+        expect(bqrsInfo1.resultSets.length).toBe(1);
+        expect(bqrsInfo1.resultSets[0].name).toBe("#select");
+        expect(bqrsInfo1.compatibleQueryKinds.includes("Table")).toBe(true);
+
+        const bqrsFilePath2 = "db/results/codeql/queries/z/query.bqrs";
+        expect(fs.existsSync(bqrsFilePath2)).toBe(true);
+
+        const bqrsInfo2 = await getBqrsInfo(codeql, bqrsFilePath2);
+        expect(bqrsInfo2.resultSets.length).toBe(1);
+        expect(bqrsInfo2.resultSets[0].name).toBe("#select");
+        expect(bqrsInfo2.compatibleQueryKinds.includes("Table")).toBe(true);
+
+        expect(fs.existsSync(path.join("results", "results.bqrs"))).toBe(false);
+      },
+      // 1 minute timeout to run a CodeQL query
+      60 * 1000,
+    );
+  });
+
+  describe("getDatabaseMetadata", () => {
+    it("getting the commit SHA and CLI version from a database", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "codeql-database.yml"),
+        `---
+    sourceLocationPrefix: "hello-world"
+    baselineLinesOfCode: 1
+    unicodeNewlines: true
+    columnKind: "utf16"
+    primaryLanguage: "javascript"
+    creationMetadata:
+      sha: "ccf1e13626d97b009b4da78f719f028d9f7cdf80"
+      cliVersion: "2.7.2"
+      creationTime: "2021-11-08T12:58:40.345998Z"
+    `,
+      );
+      expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(
+        "ccf1e13626d97b009b4da78f719f028d9f7cdf80",
+      );
+      expect(getDatabaseMetadata(tmpDir).creationMetadata?.cliVersion).toBe(
+        "2.7.2",
+      );
+    });
+
+    it("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "codeql-database.yml"),
+        `---
+    sourceLocationPrefix: "hello-world"
+    baselineLinesOfCode: 17442
+    unicodeNewlines: true
+    columnKind: "utf16"
+    primaryLanguage: "javascript"
+    `,
+      );
+      expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(undefined);
+    });
+
+    it("getting the commit SHA when codeql-database.yml exists, but is invalid", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "codeql-database.yml"),
+        `    foo:"
+    bar
+    `,
+      );
+      expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(undefined);
+    });
+
+    it("getting the commit SHA when the codeql-database.yml does not exist", () => {
+      expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(undefined);
+    });
+  });
+
+  describe("getQueryPackQueries", () => {
+    it("getting the queries from a pack", async () => {
+      expect(
+        await getQueryPackQueries(
+          codeql,
+          "testdata/test_pack",
+          "codeql/queries",
+        ),
+      ).toEqual([path.resolve("testdata/test_pack/x/query.ql")]);
+    });
+  });
+
+  describe("injectVersionControlInfo", () => {
+    it("populating the SARIF versionControlProvenance property", () => {
+      const sarif: Sarif = {
+        runs: [
           {
-            ruleId: "test-rule1",
-          },
-          {
-            ruleId: "test-rule2",
-          },
-          {
-            ruleId: "test-rule3",
+            results: [],
           },
         ],
-      },
-    ],
-  };
+      };
+      const nwo = "a/b";
+      const sha = "testsha123";
 
-  const resultCount = getSarifResultCount(sarif);
-  t.is(resultCount, 3);
-});
+      injectVersionControlInfo(sarif, nwo, sha);
+      const expected = {
+        repositoryUri: `https://github.com/${nwo}`,
+        revisionId: sha,
+      };
 
-test("getting the SARIF output type when there is no `@kind` metadata", (t) => {
-  const queryMetadata: QueryMetadata = {};
+      expect(sarif.runs[0].versionControlProvenance?.[0]).toEqual(expected);
+    });
+  });
 
-  const compatibleQueryKinds = [
-    "Problem",
-    "PathProblem",
-    "Table",
-    "Diagnostic",
-  ];
+  describe("getSarifResultCount", () => {
+    it("counting the number of results in a SARIF file)", () => {
+      const sarif: Sarif = {
+        runs: [
+          {
+            results: [
+              {
+                ruleId: "test-rule1",
+              },
+              {
+                ruleId: "test-rule2",
+              },
+              {
+                ruleId: "test-rule3",
+              },
+            ],
+          },
+        ],
+      };
 
-  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), undefined);
-});
+      expect(getSarifResultCount(sarif)).toBe(3);
+    });
+  });
 
-test("getting the SARIF output type when the `@kind` metadata is not compatible with output", (t) => {
-  const queryMetadata: QueryMetadata = {
-    kind: "path-problem",
-  };
+  describe("getSarifOutputType", () => {
+    it("getting the SARIF output type when there is no `@kind` metadata", () => {
+      const queryMetadata: QueryMetadata = {};
 
-  const compatibleQueryKinds = ["Problem", "Table", "Diagnostic"];
+      const compatibleQueryKinds = [
+        "Problem",
+        "PathProblem",
+        "Table",
+        "Diagnostic",
+      ];
 
-  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), undefined);
-});
+      expect(getSarifOutputType(queryMetadata, compatibleQueryKinds)).toBe(
+        undefined,
+      );
+    });
 
-test("getting the SARIF output type when the `@kind` metadata is compatible with output", (t) => {
-  const queryMetadata: QueryMetadata = {
-    kind: "problem",
-  };
+    it("getting the SARIF output type when the `@kind` metadata is not compatible with output", () => {
+      const queryMetadata: QueryMetadata = {
+        kind: "path-problem",
+      };
 
-  const compatibleQueryKinds = [
-    "Problem",
-    "PathProblem",
-    "Table",
-    "Diagnostic",
-  ];
+      const compatibleQueryKinds = ["Problem", "Table", "Diagnostic"];
 
-  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
-});
+      expect(getSarifOutputType(queryMetadata, compatibleQueryKinds)).toBe(
+        undefined,
+      );
+    });
 
-test("getting the SARIF output type when the `@kind` metadata is an alert alias", (t) => {
-  const queryMetadata: QueryMetadata = {
-    kind: "alert",
-  };
+    it("getting the SARIF output type when the `@kind` metadata is compatible with output", () => {
+      const queryMetadata: QueryMetadata = {
+        kind: "problem",
+      };
 
-  const compatibleQueryKinds = [
-    "Problem",
-    "PathProblem",
-    "Table",
-    "Diagnostic",
-  ];
+      const compatibleQueryKinds = [
+        "Problem",
+        "PathProblem",
+        "Table",
+        "Diagnostic",
+      ];
 
-  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "problem");
-});
+      expect(getSarifOutputType(queryMetadata, compatibleQueryKinds)).toBe(
+        "problem",
+      );
+    });
 
-test("getting the SARIF output type when the `@kind` metadata is a path-alert alias", (t) => {
-  const queryMetadata: QueryMetadata = {
-    kind: "path-alert",
-  };
+    it("getting the SARIF output type when the `@kind` metadata is an alert alias", () => {
+      const queryMetadata: QueryMetadata = {
+        kind: "alert",
+      };
 
-  const compatibleQueryKinds = [
-    "Problem",
-    "PathProblem",
-    "Table",
-    "Diagnostic",
-  ];
+      const compatibleQueryKinds = [
+        "Problem",
+        "PathProblem",
+        "Table",
+        "Diagnostic",
+      ];
 
-  t.is(getSarifOutputType(queryMetadata, compatibleQueryKinds), "path-problem");
-});
+      expect(getSarifOutputType(queryMetadata, compatibleQueryKinds)).toBe(
+        "problem",
+      );
+    });
 
-test("uses result count from #select result set if it exists", (t) => {
-  const bqrsInfo: BQRSInfo = {
-    resultSets: [{ name: "#select", rows: 3 }],
-    compatibleQueryKinds: [],
-  };
+    it("getting the SARIF output type when the `@kind` metadata is a path-alert alias", () => {
+      const queryMetadata: QueryMetadata = {
+        kind: "path-alert",
+      };
 
-  t.is(getBqrsResultCount(bqrsInfo), 3);
-});
+      const compatibleQueryKinds = [
+        "Problem",
+        "PathProblem",
+        "Table",
+        "Diagnostic",
+      ];
 
-test("uses result count from problems result set if it exists", (t) => {
-  const bqrsInfo: BQRSInfo = {
-    resultSets: [{ name: "problems", rows: 4 }],
-    compatibleQueryKinds: [],
-  };
+      expect(getSarifOutputType(queryMetadata, compatibleQueryKinds)).toBe(
+        "path-problem",
+      );
+    });
+  });
 
-  t.is(getBqrsResultCount(bqrsInfo), 4);
-});
+  describe("getBqrsResultCount", () => {
+    it("uses result count from #select result set if it exists", () => {
+      const bqrsInfo: BQRSInfo = {
+        resultSets: [{ name: "#select", rows: 3 }],
+        compatibleQueryKinds: [],
+      };
 
-test("uses result count from #select result set if both #select and problems result sets exist", (t) => {
-  const bqrsInfo: BQRSInfo = {
-    resultSets: [
-      { name: "#select", rows: 3 },
-      { name: "problems", rows: 4 },
-    ],
-    compatibleQueryKinds: [],
-  };
+      expect(getBqrsResultCount(bqrsInfo)).toBe(3);
+    });
 
-  t.is(getBqrsResultCount(bqrsInfo), 3);
-});
+    it("uses result count from problems result set if it exists", () => {
+      const bqrsInfo: BQRSInfo = {
+        resultSets: [{ name: "problems", rows: 4 }],
+        compatibleQueryKinds: [],
+      };
 
-test("throws error if neither #select or problems result sets exist", (t) => {
-  const bqrsInfo: BQRSInfo = {
-    resultSets: [
-      { name: "something", rows: 13 },
-      { name: "unknown", rows: 42 },
-    ],
-    compatibleQueryKinds: [],
-  };
+      expect(getBqrsResultCount(bqrsInfo)).toBe(4);
+    });
 
-  const error = t.throws(() => getBqrsResultCount(bqrsInfo));
-  t.deepEqual(
-    error?.message,
-    "BQRS does not contain any result sets matching known names. Expected one of #select or problems but found something, unknown",
-  );
+    it("uses result count from #select result set if both #select and problems result sets exist", () => {
+      const bqrsInfo: BQRSInfo = {
+        resultSets: [
+          { name: "#select", rows: 3 },
+          { name: "problems", rows: 4 },
+        ],
+        compatibleQueryKinds: [],
+      };
+
+      expect(getBqrsResultCount(bqrsInfo)).toBe(3);
+    });
+
+    it("throws error if neither #select or problems result sets exist", () => {
+      const bqrsInfo: BQRSInfo = {
+        resultSets: [
+          { name: "something", rows: 13 },
+          { name: "unknown", rows: 42 },
+        ],
+        compatibleQueryKinds: [],
+      };
+
+      expect(() => getBqrsResultCount(bqrsInfo)).toThrow(
+        new Error(
+          "BQRS does not contain any result sets matching known names. Expected one of #select or problems but found something, unknown",
+        ),
+      );
+    });
+  });
 });

@@ -46,13 +46,15 @@ const validators: Record<Schema, ValidateFunction> = {
 };
 export const schemaNames = Object.keys(validators) as Schema[];
 
+export class SchemaValidationError extends Error {}
+
 export function validateObject<T extends Schema>(
   obj: unknown,
   schema: T,
 ): SchemaTypes[T] {
   const validator = validators[schema];
   if (!validator(obj)) {
-    throw new Error(
+    throw new SchemaValidationError(
       `Object does not match the "${schema}" schema: ${ajv.errorsText(
         validator.errors,
       )}`,

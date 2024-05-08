@@ -65,9 +65,7 @@
                 ]
             }
         ],
-        "@typescript-eslint/no-shadow": [
-            "error"
-        ],
+        "@typescript-eslint/no-shadow": "error",
         "one-var": [
             "error",
             "never"
@@ -81,5 +79,13 @@
         "import/resolver": {
             "typescript": {}
         }
-    }
+    },
+    "overrides": [
+        {
+            "files": ["**/*.test.ts"],
+            "env": {
+                "jest": true
+            }
+        }
+    ]
 }

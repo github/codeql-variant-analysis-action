@@ -3,74 +3,74 @@ import { tmpdir } from "os";
 import path from "path";
 
 import { rmRF } from "@actions/io";
-import anyTest, { TestFn } from "ava";
 
 import { getQueryPackInfo } from "./codeql";
 import { CodeqlCli, CodeqlCliServer } from "./codeql-cli";
 
-const test = anyTest as TestFn<{
-  tmpDir: string;
-  cli: CodeqlCli;
-}>;
+describe("codeql-cli", () => {
+  let cli: CodeqlCli;
+  let tmpDir: string;
 
-test.before((t) => {
-  t.context.cli = new CodeqlCliServer(process.env.CODEQL_BIN_PATH || "codeql");
-});
+  beforeAll(() => {
+    cli = new CodeqlCliServer(process.env.CODEQL_BIN_PATH || "codeql");
+  });
 
-test.after((t) => {
-  if (t.context.cli && t.context.cli instanceof CodeqlCliServer) {
-    t.context.cli.shutdown();
-  }
-});
+  afterAll(() => {
+    if (cli && cli instanceof CodeqlCliServer) {
+      cli.shutdown();
+    }
+  });
 
-test.beforeEach((t) => {
-  // Use a different temporary directory that tests can use
-  t.context.tmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "tmp-")));
-});
+  beforeEach(() => {
+    tmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "tmp-")));
+  });
 
-test.afterEach(async (t) => {
-  if (t.context?.tmpDir !== undefined) {
-    await rmRF(t.context.tmpDir);
-  }
-});
+  afterEach(async () => {
+    if (tmpDir !== undefined) {
+      await rmRF(tmpDir);
+    }
+  });
 
-test("create and bundle a database", async (t) => {
-  const projectDir = path.join(t.context.tmpDir, "project");
-  const dbDir = path.join(t.context.tmpDir, "db");
-  fs.mkdirSync(projectDir);
-  const testFile = path.join(projectDir, "test.js");
-  fs.writeFileSync(testFile, "const x = 1;");
+  it(
+    "create and bundle a database",
+    async () => {
+      const projectDir = path.join(tmpDir, "project");
+      const dbDir = path.join(tmpDir, "db");
+      fs.mkdirSync(projectDir);
+      const testFile = path.join(projectDir, "test.js");
+      fs.writeFileSync(testFile, "const x = 1;");
 
-  await t.context.cli.run([
-    "database",
-    "create",
-    "--language=javascript",
-    `--source-root=${projectDir}`,
-    dbDir,
-  ]);
+      await cli.run([
+        "database",
+        "create",
+        "--language=javascript",
+        `--source-root=${projectDir}`,
+        dbDir,
+      ]);
 
-  const dbZip = path.join(t.context.tmpDir, "database.zip");
-  await t.context.cli.run(["database", "bundle", `--output=${dbZip}`, dbDir]);
+      const dbZip = path.join(tmpDir, "database.zip");
+      await cli.run(["database", "bundle", `--output=${dbZip}`, dbDir]);
 
-  t.true(fs.statSync(dbZip).isFile());
-});
-
-test("getting query pack info", async (t) => {
-  const queryPackInfo = await getQueryPackInfo(
-    t.context.cli,
-    "testdata/test_pack",
+      expect(fs.statSync(dbZip).isFile()).toBe(true);
+    },
+    // 5 minute timeout to create and bundle a database
+    5 * 60 * 1000,
   );
 
-  const queries = {};
-  queries[path.resolve("testdata/test_pack/x/query.ql")] = {
-    name: "Test query",
-    description: "Test query description",
-    kind: "table",
-    id: "test/query/id",
-  };
-  t.deepEqual(queryPackInfo, {
-    path: path.resolve("testdata/test_pack"),
-    name: "codeql/queries",
-    queries,
+  it("getting query pack info", async () => {
+    const queryPackInfo = await getQueryPackInfo(cli, "testdata/test_pack");
+
+    const queries = {};
+    queries[path.resolve("testdata/test_pack/x/query.ql")] = {
+      name: "Test query",
+      description: "Test query description",
+      kind: "table",
+      id: "test/query/id",
+    };
+    expect(queryPackInfo).toEqual({
+      path: path.resolve("testdata/test_pack"),
+      name: "codeql/queries",
+      queries,
+    });
   });
 });

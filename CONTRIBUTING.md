@@ -6,7 +6,7 @@
 
 ## Running tests
 
-We use the [ava](https://github.com/avajs/ava) test runner. To run one or more specific test(s), use `npm run test -- -m <title>`.
+We use the [jest](https://jestjs.io/) test framework. To run all the tests use `npm run test`. To run a specific test the best experience is to use VS Code.
 
 The `codeql` executable must be on the path before running any tests. If you run `script/test` instead of `npm run test` it will set that up automatically.
 
