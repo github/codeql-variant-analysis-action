@@ -1,7 +1,7 @@
 import { getDefaultCliVersion } from "./codeql-version";
 
 describe("getDefaultCliVersion", () => {
-  it("getDefaultCliVersion with valid features", () => {
+  it("returns most recent CodeQL CLI version when passed valid features", () => {
     const features = {
       /* eslint-disable @typescript-eslint/naming-convention -- names are from an API response */
       analysis_summary_v2_enabled: true,
@@ -45,7 +45,7 @@ describe("getDefaultCliVersion", () => {
     expect(getDefaultCliVersion(features)).toBe("2.17.1");
   });
 
-  it("getDefaultCliVersion without version features", () => {
+  it("returns undefined when version features are missing", () => {
     const features = {
       /* eslint-disable @typescript-eslint/naming-convention -- names are from an API response */
       analysis_summary_v2_enabled: true,

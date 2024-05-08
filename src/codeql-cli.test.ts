@@ -32,7 +32,7 @@ describe("codeql-cli", () => {
   });
 
   it(
-    "create and bundle a database",
+    "creates and bundles a database",
     async () => {
       const projectDir = path.join(tmpDir, "project");
       const dbDir = path.join(tmpDir, "db");
@@ -57,7 +57,7 @@ describe("codeql-cli", () => {
     5 * 60 * 1000,
   );
 
-  it("getting query pack info", async () => {
+  it("gets query pack info", async () => {
     const queryPackInfo = await getQueryPackInfo(cli, "testdata/test_pack");
 
     const queries = {};

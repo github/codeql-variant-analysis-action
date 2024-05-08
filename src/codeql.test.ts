@@ -77,7 +77,7 @@ describe("codeql", () => {
   });
 
   describe("getQueryPackInfo", () => {
-    it("getting query pack info", async () => {
+    it("gets query pack info", async () => {
       const queryPackInfo = await getQueryPackInfo(
         codeql,
         join(cwd, "testdata/test_pack"),
@@ -97,7 +97,7 @@ describe("codeql", () => {
       });
     });
 
-    it("getting query pack info with multiple queries", async () => {
+    it("gets query pack info when there are multiple queries", async () => {
       const queryPackInfo = await getQueryPackInfo(
         codeql,
         join(cwd, "testdata/test_pack_multiple_queries"),
@@ -135,7 +135,7 @@ describe("codeql", () => {
     });
 
     it(
-      "running a query in a pack",
+      "runs a query in a pack",
       async () => {
         const queryPack = await getQueryPackInfo(
           codeql,
@@ -161,7 +161,7 @@ describe("codeql", () => {
     );
 
     it(
-      "running multiple queries in a pack",
+      "runs multiple queries in a pack",
       async () => {
         const queryPack = await getQueryPackInfo(
           codeql,
@@ -193,7 +193,7 @@ describe("codeql", () => {
   });
 
   describe("getDatabaseMetadata", () => {
-    it("getting the commit SHA and CLI version from a database", () => {
+    it("gets the commit SHA and CLI version from a database", () => {
       fs.writeFileSync(
         path.join(tmpDir, "codeql-database.yml"),
         `---
@@ -216,7 +216,7 @@ describe("codeql", () => {
       );
     });
 
-    it("getting the commit SHA when codeql-database.yml exists, but does not contain SHA", () => {
+    it("gets the commit SHA when codeql-database.yml exists, but does not contain SHA", () => {
       fs.writeFileSync(
         path.join(tmpDir, "codeql-database.yml"),
         `---
@@ -230,7 +230,7 @@ describe("codeql", () => {
       expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(undefined);
     });
 
-    it("getting the commit SHA when codeql-database.yml exists, but is invalid", () => {
+    it("gets the commit SHA when codeql-database.yml exists, but is invalid", () => {
       fs.writeFileSync(
         path.join(tmpDir, "codeql-database.yml"),
         `    foo:"
@@ -240,13 +240,13 @@ describe("codeql", () => {
       expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(undefined);
     });
 
-    it("getting the commit SHA when the codeql-database.yml does not exist", () => {
+    it("gets the commit SHA when the codeql-database.yml does not exist", () => {
       expect(getDatabaseMetadata(tmpDir).creationMetadata?.sha).toBe(undefined);
     });
   });
 
   describe("getQueryPackQueries", () => {
-    it("getting the queries from a pack", async () => {
+    it("gets the queries from a pack", async () => {
       expect(
         await getQueryPackQueries(
           codeql,
@@ -258,7 +258,7 @@ describe("codeql", () => {
   });
 
   describe("injectVersionControlInfo", () => {
-    it("populating the SARIF versionControlProvenance property", () => {
+    it("populates the SARIF versionControlProvenance property", () => {
       const sarif: Sarif = {
         runs: [
           {
@@ -280,7 +280,7 @@ describe("codeql", () => {
   });
 
   describe("getSarifResultCount", () => {
-    it("counting the number of results in a SARIF file)", () => {
+    it("counts the number of results in a SARIF file)", () => {
       const sarif: Sarif = {
         runs: [
           {
@@ -304,7 +304,7 @@ describe("codeql", () => {
   });
 
   describe("getSarifOutputType", () => {
-    it("getting the SARIF output type when there is no `@kind` metadata", () => {
+    it("gets the SARIF output type when there is no `@kind` metadata", () => {
       const queryMetadata: QueryMetadata = {};
 
       const compatibleQueryKinds = [
@@ -319,7 +319,7 @@ describe("codeql", () => {
       );
     });
 
-    it("getting the SARIF output type when the `@kind` metadata is not compatible with output", () => {
+    it("gets the SARIF output type when the `@kind` metadata is not compatible with output", () => {
       const queryMetadata: QueryMetadata = {
         kind: "path-problem",
       };
@@ -331,7 +331,7 @@ describe("codeql", () => {
       );
     });
 
-    it("getting the SARIF output type when the `@kind` metadata is compatible with output", () => {
+    it("gets the SARIF output type when the `@kind` metadata is compatible with output", () => {
       const queryMetadata: QueryMetadata = {
         kind: "problem",
       };
@@ -348,7 +348,7 @@ describe("codeql", () => {
       );
     });
 
-    it("getting the SARIF output type when the `@kind` metadata is an alert alias", () => {
+    it("gets the SARIF output type when the `@kind` metadata is an alert alias", () => {
       const queryMetadata: QueryMetadata = {
         kind: "alert",
       };
@@ -365,7 +365,7 @@ describe("codeql", () => {
       );
     });
 
-    it("getting the SARIF output type when the `@kind` metadata is a path-alert alias", () => {
+    it("gets the SARIF output type when the `@kind` metadata is a path-alert alias", () => {
       const queryMetadata: QueryMetadata = {
         kind: "path-alert",
       };
