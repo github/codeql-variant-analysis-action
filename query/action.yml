@@ -24,7 +24,7 @@ inputs:
 
   instructions_path:
     description: "The path to the instructions file."
-    required: false
+    required: true
 
   signed_auth_token:
     description: "The signed auth token to authenticate against the GitHub API"

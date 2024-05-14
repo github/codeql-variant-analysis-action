@@ -55,6 +55,7 @@ test("can successfully validate Instructions", (t) => {
         nwo: "a/b",
       },
     ],
+    features: {},
   };
   t.notThrows(() => validateObject(obj, "instructions"));
 });

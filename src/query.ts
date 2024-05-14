@@ -52,7 +52,7 @@ async function run(): Promise<void> {
   const language = getInput("language", { required: true });
   const repos: Repo[] = getRepos();
   const variantAnalysisId = getVariantAnalysisId();
-  const instructions = await getInstructions(false);
+  const instructions = await getInstructions();
 
   for (const repo of repos) {
     if (repo.downloadUrl) {
@@ -66,21 +66,17 @@ async function run(): Promise<void> {
   startGroup("Setup CodeQL CLI");
   let codeqlBundlePath: string | undefined;
 
-  if (instructions?.features) {
-    const cliVersion = getDefaultCliVersion(instructions.features);
-    if (cliVersion) {
-      codeqlBundlePath = await setupCodeQLBundle(
-        process.env.RUNNER_TEMP ?? tmpdir(),
-        cliVersion,
-      );
-    } else {
-      warning(
-        `Unable to determine CodeQL version from feature flags, using latest version in tool cache`,
-      );
-    }
-  }
+  const cliVersion = getDefaultCliVersion(instructions.features);
+  if (cliVersion) {
+    codeqlBundlePath = await setupCodeQLBundle(
+      process.env.RUNNER_TEMP ?? tmpdir(),
+      cliVersion,
+    );
+  } else {
+    warning(
+      `Unable to determine CodeQL version from feature flags, using latest version in tool cache`,
+    );
 
-  if (!codeqlBundlePath) {
     codeqlBundlePath = findInToolCache("CodeQL", "*");
 
     info(`Using CodeQL CLI from tool cache: ${codeqlBundlePath}`);

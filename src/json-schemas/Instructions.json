@@ -18,7 +18,8 @@
         }
       },
       "required": [
-        "repositories"
+        "repositories",
+        "features"
       ],
       "type": "object"
     },
