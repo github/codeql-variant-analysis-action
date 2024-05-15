@@ -47491,7 +47491,8 @@ var Instructions_default = {
         }
       },
       required: [
-        "repositories"
+        "repositories",
+        "features"
       ],
       type: "object"
     },

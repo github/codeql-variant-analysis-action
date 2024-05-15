@@ -17,7 +17,7 @@ export type RepoArray = Repo[];
 
 export interface Instructions {
   repositories: Repo[];
-  features?: Record<string, boolean>;
+  features: Record<string, boolean>;
 }
 
 export function getControllerRepoId(): number {
@@ -43,19 +43,8 @@ export function getWorkflowStatus(): string {
   return getInput("workflow_status", { required: true });
 }
 
-export async function getInstructions(): Promise<Instructions>;
-export async function getInstructions(
-  required: false,
-): Promise<Instructions | undefined>;
-
-export async function getInstructions(
-  required = true,
-): Promise<Instructions | undefined> {
-  const filePath = getInput("instructions_path", { required });
-  if (!filePath && !required) {
-    return undefined;
-  }
-
+export async function getInstructions(): Promise<Instructions> {
+  const filePath = getInput("instructions_path", { required: true });
   return validateObject(
     JSON.parse(await fs.promises.readFile(filePath, "utf-8")),
     "instructions",

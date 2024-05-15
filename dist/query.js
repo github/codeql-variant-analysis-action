@@ -79409,7 +79409,8 @@ var Instructions_default = {
         }
       },
       required: [
-        "repositories"
+        "repositories",
+        "features"
       ],
       type: "object"
     },
@@ -79661,11 +79662,8 @@ function getRepos() {
     "repoArray"
   );
 }
-async function getInstructions(required = true) {
-  const filePath = (0, import_core.getInput)("instructions_path", { required });
-  if (!filePath && !required) {
-    return void 0;
-  }
+async function getInstructions() {
+  const filePath = (0, import_core.getInput)("instructions_path", { required: true });
   return validateObject(
     JSON.parse(await fs.promises.readFile(filePath, "utf-8")),
     "instructions"
@@ -80744,7 +80742,7 @@ async function run() {
   const language = (0, import_core5.getInput)("language", { required: true });
   const repos = getRepos();
   const variantAnalysisId = getVariantAnalysisId();
-  const instructions = await getInstructions(false);
+  const instructions = await getInstructions();
   for (const repo of repos) {
     if (repo.downloadUrl) {
       (0, import_core5.setSecret)(repo.downloadUrl);
@@ -80755,20 +80753,16 @@ async function run() {
   }
   (0, import_core5.startGroup)("Setup CodeQL CLI");
   let codeqlBundlePath;
-  if (instructions?.features) {
-    const cliVersion = getDefaultCliVersion(instructions.features);
-    if (cliVersion) {
-      codeqlBundlePath = await setupCodeQLBundle(
-        process.env.RUNNER_TEMP ?? (0, import_os.tmpdir)(),
-        cliVersion
-      );
-    } else {
-      (0, import_core5.warning)(
-        `Unable to determine CodeQL version from feature flags, using latest version in tool cache`
-      );
-    }
-  }
-  if (!codeqlBundlePath) {
+  const cliVersion = getDefaultCliVersion(instructions.features);
+  if (cliVersion) {
+    codeqlBundlePath = await setupCodeQLBundle(
+      process.env.RUNNER_TEMP ?? (0, import_os.tmpdir)(),
+      cliVersion
+    );
+  } else {
+    (0, import_core5.warning)(
+      `Unable to determine CodeQL version from feature flags, using latest version in tool cache`
+    );
     codeqlBundlePath = (0, import_tool_cache2.find)("CodeQL", "*");
     (0, import_core5.info)(`Using CodeQL CLI from tool cache: ${codeqlBundlePath}`);
   }
