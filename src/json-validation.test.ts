@@ -54,6 +54,7 @@ describe("validateObject", () => {
           nwo: "a/b",
         },
       ],
+      features: {},
     };
     expect(() => validateObject(obj, "instructions")).not.toThrow();
   });

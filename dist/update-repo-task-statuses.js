@@ -47492,7 +47492,8 @@ var Instructions_default = {
         }
       },
       required: [
-        "repositories"
+        "repositories",
+        "features"
       ],
       type: "object"
     },
@@ -47743,11 +47744,8 @@ function getSignedAuthToken() {
 function getWorkflowStatus() {
   return (0, import_core.getInput)("workflow_status", { required: true });
 }
-async function getInstructions(required = true) {
-  const filePath = (0, import_core.getInput)("instructions_path", { required });
-  if (!filePath && !required) {
-    return void 0;
-  }
+async function getInstructions() {
+  const filePath = (0, import_core.getInput)("instructions_path", { required: true });
   return validateObject(
     JSON.parse(await fs.promises.readFile(filePath, "utf-8")),
     "instructions"
