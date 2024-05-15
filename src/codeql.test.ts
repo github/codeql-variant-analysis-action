@@ -21,17 +21,17 @@ import {
 import { BaseCodeqlCli, CodeqlCli } from "./codeql-cli";
 
 describe("codeql", () => {
-  const codeql: CodeqlCli = new BaseCodeqlCli(
-    process.env.CODEQL_BIN_PATH || "codeql",
-  );
   const cwd = process.cwd();
 
+  let codeql: CodeqlCli;
   let db: string;
   let tmpDir: string;
   let dbTmpDir: string;
 
   beforeAll(
     async () => {
+      codeql = new BaseCodeqlCli(process.env.CODEQL_BIN_PATH || "codeql");
+
       dbTmpDir = path.resolve(fs.mkdtempSync(path.join(tmpdir(), "db-")));
 
       const projectDir = path.join(dbTmpDir, "project");
