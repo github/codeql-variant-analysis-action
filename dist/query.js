@@ -79634,10 +79634,12 @@ var validators = {
   policy: ajv.compile(Policy_default)
 };
 var schemaNames = Object.keys(validators);
+var SchemaValidationError = class extends Error {
+};
 function validateObject(obj, schema) {
   const validator = validators[schema];
   if (!validator(obj)) {
-    throw new Error(
+    throw new SchemaValidationError(
       `Object does not match the "${schema}" schema: ${ajv.errorsText(
         validator.errors
       )}`

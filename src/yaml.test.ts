@@ -1,10 +1,8 @@
-import test from "ava";
-
 import { parseYaml } from "./yaml";
 
-test("can successfully parse YAML with potentially exponential commit SHA", (t) => {
-  t.deepEqual(
-    {
+describe("parseYaml", () => {
+  it("can successfully parse YAML with potentially exponential commit SHA", () => {
+    const expectedResult = {
       sourceLocationPrefix: "/home/runner/work/bulk-builder/bulk-builder",
       baselineLinesOfCode: BigInt(13088),
       unicodeNewlines: false,
@@ -16,8 +14,8 @@ test("can successfully parse YAML with potentially exponential commit SHA", (t) 
         creationTime: new Date("2023-08-03T18:19:44.622274245Z"),
       },
       finalised: true,
-    },
-    parseYaml(`---
+    };
+    const actualResult = parseYaml(`---
 sourceLocationPrefix: /home/runner/work/bulk-builder/bulk-builder
 baselineLinesOfCode: 13088
 unicodeNewlines: false
@@ -28,13 +26,12 @@ creationMetadata:
   cliVersion: 2.14.1
   creationTime: 2023-08-03T18:19:44.622274245Z
 finalised: true
-`),
-  );
-});
+    `);
+    expect(actualResult).toEqual(expectedResult);
+  });
 
-test("can successfully parse YAML with numeric commit SHA", (t) => {
-  t.deepEqual(
-    {
+  it("can successfully parse YAML with numeric commit SHA", () => {
+    const expectedResult = {
       sourceLocationPrefix: "/home/runner/work/bulk-builder/bulk-builder",
       baselineLinesOfCode: BigInt(13088),
       unicodeNewlines: false,
@@ -46,8 +43,8 @@ test("can successfully parse YAML with numeric commit SHA", (t) => {
         creationTime: new Date("2023-08-03T18:19:44.622274245Z"),
       },
       finalised: true,
-    },
-    parseYaml(`---
+    };
+    const actualResult = parseYaml(`---
 sourceLocationPrefix: /home/runner/work/bulk-builder/bulk-builder
 baselineLinesOfCode: 13088
 unicodeNewlines: false
@@ -58,6 +55,7 @@ creationMetadata:
   cliVersion: 2.14.1
   creationTime: 2023-08-03T18:19:44.622274245Z
 finalised: true
-`),
-  );
+    `);
+    expect(actualResult).toEqual(expectedResult);
+  });
 });

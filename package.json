@@ -6,20 +6,10 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "test": "ava src/** --serial --verbose --timeout=1m",
-    "test-debug": "ava src/** --serial --verbose --timeout=20m",
+    "test": "jest",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts",
     "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --ext .js,.ts --fix",
     "find-deadcode": "ts-node script/find-deadcode.ts"
-  },
-  "ava": {
-    "typescript": {
-      "rewritePaths": {
-        "src/": "lib/"
-      },
-      "compile": "tsc"
-    },
-    "workerThreads": false
   },
   "license": "MIT",
   "engines": {
@@ -42,20 +32,16 @@
     "uuid": "^9.0.1",
     "yaml": "^2.4.2"
   },
-  "//": [
-    "micromatch is an unspecified dependency of ava"
-  ],
   "devDependencies": {
-    "@ava/typescript": "^4.1.0",
     "@octokit/types": "^12.5.0",
     "@types/archiver": "^6.0.2",
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.10.5",
     "@types/semver": "^7.5.8",
     "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^7.8.0",
     "@typescript-eslint/parser": "^7.8.0",
     "archiver": "^7.0.1",
-    "ava": "^6.1.3",
     "esbuild": "^0.20.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -65,8 +51,9 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-no-async-foreach": "^0.1.1",
     "eslint-plugin-prettier": "^5.1.3",
-    "micromatch": "^4.0.5",
+    "jest": "^29.7.0",
     "prettier": "^3.2.5",
+    "ts-jest": "^29.1.2",
     "ts-json-schema-generator": "2.1.0",
     "ts-node": "^10.9.2",
     "ts-unused-exports": "^10.0.1",
