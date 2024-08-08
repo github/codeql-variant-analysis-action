@@ -5,6 +5,8 @@ import { Writable } from "node:stream";
 import { debug, error } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 
+import { asError } from "./errors";
+
 interface CodeqlCliOutput {
   exitCode: number;
   stdout: string;
@@ -55,7 +57,7 @@ export class CodeqlCliServer implements CodeqlCli {
           // eslint-disable-next-line github/no-then -- we might not run immediately
           this.runCommandImmediately(args).then(resolve, reject);
         } catch (err) {
-          reject(err);
+          reject(asError(err));
         }
       };
       // If the server is not running a command, then run the given command immediately,
