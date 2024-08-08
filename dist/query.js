@@ -80053,6 +80053,13 @@ var import_node_os = require("node:os");
 var import_node_stream = require("node:stream");
 var import_core2 = __toESM(require_core());
 var import_exec = __toESM(require_exec());
+
+// src/errors.ts
+function asError(e) {
+  return e instanceof Error ? e : new Error(String(e));
+}
+
+// src/codeql-cli.ts
 var CodeqlCliServer = class {
   constructor(codeqlPath) {
     this.codeqlPath = codeqlPath;
@@ -80079,7 +80086,7 @@ var CodeqlCliServer = class {
         try {
           this.runCommandImmediately(args).then(resolve, reject);
         } catch (err) {
-          reject(err);
+          reject(asError(err));
         }
       };
       if (this.commandInProcess) {
