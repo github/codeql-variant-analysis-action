@@ -175,13 +175,27 @@ const config: Config = {
   // testRunner: "jest-circus/runner",
 
   // A map from regular expressions to paths to transformers
-  // transform: undefined,
+  transform: {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        tsconfig: "<rootDir>/tsconfig.json",
+      },
+    ],
+    node_modules: [
+      "babel-jest",
+      {
+        presets: ["@babel/preset-env"],
+        plugins: ["@babel/plugin-transform-modules-commonjs"],
+      },
+    ],
+  },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-  // transformIgnorePatterns: [
-  //   "/node_modules/",
-  //   "\\.pnp\\.[^\\/]+$"
-  // ],
+  transformIgnorePatterns: [
+    // These use ES modules, so need to be transformed
+    "node_modules/(?!(?:@octokit/.+|before-after-hook|universal-user-agent)/.*)",
+  ],
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
   // unmockedModulePathPatterns: undefined,
