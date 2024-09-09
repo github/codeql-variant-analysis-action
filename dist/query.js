@@ -79574,31 +79574,31 @@ var import_core4 = __toESM(require_core());
 var import_io = __toESM(require_io());
 var import_tool_cache = __toESM(require_tool_cache());
 
-// node_modules/uuid/dist/esm-node/rng.js
-var import_crypto4 = __toESM(require("crypto"));
-var rnds8Pool2 = new Uint8Array(256);
-var poolPtr2 = rnds8Pool2.length;
-function rng2() {
-  if (poolPtr2 > rnds8Pool2.length - 16) {
-    import_crypto4.default.randomFillSync(rnds8Pool2);
-    poolPtr2 = 0;
-  }
-  return rnds8Pool2.slice(poolPtr2, poolPtr2 += 16);
-}
-
 // node_modules/uuid/dist/esm-node/stringify.js
 var byteToHex2 = [];
 for (let i = 0; i < 256; ++i) {
   byteToHex2.push((i + 256).toString(16).slice(1));
 }
 function unsafeStringify(arr, offset = 0) {
-  return byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]];
+  return (byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]]).toLowerCase();
+}
+
+// node_modules/uuid/dist/esm-node/rng.js
+var import_node_crypto = __toESM(require("node:crypto"));
+var rnds8Pool2 = new Uint8Array(256);
+var poolPtr2 = rnds8Pool2.length;
+function rng2() {
+  if (poolPtr2 > rnds8Pool2.length - 16) {
+    import_node_crypto.default.randomFillSync(rnds8Pool2);
+    poolPtr2 = 0;
+  }
+  return rnds8Pool2.slice(poolPtr2, poolPtr2 += 16);
 }
 
 // node_modules/uuid/dist/esm-node/native.js
-var import_crypto5 = __toESM(require("crypto"));
+var import_node_crypto2 = __toESM(require("node:crypto"));
 var native_default = {
-  randomUUID: import_crypto5.default.randomUUID
+  randomUUID: import_node_crypto2.default.randomUUID
 };
 
 // node_modules/uuid/dist/esm-node/v4.js
