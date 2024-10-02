@@ -66322,7 +66322,6 @@ var require_Collection = __commonJS({
         }
       }
     };
-    Collection2.maxFlowStringSingleLineLength = 60;
     exports2.Collection = Collection2;
     exports2.collectionFromPath = collectionFromPath;
     exports2.isEmptyPath = isEmptyPath;
@@ -66356,6 +66355,8 @@ var require_foldFlowLines = __commonJS({
     function foldFlowLines(text, indent, mode = "flow", { indentAtStart, lineWidth = 80, minContentWidth = 20, onFold, onOverflow } = {}) {
       if (!lineWidth || lineWidth < 0)
         return text;
+      if (lineWidth < minContentWidth)
+        minContentWidth = 0;
       const endStep = Math.max(1 + minContentWidth, 1 + lineWidth - indent.length);
       if (text.length <= endStep)
         return text;
@@ -66889,7 +66890,7 @@ var require_stringifyPair = __commonJS({
         if (keyComment) {
           throw new Error("With simple keys, key nodes cannot have comments");
         }
-        if (identity.isCollection(key)) {
+        if (identity.isCollection(key) || !identity.isNode(key) && typeof key === "object") {
           const msg = "With simple keys, collection cannot be used as a key value";
           throw new Error(msg);
         }
@@ -67708,7 +67709,7 @@ var require_float = __commonJS({
       identify: (value) => typeof value === "number",
       default: true,
       tag: "tag:yaml.org,2002:float",
-      test: /^(?:[-+]?\.(?:inf|Inf|INF|nan|NaN|NAN))$/,
+      test: /^(?:[-+]?\.(?:inf|Inf|INF)|\.nan|\.NaN|\.NAN)$/,
       resolve: (str) => str.slice(-3).toLowerCase() === "nan" ? NaN : str[0] === "-" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY,
       stringify: stringifyNumber.stringifyNumber
     };
@@ -68146,7 +68147,7 @@ var require_float2 = __commonJS({
       identify: (value) => typeof value === "number",
       default: true,
       tag: "tag:yaml.org,2002:float",
-      test: /^[-+]?\.(?:inf|Inf|INF|nan|NaN|NAN)$/,
+      test: /^(?:[-+]?\.(?:inf|Inf|INF)|\.nan|\.NaN|\.NAN)$/,
       resolve: (str) => str.slice(-3).toLowerCase() === "nan" ? NaN : str[0] === "-" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY,
       stringify: stringifyNumber.stringifyNumber
     };
@@ -69056,17 +69057,18 @@ ${pointer}
 var require_resolve_props = __commonJS({
   "node_modules/yaml/dist/compose/resolve-props.js"(exports2) {
     "use strict";
-    function resolveProps(tokens, { flow, indicator, next, offset, onError, startOnNewline }) {
+    function resolveProps(tokens, { flow, indicator, next, offset, onError, parentIndent, startOnNewline }) {
       let spaceBefore = false;
       let atNewline = startOnNewline;
       let hasSpace = startOnNewline;
       let comment = "";
       let commentSep = "";
       let hasNewline = false;
-      let hasNewlineAfterProp = false;
       let reqSpace = false;
+      let tab = null;
       let anchor = null;
       let tag = null;
+      let newlineAfterProp = null;
       let comma = null;
       let found = null;
       let start = null;
@@ -69076,10 +69078,17 @@ var require_resolve_props = __commonJS({
             onError(token.offset, "MISSING_CHAR", "Tags and anchors must be separated from the next token by white space");
           reqSpace = false;
         }
+        if (tab) {
+          if (atNewline && token.type !== "comment" && token.type !== "newline") {
+            onError(tab, "TAB_AS_INDENT", "Tabs are not allowed as indentation");
+          }
+          tab = null;
+        }
         switch (token.type) {
           case "space":
-            if (!flow && atNewline && indicator !== "doc-start" && token.source[0] === "	")
-              onError(token, "TAB_AS_INDENT", "Tabs are not allowed as indentation");
+            if (!flow && (indicator !== "doc-start" || next?.type !== "flow-collection") && token.source.includes("	")) {
+              tab = token;
+            }
             hasSpace = true;
             break;
           case "comment": {
@@ -69105,7 +69114,7 @@ var require_resolve_props = __commonJS({
             atNewline = true;
             hasNewline = true;
             if (anchor || tag)
-              hasNewlineAfterProp = true;
+              newlineAfterProp = token;
             hasSpace = true;
             break;
           case "anchor":
@@ -69137,7 +69146,7 @@ var require_resolve_props = __commonJS({
             if (found)
               onError(token, "UNEXPECTED_TOKEN", `Unexpected ${token.source} in ${flow ?? "collection"}`);
             found = token;
-            atNewline = false;
+            atNewline = indicator === "seq-item-ind" || indicator === "explicit-key-ind";
             hasSpace = false;
             break;
           case "comma":
@@ -69158,17 +69167,20 @@ var require_resolve_props = __commonJS({
       }
       const last = tokens[tokens.length - 1];
       const end = last ? last.offset + last.source.length : offset;
-      if (reqSpace && next && next.type !== "space" && next.type !== "newline" && next.type !== "comma" && (next.type !== "scalar" || next.source !== ""))
+      if (reqSpace && next && next.type !== "space" && next.type !== "newline" && next.type !== "comma" && (next.type !== "scalar" || next.source !== "")) {
         onError(next.offset, "MISSING_CHAR", "Tags and anchors must be separated from the next token by white space");
+      }
+      if (tab && (atNewline && tab.indent <= parentIndent || next?.type === "block-map" || next?.type === "block-seq"))
+        onError(tab, "TAB_AS_INDENT", "Tabs are not allowed as indentation");
       return {
         comma,
         found,
         spaceBefore,
         comment,
         hasNewline,
-        hasNewlineAfterProp,
         anchor,
         tag,
+        newlineAfterProp,
         end,
         start: start ?? end
       };
@@ -69278,6 +69290,7 @@ var require_resolve_block_map = __commonJS({
           next: key ?? sep?.[0],
           offset,
           onError,
+          parentIndent: bm.indent,
           startOnNewline: true
         });
         const implicitKey = !keyProps.found;
@@ -69298,7 +69311,7 @@ var require_resolve_block_map = __commonJS({
             }
             continue;
           }
-          if (keyProps.hasNewlineAfterProp || utilContainsNewline.containsNewline(key)) {
+          if (keyProps.newlineAfterProp || utilContainsNewline.containsNewline(key)) {
             onError(key ?? start[start.length - 1], "MULTILINE_IMPLICIT_KEY", "Implicit keys need to be on a single line");
           }
         } else if (keyProps.found?.indent !== bm.indent) {
@@ -69315,6 +69328,7 @@ var require_resolve_block_map = __commonJS({
           next: value,
           offset: keyNode.range[2],
           onError,
+          parentIndent: bm.indent,
           startOnNewline: !key || key.type === "block-scalar"
         });
         offset = valueProps.end;
@@ -69377,6 +69391,7 @@ var require_resolve_block_seq = __commonJS({
           next: value,
           offset,
           onError,
+          parentIndent: bs.indent,
           startOnNewline: true
         });
         if (!props.found) {
@@ -69481,6 +69496,7 @@ var require_resolve_flow_collection = __commonJS({
           next: key ?? sep?.[0],
           offset,
           onError,
+          parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
@@ -69555,6 +69571,7 @@ var require_resolve_flow_collection = __commonJS({
             next: value,
             offset: keyNode.range[2],
             onError,
+            parentIndent: fc.indent,
             startOnNewline: false
           });
           if (valueProps.found) {
@@ -69599,6 +69616,8 @@ var require_resolve_flow_collection = __commonJS({
             const map = new YAMLMap.YAMLMap(ctx.schema);
             map.flow = true;
             map.items.push(pair);
+            const endRange = (valueNode ?? keyNode).range;
+            map.range = [keyNode.range[0], endRange[1], endRange[2]];
             coll.items.push(map);
           }
           offset = valueNode ? valueNode.range[2] : valueProps.end;
@@ -69656,10 +69675,19 @@ var require_compose_collection = __commonJS({
         coll.tag = tagName;
       return coll;
     }
-    function composeCollection(CN, ctx, token, tagToken, onError) {
+    function composeCollection(CN, ctx, token, props, onError) {
+      const tagToken = props.tag;
       const tagName = !tagToken ? null : ctx.directives.tagName(tagToken.source, (msg) => onError(tagToken, "TAG_RESOLVE_FAILED", msg));
+      if (token.type === "block-seq") {
+        const { anchor, newlineAfterProp: nl } = props;
+        const lastProp = anchor && tagToken ? anchor.offset > tagToken.offset ? anchor : tagToken : anchor ?? tagToken;
+        if (lastProp && (!nl || nl.offset < lastProp.offset)) {
+          const message = "Missing newline after block sequence props";
+          onError(lastProp, "MISSING_CHAR", message);
+        }
+      }
       const expType = token.type === "block-map" ? "map" : token.type === "block-seq" ? "seq" : token.start.source === "{" ? "map" : "seq";
-      if (!tagToken || !tagName || tagName === "!" || tagName === YAMLMap.YAMLMap.tagName && expType === "map" || tagName === YAMLSeq.YAMLSeq.tagName && expType === "seq" || !expType) {
+      if (!tagToken || !tagName || tagName === "!" || tagName === YAMLMap.YAMLMap.tagName && expType === "map" || tagName === YAMLSeq.YAMLSeq.tagName && expType === "seq") {
         return resolveCollection(CN, ctx, token, onError, tagName);
       }
       let tag = ctx.schema.tags.find((t) => t.tag === tagName && t.collection === expType);
@@ -69695,9 +69723,9 @@ var require_resolve_block_scalar = __commonJS({
   "node_modules/yaml/dist/compose/resolve-block-scalar.js"(exports2) {
     "use strict";
     var Scalar = require_Scalar();
-    function resolveBlockScalar(scalar, strict, onError) {
+    function resolveBlockScalar(ctx, scalar, onError) {
       const start = scalar.offset;
-      const header = parseBlockScalarHeader(scalar, strict, onError);
+      const header = parseBlockScalarHeader(scalar, ctx.options.strict, onError);
       if (!header)
         return { value: "", type: null, comment: "", range: [start, start, start] };
       const type = header.mode === ">" ? Scalar.Scalar.BLOCK_FOLDED : Scalar.Scalar.BLOCK_LITERAL;
@@ -69733,6 +69761,10 @@ var require_resolve_block_scalar = __commonJS({
           if (header.indent === 0)
             trimIndent = indent.length;
           contentStart = i;
+          if (trimIndent === 0 && !ctx.atRoot) {
+            const message = "Block scalar values in collections must be indented";
+            onError(offset, "BAD_INDENT", message);
+          }
           break;
         }
         offset += indent.length + content.length + 1;
@@ -69950,7 +69982,7 @@ var require_resolve_flow_scalar = __commonJS({
       try {
         first = new RegExp("(.*?)(?<![ 	])[ 	]*\r?\n", "sy");
         line = new RegExp("[ 	]*(.*?)(?:(?<![ 	])[ 	]*)?\r?\n", "sy");
-      } catch (_) {
+      } catch {
         first = /(.*?)[ \t]*\r?\n/sy;
         line = /[ \t]*(.*?)[ \t]*\r?\n/sy;
       }
@@ -70097,7 +70129,7 @@ var require_compose_scalar = __commonJS({
     var resolveBlockScalar = require_resolve_block_scalar();
     var resolveFlowScalar = require_resolve_flow_scalar();
     function composeScalar(ctx, token, tagToken, onError) {
-      const { value, type, comment, range } = token.type === "block-scalar" ? resolveBlockScalar.resolveBlockScalar(token, ctx.options.strict, onError) : resolveFlowScalar.resolveFlowScalar(token, ctx.options.strict, onError);
+      const { value, type, comment, range } = token.type === "block-scalar" ? resolveBlockScalar.resolveBlockScalar(ctx, token, onError) : resolveFlowScalar.resolveFlowScalar(token, ctx.options.strict, onError);
       const tagName = tagToken ? ctx.directives.tagName(tagToken.source, (msg) => onError(tagToken, "TAG_RESOLVE_FAILED", msg)) : null;
       const tag = tagToken && tagName ? findScalarTagByName(ctx.schema, value, tagName, tagToken, onError) : token.type === "scalar" ? findScalarTagByTest(ctx, value, token, onError) : ctx.schema[identity.SCALAR];
       let scalar;
@@ -70223,7 +70255,7 @@ var require_compose_node = __commonJS({
         case "block-map":
         case "block-seq":
         case "flow-collection":
-          node = composeCollection.composeCollection(CN, ctx, token, tag, onError);
+          node = composeCollection.composeCollection(CN, ctx, token, props, onError);
           if (anchor)
             node.anchor = anchor.source.substring(1);
           break;
@@ -70309,6 +70341,7 @@ var require_compose_doc = __commonJS({
         next: value ?? end?.[0],
         offset,
         onError,
+        parentIndent: 0,
         startOnNewline: true
       });
       if (props.found) {
@@ -70556,7 +70589,7 @@ var require_cst_scalar = __commonJS({
           case "double-quoted-scalar":
             return resolveFlowScalar.resolveFlowScalar(token, strict, _onError);
           case "block-scalar":
-            return resolveBlockScalar.resolveBlockScalar(token, strict, _onError);
+            return resolveBlockScalar.resolveBlockScalar({ options: { strict } }, token, _onError);
         }
       }
       return null;
@@ -70960,11 +70993,11 @@ var require_lexer = __commonJS({
           return false;
       }
     }
-    var hexDigits = "0123456789ABCDEFabcdef".split("");
-    var tagChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-#;/?:@&=+$_.!~*'()".split("");
-    var invalidFlowScalarChars = ",[]{}".split("");
-    var invalidAnchorChars = " ,[]{}\n\r	".split("");
-    var isNotAnchorChar = (ch) => !ch || invalidAnchorChars.includes(ch);
+    var hexDigits = new Set("0123456789ABCDEFabcdef");
+    var tagChars = new Set("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-#;/?:@&=+$_.!~*'()");
+    var flowIndicatorChars = new Set(",[]{}");
+    var invalidAnchorChars = new Set(" ,[]{}\n\r	");
+    var isNotAnchorChar = (ch) => !ch || invalidAnchorChars.has(ch);
     var Lexer = class {
       constructor() {
         this.atEnd = false;
@@ -70987,6 +71020,8 @@ var require_lexer = __commonJS({
        */
       *lex(source, incomplete = false) {
         if (source) {
+          if (typeof source !== "string")
+            throw TypeError("source is not a string");
           this.buffer = this.buffer ? this.buffer + source : source;
           this.lineEndPos = null;
         }
@@ -71084,11 +71119,15 @@ var require_lexer = __commonJS({
         }
         if (line[0] === "%") {
           let dirEnd = line.length;
-          const cs = line.indexOf("#");
-          if (cs !== -1) {
+          let cs = line.indexOf("#");
+          while (cs !== -1) {
             const ch = line[cs - 1];
-            if (ch === " " || ch === "	")
+            if (ch === " " || ch === "	") {
               dirEnd = cs - 1;
+              break;
+            } else {
+              cs = line.indexOf("#", cs + 1);
+            }
           }
           while (true) {
             const ch = line[dirEnd - 1];
@@ -71119,14 +71158,11 @@ var require_lexer = __commonJS({
           if (!this.atEnd && !this.hasChars(4))
             return this.setNext("line-start");
           const s = this.peek(3);
-          if (s === "---" && isEmpty(this.charAt(3))) {
+          if ((s === "---" || s === "...") && isEmpty(this.charAt(3))) {
             yield* this.pushCount(3);
             this.indentValue = 0;
             this.indentNext = 0;
-            return "doc";
-          } else if (s === "..." && isEmpty(this.charAt(3))) {
-            yield* this.pushCount(3);
-            return "stream";
+            return s === "---" ? "doc" : "stream";
           }
         }
         this.indentValue = yield* this.pushSpaces(false);
@@ -71313,17 +71349,17 @@ var require_lexer = __commonJS({
         let nl = this.pos - 1;
         let indent = 0;
         let ch;
-        loop: for (let i = this.pos; ch = this.buffer[i]; ++i) {
+        loop: for (let i2 = this.pos; ch = this.buffer[i2]; ++i2) {
           switch (ch) {
             case " ":
               indent += 1;
               break;
             case "\n":
-              nl = i;
+              nl = i2;
               indent = 0;
               break;
             case "\r": {
-              const next = this.buffer[i + 1];
+              const next = this.buffer[i2 + 1];
               if (!next && !this.atEnd)
                 return this.setNext("block-scalar");
               if (next === "\n")
@@ -71339,8 +71375,9 @@ var require_lexer = __commonJS({
         if (indent >= this.indentNext) {
           if (this.blockScalarIndent === -1)
             this.indentNext = indent;
-          else
-            this.indentNext += this.blockScalarIndent;
+          else {
+            this.indentNext = this.blockScalarIndent + (this.indentNext === 0 ? 1 : this.indentNext);
+          }
           do {
             const cs = this.continueScalar(nl + 1);
             if (cs === -1)
@@ -71353,17 +71390,25 @@ var require_lexer = __commonJS({
             nl = this.buffer.length;
           }
         }
-        if (!this.blockScalarKeep) {
+        let i = nl + 1;
+        ch = this.buffer[i];
+        while (ch === " ")
+          ch = this.buffer[++i];
+        if (ch === "	") {
+          while (ch === "	" || ch === " " || ch === "\r" || ch === "\n")
+            ch = this.buffer[++i];
+          nl = i - 1;
+        } else if (!this.blockScalarKeep) {
           do {
-            let i = nl - 1;
-            let ch2 = this.buffer[i];
+            let i2 = nl - 1;
+            let ch2 = this.buffer[i2];
             if (ch2 === "\r")
-              ch2 = this.buffer[--i];
-            const lastChar = i;
-            while (ch2 === " " || ch2 === "	")
-              ch2 = this.buffer[--i];
-            if (ch2 === "\n" && i >= this.pos && i + 1 + indent > lastChar)
-              nl = i;
+              ch2 = this.buffer[--i2];
+            const lastChar = i2;
+            while (ch2 === " ")
+              ch2 = this.buffer[--i2];
+            if (ch2 === "\n" && i2 >= this.pos && i2 + 1 + indent > lastChar)
+              nl = i2;
             else
               break;
           } while (true);
@@ -71380,7 +71425,7 @@ var require_lexer = __commonJS({
         while (ch = this.buffer[++i]) {
           if (ch === ":") {
             const next = this.buffer[i + 1];
-            if (isEmpty(next) || inFlow && next === ",")
+            if (isEmpty(next) || inFlow && flowIndicatorChars.has(next))
               break;
             end = i;
           } else if (isEmpty(ch)) {
@@ -71393,7 +71438,7 @@ var require_lexer = __commonJS({
               } else
                 end = i;
             }
-            if (next === "#" || inFlow && invalidFlowScalarChars.includes(next))
+            if (next === "#" || inFlow && flowIndicatorChars.has(next))
               break;
             if (ch === "\n") {
               const cs = this.continueScalar(i + 1);
@@ -71402,7 +71447,7 @@ var require_lexer = __commonJS({
               i = Math.max(i, cs - 2);
             }
           } else {
-            if (inFlow && invalidFlowScalarChars.includes(ch))
+            if (inFlow && flowIndicatorChars.has(ch))
               break;
             end = i;
           }
@@ -71444,7 +71489,7 @@ var require_lexer = __commonJS({
           case ":": {
             const inFlow = this.flowLevel > 0;
             const ch1 = this.charAt(1);
-            if (isEmpty(ch1) || inFlow && invalidFlowScalarChars.includes(ch1)) {
+            if (isEmpty(ch1) || inFlow && flowIndicatorChars.has(ch1)) {
               if (!inFlow)
                 this.indentNext = this.indentValue + 1;
               else if (this.flowKey)
@@ -71466,9 +71511,9 @@ var require_lexer = __commonJS({
           let i = this.pos + 1;
           let ch = this.buffer[i];
           while (ch) {
-            if (tagChars.includes(ch))
+            if (tagChars.has(ch))
               ch = this.buffer[++i];
-            else if (ch === "%" && hexDigits.includes(this.buffer[i + 1]) && hexDigits.includes(this.buffer[i + 2])) {
+            else if (ch === "%" && hexDigits.has(this.buffer[i + 1]) && hexDigits.has(this.buffer[i + 2])) {
               ch = this.buffer[i += 3];
             } else
               break;
@@ -71799,7 +71844,7 @@ var require_parser = __commonJS({
                 it.value = token;
               } else {
                 Object.assign(it, { key: token, sep: [] });
-                this.onKeyLine = !includesToken(it.start, "explicit-key-ind");
+                this.onKeyLine = !it.explicitKey;
                 return;
               }
               break;
@@ -71990,7 +72035,8 @@ var require_parser = __commonJS({
             return;
         }
         if (this.indent >= map.indent) {
-          const atNextItem = !this.onKeyLine && this.indent === map.indent && it.sep && this.type !== "seq-item-ind";
+          const atMapIndent = !this.onKeyLine && this.indent === map.indent;
+          const atNextItem = atMapIndent && (it.sep || it.explicitKey) && this.type !== "seq-item-ind";
           let start = [];
           if (atNextItem && it.sep && !it.value) {
             const nl = [];
@@ -72027,23 +72073,24 @@ var require_parser = __commonJS({
               }
               return;
             case "explicit-key-ind":
-              if (!it.sep && !includesToken(it.start, "explicit-key-ind")) {
+              if (!it.sep && !it.explicitKey) {
                 it.start.push(this.sourceToken);
+                it.explicitKey = true;
               } else if (atNextItem || it.value) {
                 start.push(this.sourceToken);
-                map.items.push({ start });
+                map.items.push({ start, explicitKey: true });
               } else {
                 this.stack.push({
                   type: "block-map",
                   offset: this.offset,
                   indent: this.indent,
-                  items: [{ start: [this.sourceToken] }]
+                  items: [{ start: [this.sourceToken], explicitKey: true }]
                 });
               }
               this.onKeyLine = true;
               return;
             case "map-value-ind":
-              if (includesToken(it.start, "explicit-key-ind")) {
+              if (it.explicitKey) {
                 if (!it.sep) {
                   if (includesToken(it.start, "newline")) {
                     Object.assign(it, { key: null, sep: [this.sourceToken] });
@@ -72070,7 +72117,8 @@ var require_parser = __commonJS({
                   const key = it.key;
                   const sep = it.sep;
                   sep.push(this.sourceToken);
-                  delete it.key, delete it.sep;
+                  delete it.key;
+                  delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
@@ -72119,7 +72167,7 @@ var require_parser = __commonJS({
             default: {
               const bv = this.startBlockValue(map);
               if (bv) {
-                if (atNextItem && bv.type !== "block-seq" && includesToken(it.start, "explicit-key-ind")) {
+                if (atMapIndent && bv.type !== "block-seq") {
                   map.items.push({ start });
                 }
                 this.stack.push(bv);
@@ -72330,7 +72378,7 @@ var require_parser = __commonJS({
               type: "block-map",
               offset: this.offset,
               indent: this.indent,
-              items: [{ start }]
+              items: [{ start, explicitKey: true }]
             };
           }
           case "map-value-ind": {
