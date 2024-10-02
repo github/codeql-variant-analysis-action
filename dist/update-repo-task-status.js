@@ -43176,7 +43176,7 @@ var Sarif_default = {
 };
 
 // src/json-validation.ts
-var ajv = new import_ajv.default();
+var ajv = new import_ajv.Ajv();
 var validators = {
   repoArray: ajv.compile(RepoArray_default),
   instructions: ajv.compile(Instructions_default),
