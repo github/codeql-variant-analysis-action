@@ -10,7 +10,7 @@ on: dynamic
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.MRVA_RUNNER_OS && fromJSON(vars.MRVA_RUNNER_OS) || 'ubuntu-latest' }}
     outputs:
       repoNwoChunks: ${{ steps.split.outputs.repoNwoChunks }}
     permissions: {}
@@ -126,7 +126,7 @@ jobs:
           signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
 
   update-repo-tasks-statuses-cancelled:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.MRVA_RUNNER_OS && fromJSON(vars.MRVA_RUNNER_OS) || 'ubuntu-latest' }}
     if: cancelled()
     needs:
       - run
@@ -179,7 +179,7 @@ jobs:
           signed_auth_token: ${{ github.event.inputs.signed_auth_token }}
 
   update-repo-tasks-statuses-failure:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.MRVA_RUNNER_OS && fromJSON(vars.MRVA_RUNNER_OS) || 'ubuntu-latest' }}
     if: failure()
     needs:
       - run
