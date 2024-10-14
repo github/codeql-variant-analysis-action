@@ -95,7 +95,7 @@ jobs:
           fs.appendFileSync(githubOutput, `repositories=${JSON.stringify(repositories)}`);
 
       - name: Run query
-        uses: github/codeql-variant-analysis-action/query@main
+        uses: github/codeql-variant-analysis-action/query@robertbrignull/test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -109,7 +109,7 @@ jobs:
 
       - name: Handle workflow failed
         if: failure() && github.run_attempt == 1
-        uses: github/codeql-variant-analysis-action/update-repo-task-status@main
+        uses: github/codeql-variant-analysis-action/update-repo-task-status@robertbrignull/test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -156,7 +156,7 @@ jobs:
           echo "repositories=$(jq --raw-output --compact-output .repositories instructions.json)" >> $GITHUB_OUTPUT
 
       - name: Handle workflow cancelled
-        uses: github/codeql-variant-analysis-action/update-repo-task-status@main
+        uses: github/codeql-variant-analysis-action/update-repo-task-status@robertbrignull/test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -197,7 +197,7 @@ jobs:
             xargs -I {} echo "::add-mask::{}"
 
       - name: Handle workflow cancelled
-        uses: github/codeql-variant-analysis-action/update-repo-task-statuses@main
+        uses: github/codeql-variant-analysis-action/update-repo-task-statuses@robertbrignull/test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
