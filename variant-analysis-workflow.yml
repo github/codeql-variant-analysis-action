@@ -48,6 +48,8 @@ jobs:
     permissions: {}
 
     steps:
+      - name: New step
+        run: echo Hello
       - name: Do not allow reruns
         if: github.run_attempt != 1
         run: |
