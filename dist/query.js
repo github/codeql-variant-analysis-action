@@ -40118,7 +40118,7 @@ var require_form_data = __commonJS({
       if (typeof value == "number") {
         value = "" + value;
       }
-      if (util2.isArray(value)) {
+      if (Array.isArray(value)) {
         this._error(new Error("Arrays are not supported."));
         return;
       }
