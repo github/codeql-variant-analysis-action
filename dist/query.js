@@ -176,7 +176,7 @@ var require_file_command = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.prepareKeyValueMessage = exports2.issueFileCommand = void 0;
-    var crypto3 = __importStar(require("crypto"));
+    var crypto = __importStar(require("crypto"));
     var fs6 = __importStar(require("fs"));
     var os2 = __importStar(require("os"));
     var utils_1 = require_utils();
@@ -194,7 +194,7 @@ var require_file_command = __commonJS({
     }
     exports2.issueFileCommand = issueFileCommand;
     function prepareKeyValueMessage(key, value) {
-      const delimiter = `ghadelimiter_${crypto3.randomUUID()}`;
+      const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
       const convertedValue = (0, utils_1.toCommandValue)(value);
       if (key.includes(delimiter)) {
         throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
@@ -3063,11 +3063,11 @@ var require_util2 = __commonJS({
     var assert = require("assert");
     var { isUint8Array } = require("util/types");
     var supportedHashes = [];
-    var crypto3;
+    var crypto;
     try {
-      crypto3 = require("crypto");
+      crypto = require("crypto");
       const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
-      supportedHashes = crypto3.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
+      supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
     } catch {
     }
     function responseURL(response) {
@@ -3344,7 +3344,7 @@ var require_util2 = __commonJS({
       }
     }
     function bytesMatch(bytes, metadataList) {
-      if (crypto3 === void 0) {
+      if (crypto === void 0) {
         return true;
       }
       const parsedMetadata = parseMetadata(metadataList);
@@ -3359,7 +3359,7 @@ var require_util2 = __commonJS({
       for (const item of metadata) {
         const algorithm = item.algo;
         const expectedValue = item.hash;
-        let actualValue = crypto3.createHash(algorithm).update(bytes).digest("base64");
+        let actualValue = crypto.createHash(algorithm).update(bytes).digest("base64");
         if (actualValue[actualValue.length - 1] === "=") {
           if (actualValue[actualValue.length - 2] === "=") {
             actualValue = actualValue.slice(0, -2);
@@ -15751,9 +15751,9 @@ var require_connection = __commonJS({
     channels.open = diagnosticsChannel.channel("undici:websocket:open");
     channels.close = diagnosticsChannel.channel("undici:websocket:close");
     channels.socketError = diagnosticsChannel.channel("undici:websocket:socket_error");
-    var crypto3;
+    var crypto;
     try {
-      crypto3 = require("crypto");
+      crypto = require("crypto");
     } catch {
     }
     function establishWebSocketConnection(url, protocols, ws, onEstablish, options) {
@@ -15772,7 +15772,7 @@ var require_connection = __commonJS({
         const headersList = new Headers(options.headers)[kHeadersList];
         request2.headersList = headersList;
       }
-      const keyValue = crypto3.randomBytes(16).toString("base64");
+      const keyValue = crypto.randomBytes(16).toString("base64");
       request2.headersList.append("sec-websocket-key", keyValue);
       request2.headersList.append("sec-websocket-version", "13");
       for (const protocol of protocols) {
@@ -15801,7 +15801,7 @@ var require_connection = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto3.createHash("sha1").update(keyValue + uid).digest("base64");
+          const digest = crypto.createHash("sha1").update(keyValue + uid).digest("base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(ws, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -15881,9 +15881,9 @@ var require_frame = __commonJS({
   "node_modules/undici/lib/websocket/frame.js"(exports2, module2) {
     "use strict";
     var { maxUnsigned16Bit } = require_constants5();
-    var crypto3;
+    var crypto;
     try {
-      crypto3 = require("crypto");
+      crypto = require("crypto");
     } catch {
     }
     var WebsocketFrameSend = class {
@@ -15892,7 +15892,7 @@ var require_frame = __commonJS({
        */
       constructor(data) {
         this.frameData = data;
-        this.maskKey = crypto3.randomBytes(4);
+        this.maskKey = crypto.randomBytes(4);
       }
       createFrame(opcode) {
         const bodyLength = this.frameData?.byteLength ?? 0;
@@ -20531,9 +20531,9 @@ var require_manifest = __commonJS({
 // node_modules/@actions/tool-cache/node_modules/uuid/lib/rng.js
 var require_rng = __commonJS({
   "node_modules/@actions/tool-cache/node_modules/uuid/lib/rng.js"(exports2, module2) {
-    var crypto3 = require("crypto");
+    var crypto = require("crypto");
     module2.exports = function nodeRNG() {
-      return crypto3.randomBytes(16);
+      return crypto.randomBytes(16);
     };
   }
 });
@@ -43648,11 +43648,11 @@ var require_util10 = __commonJS({
     var { isUint8Array } = require("node:util/types");
     var { webidl } = require_webidl2();
     var supportedHashes = [];
-    var crypto3;
+    var crypto;
     try {
-      crypto3 = require("node:crypto");
+      crypto = require("node:crypto");
       const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
-      supportedHashes = crypto3.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
+      supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
     } catch {
     }
     function responseURL(response) {
@@ -43934,7 +43934,7 @@ var require_util10 = __commonJS({
       }
     }
     function bytesMatch(bytes, metadataList) {
-      if (crypto3 === void 0) {
+      if (crypto === void 0) {
         return true;
       }
       const parsedMetadata = parseMetadata(metadataList);
@@ -43949,7 +43949,7 @@ var require_util10 = __commonJS({
       for (const item of metadata) {
         const algorithm = item.algo;
         const expectedValue = item.hash;
-        let actualValue = crypto3.createHash(algorithm).update(bytes).digest("base64");
+        let actualValue = crypto.createHash(algorithm).update(bytes).digest("base64");
         if (actualValue[actualValue.length - 1] === "=") {
           if (actualValue[actualValue.length - 2] === "=") {
             actualValue = actualValue.slice(0, -2);
@@ -55637,9 +55637,9 @@ var require_connection2 = __commonJS({
     var { Headers } = require_headers2();
     var { getDecodeSplit } = require_util10();
     var { kHeadersList } = require_symbols6();
-    var crypto3;
+    var crypto;
     try {
-      crypto3 = require("node:crypto");
+      crypto = require("node:crypto");
     } catch {
     }
     function establishWebSocketConnection(url, protocols, ws, onEstablish, options) {
@@ -55658,7 +55658,7 @@ var require_connection2 = __commonJS({
         const headersList = new Headers(options.headers)[kHeadersList];
         request2.headersList = headersList;
       }
-      const keyValue = crypto3.randomBytes(16).toString("base64");
+      const keyValue = crypto.randomBytes(16).toString("base64");
       request2.headersList.append("sec-websocket-key", keyValue);
       request2.headersList.append("sec-websocket-version", "13");
       for (const protocol of protocols) {
@@ -55687,7 +55687,7 @@ var require_connection2 = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto3.createHash("sha1").update(keyValue + uid).digest("base64");
+          const digest = crypto.createHash("sha1").update(keyValue + uid).digest("base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(ws, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -55770,9 +55770,9 @@ var require_frame2 = __commonJS({
   "node_modules/@octokit/action/node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
     "use strict";
     var { maxUnsigned16Bit } = require_constants11();
-    var crypto3;
+    var crypto;
     try {
-      crypto3 = require("node:crypto");
+      crypto = require("node:crypto");
     } catch {
     }
     var WebsocketFrameSend = class {
@@ -55781,7 +55781,7 @@ var require_frame2 = __commonJS({
        */
       constructor(data) {
         this.frameData = data;
-        this.maskKey = crypto3.randomBytes(4);
+        this.maskKey = crypto.randomBytes(4);
       }
       createFrame(opcode) {
         const bodyLength = this.frameData?.byteLength ?? 0;
@@ -78636,7 +78636,7 @@ var import_core4 = __toESM(require_core());
 var import_io = __toESM(require_io());
 var import_tool_cache = __toESM(require_tool_cache());
 
-// node_modules/uuid/dist/esm-node/stringify.js
+// node_modules/uuid/dist/esm/stringify.js
 var byteToHex = [];
 for (let i = 0; i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
@@ -78645,25 +78645,23 @@ function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
 
-// node_modules/uuid/dist/esm-node/rng.js
-var import_node_crypto = __toESM(require("node:crypto"));
+// node_modules/uuid/dist/esm/rng.js
+var import_crypto = require("crypto");
 var rnds8Pool = new Uint8Array(256);
 var poolPtr = rnds8Pool.length;
 function rng() {
   if (poolPtr > rnds8Pool.length - 16) {
-    import_node_crypto.default.randomFillSync(rnds8Pool);
+    (0, import_crypto.randomFillSync)(rnds8Pool);
     poolPtr = 0;
   }
   return rnds8Pool.slice(poolPtr, poolPtr += 16);
 }
 
-// node_modules/uuid/dist/esm-node/native.js
-var import_node_crypto2 = __toESM(require("node:crypto"));
-var native_default = {
-  randomUUID: import_node_crypto2.default.randomUUID
-};
+// node_modules/uuid/dist/esm/native.js
+var import_crypto2 = require("crypto");
+var native_default = { randomUUID: import_crypto2.randomUUID };
 
-// node_modules/uuid/dist/esm-node/v4.js
+// node_modules/uuid/dist/esm/v4.js
 function v4(options, buf, offset) {
   if (native_default.randomUUID && !buf && !options) {
     return native_default.randomUUID();
