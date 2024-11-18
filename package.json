@@ -39,7 +39,7 @@
     "@babel/preset-react": "^7.25.9",
     "@babel/preset-typescript": "^7.26.0",
     "@octokit/types": "^13.6.1",
-    "@types/archiver": "^6.0.2",
+    "@types/archiver": "^6.0.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.7.7",
     "@types/semver": "^7.5.8",
