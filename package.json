@@ -61,7 +61,7 @@
     "ts-jest": "^29.2.5",
     "ts-json-schema-generator": "2.3.0",
     "ts-node": "^10.9.2",
-    "ts-unused-exports": "^10.1.0",
+    "ts-unused-exports": "^11.0.1",
     "typescript": "^5.7.2"
   },
   "resolutions": {
