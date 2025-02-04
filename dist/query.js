@@ -72214,6 +72214,7 @@ var require_re = __commonJS({
     var re = exports2.re = [];
     var safeRe = exports2.safeRe = [];
     var src = exports2.src = [];
+    var safeSrc = exports2.safeSrc = [];
     var t = exports2.t = {};
     var R = 0;
     var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
@@ -72234,6 +72235,7 @@ var require_re = __commonJS({
       debug5(name, index, value);
       t[name] = index;
       src[index] = value;
+      safeSrc[index] = safe;
       re[index] = new RegExp(value, isGlobal ? "g" : void 0);
       safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
     };
@@ -72330,7 +72332,7 @@ var require_semver2 = __commonJS({
   "node_modules/semver/classes/semver.js"(exports2, module2) {
     var debug5 = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants12();
-    var { safeRe: re, t } = require_re();
+    var { safeRe: re, safeSrc: src, t } = require_re();
     var parseOptions = require_parse_options();
     var { compareIdentifiers } = require_identifiers();
     var SemVer = class _SemVer {
@@ -72470,6 +72472,18 @@ var require_semver2 = __commonJS({
       // preminor will bump the version up to the next minor release, and immediately
       // down to pre-release. premajor and prepatch work the same way.
       inc(release, identifier, identifierBase) {
+        if (release.startsWith("pre")) {
+          if (!identifier && identifierBase === false) {
+            throw new Error("invalid increment argument: identifier is empty");
+          }
+          if (identifier) {
+            const r = new RegExp(`^${this.options.loose ? src[t.PRERELEASELOOSE] : src[t.PRERELEASE]}$`);
+            const match = `-${identifier}`.match(r);
+            if (!match || match[1] !== identifier) {
+              throw new Error(`invalid identifier: ${identifier}`);
+            }
+          }
+        }
         switch (release) {
           case "premajor":
             this.prerelease.length = 0;
@@ -72497,6 +72511,12 @@ var require_semver2 = __commonJS({
             }
             this.inc("pre", identifier, identifierBase);
             break;
+          case "release":
+            if (this.prerelease.length === 0) {
+              throw new Error(`version ${this.raw} is not a prerelease`);
+            }
+            this.prerelease.length = 0;
+            break;
           case "major":
             if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) {
               this.major++;
@@ -72522,9 +72542,6 @@ var require_semver2 = __commonJS({
           // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
           case "pre": {
             const base = Number(identifierBase) ? 1 : 0;
-            if (!identifier && identifierBase === false) {
-              throw new Error("invalid increment argument: identifier is empty");
-            }
             if (this.prerelease.length === 0) {
               this.prerelease = [base];
             } else {
@@ -72659,13 +72676,12 @@ var require_diff = __commonJS({
         if (!lowVersion.patch && !lowVersion.minor) {
           return "major";
         }
-        if (highVersion.patch) {
+        if (lowVersion.compareMain(highVersion) === 0) {
+          if (lowVersion.minor && !lowVersion.patch) {
+            return "minor";
+          }
           return "patch";
         }
-        if (highVersion.minor) {
-          return "minor";
-        }
-        return "major";
       }
       const prefix = highHasPre ? "pre" : "";
       if (v1.major !== v2.major) {
