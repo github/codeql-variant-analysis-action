@@ -69598,6 +69598,8 @@ var require_binary = __commonJS({
         }
       },
       stringify({ comment, type, value }, ctx, onComment, onChompKeep) {
+        if (!value)
+          return "";
         const buf = value;
         let str;
         if (typeof node_buffer.Buffer === "function") {
@@ -70113,7 +70115,7 @@ var require_timestamp = __commonJS({
         }
         return new Date(date);
       },
-      stringify: ({ value }) => value.toISOString().replace(/(T00:00:00)?\.000Z$/, "")
+      stringify: ({ value }) => value?.toISOString().replace(/(T00:00:00)?\.000Z$/, "") ?? ""
     };
     exports2.floatTime = floatTime;
     exports2.intTime = intTime;
@@ -71397,8 +71399,8 @@ var require_compose_collection = __commonJS({
           ctx.schema.tags.push(Object.assign({}, kt, { default: false }));
           tag = kt;
         } else {
-          if (kt?.collection) {
-            onError(tagToken, "BAD_COLLECTION_TYPE", `${kt.tag} used for ${expType} collection, but expects ${kt.collection}`, true);
+          if (kt) {
+            onError(tagToken, "BAD_COLLECTION_TYPE", `${kt.tag} used for ${expType} collection, but expects ${kt.collection ?? "scalar"}`, true);
           } else {
             onError(tagToken, "TAG_RESOLVE_FAILED", `Unresolved tag: ${tagName}`, true);
           }
@@ -73884,7 +73886,17 @@ var require_parser = __commonJS({
             default: {
               const bv = this.startBlockValue(map);
               if (bv) {
-                if (atMapIndent && bv.type !== "block-seq") {
+                if (bv.type === "block-seq") {
+                  if (!it.explicitKey && it.sep && !includesToken(it.sep, "newline")) {
+                    yield* this.pop({
+                      type: "error",
+                      offset: this.offset,
+                      message: "Unexpected block-seq-ind on same line with key",
+                      source: this.source
+                    });
+                    return;
+                  }
+                } else if (atMapIndent) {
                   map.items.push({ start });
                 }
                 this.stack.push(bv);
