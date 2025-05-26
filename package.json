@@ -38,7 +38,7 @@
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
-    "@octokit/types": "^13.10.0",
+    "@octokit/types": "^14.1.0",
     "@types/archiver": "^6.0.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.17.48",
