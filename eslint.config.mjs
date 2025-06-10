@@ -16,9 +16,8 @@ export default tseslint.config(
   github.getFlatConfigs().recommended,
   ...github.getFlatConfigs().typescript,
   tseslint.configs.recommendedTypeChecked,
-  {
-    extends: [eslint.configs.recommended, tseslint.configs.recommended],
-  },
+  eslint.configs.recommended,
+  tseslint.configs.recommended,
   {
     rules: {
       "sort-imports": "off",
