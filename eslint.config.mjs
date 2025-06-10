@@ -1,15 +1,7 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
-import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
 import { globalIgnores } from "eslint/config";
 import github from "eslint-plugin-github";
 import tseslint from "typescript-eslint";
-
-const compat = new FlatCompat({
-  baseDirectory: path.dirname(fileURLToPath(import.meta.url)),
-});
 
 export default tseslint.config(
   globalIgnores(["dist/", "node_modules/", "script/", "jest.config.ts", "eslint.config.mjs", "build.mjs"]),
