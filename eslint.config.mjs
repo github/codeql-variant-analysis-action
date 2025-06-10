@@ -13,7 +13,6 @@ const compat = new FlatCompat({
 
 export default tseslint.config(
   globalIgnores(["dist/", "node_modules/", "script/", "jest.config.ts", "eslint.config.mjs", "build.mjs"]),
-  ...compat.plugins("no-async-foreach"),
   github.getFlatConfigs().recommended,
   ...github.getFlatConfigs().typescript,
   tseslint.configs.recommendedTypeChecked,
@@ -52,7 +51,6 @@ export default tseslint.config(
           "newlines-between": "always",
         },
       ],
-      "no-async-foreach/no-async-foreach": "error",
       "no-console": "off",
       "no-sequences": "error",
       "no-shadow": "off",
