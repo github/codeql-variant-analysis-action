@@ -1,6 +1,7 @@
 import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import * as esbuild from "esbuild";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,7 +32,7 @@ const context = await esbuild.context({
   outdir: "dist",
   platform: "node",
   format: "cjs",
-  sourcemap: !!process.env.CODEQL_VARIANT_ANALYSIS_ACTION_GENERATE_SOURCEMAPS
+  sourcemap: process.env.CODEQL_VARIANT_ANALYSIS_ACTION_GENERATE_SOURCEMAPS
     ? "external"
     : false,
   chunkNames: "chunks/[name]-[hash]",
