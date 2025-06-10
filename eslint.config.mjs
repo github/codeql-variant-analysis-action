@@ -12,10 +12,11 @@ const compat = new FlatCompat({
 });
 
 export default tseslint.config(
-  globalIgnores(["dist/", "node_modules/", "jest.config.ts", "eslint.config.mjs", "build.mjs"]),
+  globalIgnores(["dist/", "node_modules/", "script/", "jest.config.ts", "eslint.config.mjs", "build.mjs"]),
   ...compat.plugins("no-async-foreach"),
   github.getFlatConfigs().recommended,
   ...github.getFlatConfigs().typescript,
+  tseslint.configs.recommendedTypeChecked,
   {
     extends: [eslint.configs.recommended, tseslint.configs.recommended],
   },
@@ -70,13 +71,19 @@ export default tseslint.config(
       "one-var": ["error", "never"],
       "@typescript-eslint/restrict-template-expressions": "off",
     },
-    "settings": {
+    settings: {
         "import/parsers": {
             "@typescript-eslint/parser": [".ts", ".tsx"]
         },
         "import/resolver": {
             "typescript": {}
         }
+    },
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
 );
