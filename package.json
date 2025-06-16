@@ -52,7 +52,7 @@
     "esbuild": "^0.25.5",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
-    "eslint-import-resolver-typescript": "^4.3.3",
+    "eslint-import-resolver-typescript": "^4.4.3",
     "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-prettier": "^5.4.0",
     "jest": "^29.7.0",
