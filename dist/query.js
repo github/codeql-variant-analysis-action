@@ -40857,6 +40857,7 @@ var require_es_set_tostringtag = __commonJS({
 // node_modules/form-data/lib/populate.js
 var require_populate = __commonJS({
   "node_modules/form-data/lib/populate.js"(exports2, module2) {
+    "use strict";
     module2.exports = function(dst, src) {
       Object.keys(src).forEach(function(prop) {
         dst[prop] = dst[prop] || src[prop];
@@ -40869,6 +40870,7 @@ var require_populate = __commonJS({
 // node_modules/form-data/lib/form_data.js
 var require_form_data = __commonJS({
   "node_modules/form-data/lib/form_data.js"(exports2, module2) {
+    "use strict";
     var CombinedStream = require_combined_stream();
     var util2 = require("util");
     var path4 = require("path");
@@ -40880,9 +40882,8 @@ var require_form_data = __commonJS({
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var setToStringTag = require_es_set_tostringtag();
+    var hasOwn = require_hasown();
     var populate = require_populate();
-    module2.exports = FormData2;
-    util2.inherits(FormData2, CombinedStream);
     function FormData2(options) {
       if (!(this instanceof FormData2)) {
         return new FormData2(options);
@@ -40896,16 +40897,17 @@ var require_form_data = __commonJS({
         this[option] = options[option];
       }
     }
+    util2.inherits(FormData2, CombinedStream);
     FormData2.LINE_BREAK = "\r\n";
     FormData2.DEFAULT_CONTENT_TYPE = "application/octet-stream";
     FormData2.prototype.append = function(field, value, options) {
       options = options || {};
-      if (typeof options == "string") {
+      if (typeof options === "string") {
         options = { filename: options };
       }
       var append = CombinedStream.prototype.append.bind(this);
-      if (typeof value == "number") {
-        value = "" + value;
+      if (typeof value === "number" || value == null) {
+        value = String(value);
       }
       if (Array.isArray(value)) {
         this._error(new Error("Arrays are not supported."));
@@ -40921,7 +40923,7 @@ var require_form_data = __commonJS({
     FormData2.prototype._trackLength = function(header, value, options) {
       var valueLength = 0;
       if (options.knownLength != null) {
-        valueLength += +options.knownLength;
+        valueLength += Number(options.knownLength);
       } else if (Buffer.isBuffer(value)) {
         valueLength = value.length;
       } else if (typeof value === "string") {
@@ -40929,7 +40931,7 @@ var require_form_data = __commonJS({
       }
       this._valueLength += valueLength;
       this._overheadLength += Buffer.byteLength(header) + FormData2.LINE_BREAK.length;
-      if (!value || !value.path && !(value.readable && Object.prototype.hasOwnProperty.call(value, "httpVersion")) && !(value instanceof Stream)) {
+      if (!value || !value.path && !(value.readable && hasOwn(value, "httpVersion")) && !(value instanceof Stream)) {
         return;
       }
       if (!options.knownLength) {
@@ -40937,26 +40939,25 @@ var require_form_data = __commonJS({
       }
     };
     FormData2.prototype._lengthRetriever = function(value, callback) {
-      if (Object.prototype.hasOwnProperty.call(value, "fd")) {
+      if (hasOwn(value, "fd")) {
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
           fs6.stat(value.path, function(err, stat) {
-            var fileSize;
             if (err) {
               callback(err);
               return;
             }
-            fileSize = stat.size - (value.start ? value.start : 0);
+            var fileSize = stat.size - (value.start ? value.start : 0);
             callback(null, fileSize);
           });
         }
-      } else if (Object.prototype.hasOwnProperty.call(value, "httpVersion")) {
-        callback(null, +value.headers["content-length"]);
-      } else if (Object.prototype.hasOwnProperty.call(value, "httpModule")) {
+      } else if (hasOwn(value, "httpVersion")) {
+        callback(null, Number(value.headers["content-length"]));
+      } else if (hasOwn(value, "httpModule")) {
         value.on("response", function(response) {
           value.pause();
-          callback(null, +response.headers["content-length"]);
+          callback(null, Number(response.headers["content-length"]));
         });
         value.resume();
       } else {
@@ -40964,7 +40965,7 @@ var require_form_data = __commonJS({
       }
     };
     FormData2.prototype._multiPartHeader = function(field, value, options) {
-      if (typeof options.header == "string") {
+      if (typeof options.header === "string") {
         return options.header;
       }
       var contentDisposition = this._getContentDisposition(value, options);
@@ -40976,12 +40977,12 @@ var require_form_data = __commonJS({
         // if no content type. allow it to be empty array
         "Content-Type": [].concat(contentType || [])
       };
-      if (typeof options.header == "object") {
+      if (typeof options.header === "object") {
         populate(headers, options.header);
       }
       var header;
       for (var prop in headers) {
-        if (Object.prototype.hasOwnProperty.call(headers, prop)) {
+        if (hasOwn(headers, prop)) {
           header = headers[prop];
           if (header == null) {
             continue;
@@ -40997,34 +40998,33 @@ var require_form_data = __commonJS({
       return "--" + this.getBoundary() + FormData2.LINE_BREAK + contents + FormData2.LINE_BREAK;
     };
     FormData2.prototype._getContentDisposition = function(value, options) {
-      var filename, contentDisposition;
+      var filename;
       if (typeof options.filepath === "string") {
         filename = path4.normalize(options.filepath).replace(/\\/g, "/");
-      } else if (options.filename || value.name || value.path) {
-        filename = path4.basename(options.filename || value.name || value.path);
-      } else if (value.readable && Object.prototype.hasOwnProperty.call(value, "httpVersion")) {
+      } else if (options.filename || value && (value.name || value.path)) {
+        filename = path4.basename(options.filename || value && (value.name || value.path));
+      } else if (value && value.readable && hasOwn(value, "httpVersion")) {
         filename = path4.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
-        contentDisposition = 'filename="' + filename + '"';
+        return 'filename="' + filename + '"';
       }
-      return contentDisposition;
     };
     FormData2.prototype._getContentType = function(value, options) {
       var contentType = options.contentType;
-      if (!contentType && value.name) {
+      if (!contentType && value && value.name) {
         contentType = mime.lookup(value.name);
       }
-      if (!contentType && value.path) {
+      if (!contentType && value && value.path) {
         contentType = mime.lookup(value.path);
       }
-      if (!contentType && value.readable && Object.prototype.hasOwnProperty.call(value, "httpVersion")) {
+      if (!contentType && value && value.readable && hasOwn(value, "httpVersion")) {
         contentType = value.headers["content-type"];
       }
       if (!contentType && (options.filepath || options.filename)) {
         contentType = mime.lookup(options.filepath || options.filename);
       }
-      if (!contentType && typeof value == "object") {
+      if (!contentType && value && typeof value === "object") {
         contentType = FormData2.DEFAULT_CONTENT_TYPE;
       }
       return contentType;
@@ -41048,13 +41048,16 @@ var require_form_data = __commonJS({
         "content-type": "multipart/form-data; boundary=" + this.getBoundary()
       };
       for (header in userHeaders) {
-        if (Object.prototype.hasOwnProperty.call(userHeaders, header)) {
+        if (hasOwn(userHeaders, header)) {
           formHeaders[header.toLowerCase()] = userHeaders[header];
         }
       }
       return formHeaders;
     };
     FormData2.prototype.setBoundary = function(boundary) {
+      if (typeof boundary !== "string") {
+        throw new TypeError("FormData boundary must be a string");
+      }
       this._boundary = boundary;
     };
     FormData2.prototype.getBoundary = function() {
@@ -41125,8 +41128,10 @@ var require_form_data = __commonJS({
       });
     };
     FormData2.prototype.submit = function(params, cb) {
-      var request2, options, defaults = { method: "post" };
-      if (typeof params == "string") {
+      var request2;
+      var options;
+      var defaults = { method: "post" };
+      if (typeof params === "string") {
         params = parseUrl2(params);
         options = populate({
           port: params.port,
@@ -41137,11 +41142,11 @@ var require_form_data = __commonJS({
       } else {
         options = populate(params, defaults);
         if (!options.port) {
-          options.port = options.protocol == "https:" ? 443 : 80;
+          options.port = options.protocol === "https:" ? 443 : 80;
         }
       }
       options.headers = this.getHeaders(params.headers);
-      if (options.protocol == "https:") {
+      if (options.protocol === "https:") {
         request2 = https.request(options);
       } else {
         request2 = http.request(options);
@@ -41180,6 +41185,7 @@ var require_form_data = __commonJS({
       return "[object FormData]";
     };
     setToStringTag(FormData2, "FormData");
+    module2.exports = FormData2;
   }
 });
 
