@@ -19,7 +19,7 @@ generate_schema () {
       --type $2 \
       --out json-schemas-tmp/$2.json \
       --tsconfig tsconfig.json \
-      --additional-properties true \
+      --additional-properties \
       --no-type-check
 }
 
