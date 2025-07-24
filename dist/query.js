@@ -40879,6 +40879,7 @@ var require_form_data = __commonJS({
     var parseUrl2 = require("url").parse;
     var fs6 = require("fs");
     var Stream = require("stream").Stream;
+    var crypto = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var setToStringTag = require_es_set_tostringtag();
@@ -41084,11 +41085,7 @@ var require_form_data = __commonJS({
       return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
     };
     FormData2.prototype._generateBoundary = function() {
-      var boundary = "--------------------------";
-      for (var i = 0; i < 24; i++) {
-        boundary += Math.floor(Math.random() * 10).toString(16);
-      }
-      this._boundary = boundary;
+      this._boundary = "--------------------------" + crypto.randomBytes(12).toString("hex");
     };
     FormData2.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
