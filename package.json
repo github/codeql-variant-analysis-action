@@ -55,7 +55,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-prettier": "^5.5.3",
-    "jest": "^30.0.4",
+    "jest": "^30.0.5",
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.0",
     "ts-json-schema-generator": "2.4.0",
