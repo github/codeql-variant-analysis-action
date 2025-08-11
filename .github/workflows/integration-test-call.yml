@@ -13,7 +13,7 @@ jobs:
   init:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Feature Branch
+      - name: Create Feature
         run: git checkout -b feature/$GITHUB_RUN_NUMBER && git push -u origin feature/$GITHUB_RUN_NUMBER
       - name: Add status check target URL
         run: |
