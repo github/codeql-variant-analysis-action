@@ -30,7 +30,7 @@
     "jszip": "3.10.1",
     "semver": "^7.7.2",
     "uuid": "^11.1.0",
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",
