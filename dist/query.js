@@ -42301,7 +42301,7 @@ var require_form_data = __commonJS({
     FormData2.prototype.toString = function() {
       return "[object FormData]";
     };
-    setToStringTag(FormData2, "FormData");
+    setToStringTag(FormData2.prototype, "FormData");
     module2.exports = FormData2;
   }
 });
