@@ -93,6 +93,8 @@ const config: Config = {
     "^@actions/exec/lib/(.*)$": "<rootDir>/node_modules/@actions/exec/lib/$1",
     "^@actions/http-client$": "<rootDir>/node_modules/@actions/http-client/lib/index.js",
     "^@actions/http-client/lib/(.*)$": "<rootDir>/node_modules/@actions/http-client/lib/$1",
+    "^@actions/tool-cache$": "<rootDir>/node_modules/@actions/tool-cache/lib/tool-cache.js",
+    "^@actions/tool-cache/lib/(.*)$": "<rootDir>/node_modules/@actions/tool-cache/lib/$1",
   },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
