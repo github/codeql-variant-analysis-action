@@ -35,7 +35,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
-    "@babel/preset-env": "^7.28.6",
+    "@babel/preset-env": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "@eslint/eslintrc": "^3.3.3",
@@ -46,7 +46,7 @@
     "@types/node": "^25.0.10",
     "@types/semver": "^7.7.1",
     "@types/uuid": "^11.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.32.1",
     "archiver": "^7.0.1",
     "esbuild": "^0.27.2",
