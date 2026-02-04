@@ -83,6 +83,14 @@ const config: Config = {
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^@actions/core$": "<rootDir>/node_modules/@actions/core/lib/core.js",
+    "^@actions/io$": "<rootDir>/node_modules/@actions/io/lib/io.js",
+    "^@actions/io/lib/(.*)$": "<rootDir>/node_modules/@actions/io/lib/$1",
+    "^@actions/exec$": "<rootDir>/node_modules/@actions/exec/lib/exec.js",
+    "^@actions/exec/lib/(.*)$": "<rootDir>/node_modules/@actions/exec/lib/$1",
+    "^@actions/http-client$": "<rootDir>/node_modules/@actions/http-client/lib/index.js",
+    "^@actions/http-client/lib/(.*)$": "<rootDir>/node_modules/@actions/http-client/lib/$1",
+    "^@actions/core/lib/(.*)$": "<rootDir>/node_modules/@actions/core/node_modules/@actions/http-client/lib/$1",
   },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
@@ -95,13 +103,13 @@ const config: Config = {
   // notifyMode: "failure-change",
 
   // A preset that is used as a base for Jest's configuration
-  preset: "ts-jest/presets/default-esm",
-
-  // An array of file extensions your modules use
-  extensionsToTreatAsEsm: [".ts"],
+  preset: "ts-jest",
 
   // Run tests from one or more projects
   // projects: undefined,
+
+  // A path to a custom resolver
+  resolver: "<rootDir>/jest-resolver.cjs",
 
   // Use this configuration option to add custom reporters to Jest
   // reporters: undefined,
@@ -179,10 +187,20 @@ const config: Config = {
       },
     ],
     "^.+\\.(js|jsx|mjs|cjs)$": [
-      "babel-jest",
+      "@swc/jest",
       {
-        presets: ["@babel/preset-env"],
-        plugins: ["@babel/plugin-transform-modules-commonjs"],
+        jsc: {
+          parser: {
+            syntax: "ecmascript",
+          },
+          transform: {
+            useDefineForClassFields: false,
+          },
+          target: "es2022",
+        },
+        module: {
+          type: "commonjs",
+        },
       },
     ],
   },
