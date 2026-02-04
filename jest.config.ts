@@ -78,19 +78,12 @@ const config: Config = {
   // ],
 
   // An array of file extensions your modules use
-  // moduleFileExtensions: [
-  //   "js",
-  //   "mjs",
-  //   "cjs",
-  //   "jsx",
-  //   "ts",
-  //   "tsx",
-  //   "json",
-  //   "node"
-  // ],
+  moduleFileExtensions: ["js", "mjs", "cjs", "jsx", "ts", "tsx", "json", "node"],
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -102,7 +95,10 @@ const config: Config = {
   // notifyMode: "failure-change",
 
   // A preset that is used as a base for Jest's configuration
-  preset: "ts-jest",
+  preset: "ts-jest/presets/default-esm",
+
+  // An array of file extensions your modules use
+  extensionsToTreatAsEsm: [".ts"],
 
   // Run tests from one or more projects
   // projects: undefined,
@@ -182,7 +178,7 @@ const config: Config = {
         tsconfig: "<rootDir>/tsconfig.json",
       },
     ],
-    node_modules: [
+    "^.+\\.(js|jsx|mjs|cjs)$": [
       "babel-jest",
       {
         presets: ["@babel/preset-env"],
@@ -194,7 +190,7 @@ const config: Config = {
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   transformIgnorePatterns: [
     // These use ES modules, so need to be transformed
-    "node_modules/(?!(?:@octokit/.+|before-after-hook|universal-user-agent)/.*)",
+    "node_modules/(?!(?:@octokit/.+|@actions/.+|before-after-hook|universal-user-agent)/.*)",
   ],
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
