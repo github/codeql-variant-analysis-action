@@ -78,19 +78,24 @@ const config: Config = {
   // ],
 
   // An array of file extensions your modules use
-  // moduleFileExtensions: [
-  //   "js",
-  //   "mjs",
-  //   "cjs",
-  //   "jsx",
-  //   "ts",
-  //   "tsx",
-  //   "json",
-  //   "node"
-  // ],
+  moduleFileExtensions: ["js", "mjs", "cjs", "jsx", "ts", "tsx", "json", "node"],
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  // NOTE: @actions/* packages v3.x are ESM-only. We need to explicitly map them to their
+  // transpiled .js files in node_modules so Jest can resolve and transform them correctly.
+  // This allows the test suite to import these ESM packages in a CommonJS environment.
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^@actions/core$": "<rootDir>/node_modules/@actions/core/lib/core.js",
+    "^@actions/io$": "<rootDir>/node_modules/@actions/io/lib/io.js",
+    "^@actions/io/lib/(.*)$": "<rootDir>/node_modules/@actions/io/lib/$1",
+    "^@actions/exec$": "<rootDir>/node_modules/@actions/exec/lib/exec.js",
+    "^@actions/exec/lib/(.*)$": "<rootDir>/node_modules/@actions/exec/lib/$1",
+    "^@actions/http-client$": "<rootDir>/node_modules/@actions/http-client/lib/index.js",
+    "^@actions/http-client/lib/(.*)$": "<rootDir>/node_modules/@actions/http-client/lib/$1",
+    "^@actions/tool-cache$": "<rootDir>/node_modules/@actions/tool-cache/lib/tool-cache.js",
+    "^@actions/tool-cache/lib/(.*)$": "<rootDir>/node_modules/@actions/tool-cache/lib/$1",
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -182,19 +187,31 @@ const config: Config = {
         tsconfig: "<rootDir>/tsconfig.json",
       },
     ],
-    node_modules: [
-      "babel-jest",
+    "^.+\\.(js|jsx|mjs|cjs)$": [
+      "@swc/jest",
       {
-        presets: ["@babel/preset-env"],
-        plugins: ["@babel/plugin-transform-modules-commonjs"],
+        jsc: {
+          parser: {
+            syntax: "ecmascript",
+          },
+          transform: {
+            useDefineForClassFields: false,
+          },
+          target: "es2022",
+        },
+        module: {
+          type: "commonjs",
+        },
       },
     ],
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
+  // NOTE: @actions/* packages need to be transformed because they are ESM modules.
+  // We exclude them from the ignore pattern so they will be transformed by @swc/jest.
   transformIgnorePatterns: [
     // These use ES modules, so need to be transformed
-    "node_modules/(?!(?:@octokit/.+|before-after-hook|universal-user-agent)/.*)",
+    "node_modules/(?!(?:@octokit/.+|@actions/.+|before-after-hook|universal-user-agent)/.*)",
   ],
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
