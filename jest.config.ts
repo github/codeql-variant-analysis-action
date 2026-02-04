@@ -81,6 +81,9 @@ const config: Config = {
   moduleFileExtensions: ["js", "mjs", "cjs", "jsx", "ts", "tsx", "json", "node"],
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
+  // NOTE: @actions/* packages v3.x are ESM-only. We need to explicitly map them to their
+  // transpiled .js files in node_modules so Jest can resolve and transform them correctly.
+  // This allows the test suite to import these ESM packages in a CommonJS environment.
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "^@actions/core$": "<rootDir>/node_modules/@actions/core/lib/core.js",
@@ -107,9 +110,6 @@ const config: Config = {
 
   // Run tests from one or more projects
   // projects: undefined,
-
-  // A path to a custom resolver
-  resolver: "<rootDir>/jest-resolver.cjs",
 
   // Use this configuration option to add custom reporters to Jest
   // reporters: undefined,
@@ -206,6 +206,8 @@ const config: Config = {
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
+  // NOTE: @actions/* packages need to be transformed because they are ESM modules.
+  // We exclude them from the ignore pattern so they will be transformed by @swc/jest.
   transformIgnorePatterns: [
     // These use ES modules, so need to be transformed
     "node_modules/(?!(?:@octokit/.+|@actions/.+|before-after-hook|universal-user-agent)/.*)",
