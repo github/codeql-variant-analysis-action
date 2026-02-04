@@ -16,12 +16,12 @@
     "node": "^20.0.0"
   },
   "dependencies": {
-    "@actions/core": "^2.0.2",
-    "@actions/exec": "^2.0.0",
-    "@actions/github": "^7.0.0",
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
+    "@actions/github": "^9.0.0",
     "@actions/http-client": "^3.0.0",
-    "@actions/io": "^2.0.0",
-    "@actions/tool-cache": "^3.0.0",
+    "@actions/io": "^3.0.2",
+    "@actions/tool-cache": "^4.0.0",
     "@octokit/action": "^8.0.4",
     "@octokit/plugin-retry": "^8.0.3",
     "@octokit/plugin-throttling": "^11.0.3",
