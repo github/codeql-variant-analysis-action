@@ -4,7 +4,13 @@ import github from "eslint-plugin-github";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  globalIgnores(["dist/", "node_modules/", "script/", "jest.config.ts", "eslint.config.mjs", "build.mjs"]),
+  globalIgnores([
+    "dist/",
+    "node_modules/",
+    "script/",
+    "eslint.config.mjs",
+    "build.mjs",
+  ]),
   github.getFlatConfigs().recommended,
   ...github.getFlatConfigs().typescript,
   tseslint.configs.recommendedTypeChecked,
@@ -61,12 +67,12 @@ export default tseslint.config(
       "@typescript-eslint/restrict-template-expressions": "off",
     },
     settings: {
-        "import/parsers": {
-            "@typescript-eslint/parser": [".ts", ".tsx"]
-        },
-        "import/resolver": {
-            "typescript": {}
-        }
+      "import/parsers": {
+        "@typescript-eslint/parser": [".ts", ".tsx"],
+      },
+      "import/resolver": {
+        typescript: {},
+      },
     },
     languageOptions: {
       parserOptions: {

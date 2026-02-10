@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import {
   BQRSInfo,
   QueryMetadata,
@@ -8,8 +10,8 @@ import {
 import { Policy, RepoTask } from "./gh-api-client";
 import { Instructions, RepoArray } from "./inputs";
 import {
-  SchemaValidationError,
   schemaNames,
+  SchemaValidationError,
   validateObject,
 } from "./json-validation";
 
