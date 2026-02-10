@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 .",
     "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --fix",
     "find-deadcode": "ts-node script/find-deadcode.ts"
