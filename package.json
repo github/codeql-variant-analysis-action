@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "test": "jest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint --report-unused-disable-directives --max-warnings=0 .",
     "lint-fix": "eslint --report-unused-disable-directives --max-warnings=0 . --fix",
     "find-deadcode": "ts-node script/find-deadcode.ts"
@@ -42,7 +43,6 @@
     "@eslint/js": "^9.39.2",
     "@octokit/types": "^16.0.0",
     "@types/archiver": "^7.0.0",
-    "@types/jest": "^30.0.0",
     "@types/node": "^25.2.0",
     "@types/semver": "^7.7.1",
     "@types/uuid": "^11.0.0",
@@ -55,13 +55,12 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-prettier": "^5.5.5",
-    "jest": "^30.2.0",
     "prettier": "^3.8.1",
-    "ts-jest": "^29.4.6",
     "ts-json-schema-generator": "2.4.0",
     "ts-node": "^10.9.2",
     "ts-unused-exports": "^11.0.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "resolutions": {
     "glob-parent": ">=5.1.2",

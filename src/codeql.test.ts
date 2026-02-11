@@ -3,6 +3,15 @@ import { tmpdir } from "os";
 import path, { join } from "path";
 
 import { rmRF } from "@actions/io";
+import {
+  describe,
+  expect,
+  it,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from "vitest";
 
 import {
   runQuery,
