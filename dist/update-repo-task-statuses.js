@@ -48752,7 +48752,7 @@ var require_light = __commonJS({
 // src/inputs.ts
 var fs2 = __toESM(require("fs"));
 
-// node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
+// node_modules/@actions/http-client/lib/index.js
 var tunnel = __toESM(require_tunnel2(), 1);
 var import_undici = __toESM(require_undici(), 1);
 var HttpCodes;
