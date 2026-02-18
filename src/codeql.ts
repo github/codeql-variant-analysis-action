@@ -71,6 +71,7 @@ export async function runQuery(
   await codeql.run([
     "database",
     "run-queries",
+    "--no-cache-at-frontier",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
     queryPack.path,

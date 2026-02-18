@@ -84845,6 +84845,7 @@ async function runQuery(codeql, database, nwo, queryPack) {
   await codeql.run([
     "database",
     "run-queries",
+    "--no-cache-at-frontier",
     `--ram=${getMemoryFlagValue().toString()}`,
     "--additional-packs",
     queryPack.path,
