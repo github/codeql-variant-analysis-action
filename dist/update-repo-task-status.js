@@ -53014,8 +53014,11 @@ function getApiBaseUrl() {
 // node_modules/@octokit/plugin-retry/dist-bundle/index.js
 var import_light = __toESM(require_light(), 1);
 var VERSION8 = "0.0.0-development";
+function isRequestError(error) {
+  return error.request !== void 0;
+}
 async function errorRequest(state, octokit, error, options) {
-  if (!error.request || !error.request.request) {
+  if (!isRequestError(error) || !error?.request.request) {
     throw error;
   }
   if (error.status >= 400 && !state.doNotRetry.includes(error.status)) {
@@ -53028,8 +53031,8 @@ async function errorRequest(state, octokit, error, options) {
 async function wrapRequest(state, octokit, request2, options) {
   const limiter = new import_light.default();
   limiter.on("failed", function(error, info) {
-    const maxRetries = ~~error.request.request.retries;
-    const after = ~~error.request.request.retryAfter;
+    const maxRetries = ~~error.request.request?.retries;
+    const after = ~~error.request.request?.retryAfter;
     options.request.retryCount = info.retryCount + 1;
     if (maxRetries > info.retryCount) {
       return after * state.retryAfterBaseValue;
@@ -53041,7 +53044,7 @@ async function wrapRequest(state, octokit, request2, options) {
   );
 }
 async function requestWithGraphqlErrorHandling(state, octokit, request2, options) {
-  const response = await request2(request2, options);
+  const response = await request2(options);
   if (response.data && response.data.errors && response.data.errors.length > 0 && /Something went wrong while executing your query/.test(
     response.data.errors[0].message
   )) {
@@ -53063,11 +53066,7 @@ function retry(octokit, octokitOptions) {
     },
     octokitOptions.retry
   );
-  if (state.enabled) {
-    octokit.hook.error("request", errorRequest.bind(null, state, octokit));
-    octokit.hook.wrap("request", wrapRequest.bind(null, state, octokit));
-  }
-  return {
+  const retryPlugin = {
     retry: {
       retryRequest: (error, retries, retryAfter) => {
         error.request.request = Object.assign({}, error.request.request, {
@@ -53078,6 +53077,11 @@ function retry(octokit, octokitOptions) {
       }
     }
   };
+  if (state.enabled) {
+    octokit.hook.error("request", errorRequest.bind(null, state, retryPlugin));
+    octokit.hook.wrap("request", wrapRequest.bind(null, state, retryPlugin));
+  }
+  return retryPlugin;
 }
 retry.VERSION = VERSION8;
 
@@ -53345,7 +53349,7 @@ async function setVariantAnalysesCanceled(controllerRepoId, variantAnalysisId, r
     status: "canceled"
   });
 }
-function isRequestError(obj) {
+function isRequestError2(obj) {
   return typeof obj?.["status"] === "number";
 }
 async function updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId, data) {
@@ -53354,7 +53358,7 @@ async function updateVariantAnalysisStatuses(controllerRepoId, variantAnalysisId
   try {
     await octokit.request(url, { data });
   } catch (e) {
-    if (isRequestError(e)) {
+    if (isRequestError2(e)) {
       console.error(`Request to ${url} failed with status code ${e.status}`);
     }
     throw e;
