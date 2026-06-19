@@ -1,0 +1,136 @@
+name: Rebuild Action
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  rebuild:
+    name: Rebuild Action
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'Rebuild' || github.event_name == 'workflow_dispatch'
+
+    env:
+      HEAD_REF: ${{ github.event.pull_request.head.ref || github.event.ref }}
+      BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
+
+    permissions:
+      contents: write # needed to push rebuilt commit
+      pull-requests: write # needed to comment on the PR
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          ref: ${{ env.HEAD_REF }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Remove label
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr edit --repo github/codeql-variant-analysis-action "$PR_NUMBER" \
+            --remove-label "Rebuild"
+
+      - name: Configure git
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Merge in changes from base branch
+        id: merge
+        run: |
+          git fetch origin "$BASE_BRANCH"
+
+          # Allow merge conflicts in `dist`, since rebuilding should resolve them.
+          git merge "origin/$BASE_BRANCH"
+          MERGE_RESULT=$?
+
+          if [ "$MERGE_RESULT" -eq 0 ]; then
+            echo "Merge succeeded cleanly."
+          elif [ "$MERGE_RESULT" -eq 1 ]; then
+            echo "Merge conflicts detected (exit code $MERGE_RESULT), continuing."
+          else
+            echo "git merge failed with unexpected exit code $MERGE_RESULT."
+            exit 1
+          fi
+
+          if [ "$MERGE_RESULT" -ne 0 ]; then
+            echo "merge-in-progress=true" >> $GITHUB_OUTPUT
+
+            # Check for merge conflicts outside of `dist`. Disable git diff's trailing whitespace check.
+            if git -c core.whitespace=-trailing-space diff --check | grep --invert-match '^dist/'; then
+              echo "Merge conflicts were detected outside of the dist directory. Please resolve them manually."
+              git -c core.whitespace=-trailing-space diff --check | grep --invert-match '^dist/' || true
+              exit 1
+            fi
+
+            echo "No merge conflicts found outside the dist directory. We should be able to resolve all of" \
+              "these by rebuilding the Action."
+          fi
+
+      - name: Compile TypeScript
+        run: |
+          npm ci
+          npm run lint-fix
+          npm run build
+
+      - name: "Merge in progress: Finish merge and push"
+        if: steps.merge.outputs.merge-in-progress == 'true'
+        run: |
+          echo "Finishing merge and pushing changes."
+          git add --all
+          git commit --no-edit
+          git push
+
+      - name: "No merge in progress: Check for changes and push"
+        if: steps.merge.outputs.merge-in-progress != 'true'
+        id: push
+        run: |
+          if [ ! -z "$(git status --porcelain)" ]; then
+            echo "Changes detected, committing and pushing."
+            git add --all
+            # If the merge originally had conflicts, finish the merge.
+            # Otherwise, just commit the changes.
+            if git rev-parse --verify MERGE_HEAD >/dev/null 2>&1; then
+              echo "In progress merge detected, finishing it up."
+              git commit --no-edit
+            else
+              echo "No in-progress merge detected, committing changes."
+              git commit -m "Rebuild"
+            fi
+            echo "Pushing changes"
+            git push
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes detected, nothing to commit."
+          fi
+
+      - name: Notify about rebuild
+        if: >-
+          github.event_name == 'pull_request' &&
+            (
+              steps.merge.outputs.merge-in-progress == 'true' ||
+              steps.push.outputs.changes == 'true'
+            )
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Pushed a commit to rebuild the Action." \
+            "Please mark the PR as ready for review to trigger PR checks." |
+            gh pr comment --body-file - --repo github/codeql-variant-analysis-action "$PR_NUMBER"
+          gh pr ready --undo --repo github/codeql-variant-analysis-action "$PR_NUMBER"
