@@ -28,3 +28,9 @@ updates:
       typescript-eslint:
         patterns:
           - "@typescript-eslint/*"
+      npm-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
