@@ -88003,7 +88003,10 @@ async function downloadDatabase(repoId, repoName, language, pat) {
     console.log("Error while downloading database");
     if (error2 instanceof HTTPError2 && error2.httpStatusCode === 404 && error2.httpMessage.includes("No database available for")) {
       throw new Error(
-        `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`
+        `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`,
+        {
+          cause: error2
+        }
       );
     } else {
       throw error2;

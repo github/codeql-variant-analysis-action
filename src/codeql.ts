@@ -173,6 +173,9 @@ export async function downloadDatabase(
     ) {
       throw new Error(
         `Language mismatch: The query targets ${language}, but the repository "${repoName}" has no CodeQL database available for that language.`,
+        {
+          cause: error,
+        },
       );
     } else {
       throw error;
