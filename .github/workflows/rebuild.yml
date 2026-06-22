@@ -131,5 +131,5 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "Pushed a commit to rebuild the Action." \
-            "Please mark the PR as ready for review to trigger PR checks." |
+            "Please approve running the PR checks." |
             gh pr comment --body-file - --repo github/codeql-variant-analysis-action "$PR_NUMBER"
