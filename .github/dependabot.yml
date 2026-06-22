@@ -26,6 +26,8 @@ updates:
       default-days: 7
       exclude:
         - "@actions/*"
+    labels:
+      - "Rebuild"
     groups:
       actions:
         patterns:
