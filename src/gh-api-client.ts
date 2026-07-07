@@ -59,12 +59,7 @@ export interface RepoTask {
 }
 
 type AnalysisStatus =
-  | "pending"
-  | "in_progress"
-  | "succeeded"
-  | "failed"
-  | "canceled"
-  | "timed_out";
+  "pending" | "in_progress" | "succeeded" | "failed" | "canceled" | "timed_out";
 
 interface InProgressAnalysis {
   status: "in_progress";
@@ -87,10 +82,7 @@ interface CanceledAnalysis {
 }
 
 type UpdateVariantAnalysis =
-  | InProgressAnalysis
-  | SuccessfulAnalysis
-  | FailedAnalysis
-  | CanceledAnalysis;
+  InProgressAnalysis | SuccessfulAnalysis | FailedAnalysis | CanceledAnalysis;
 
 type UpdateVariantAnalyses = {
   repository_ids: number[];
