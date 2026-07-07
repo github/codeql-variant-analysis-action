@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Print auth info
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          gh auth status
+
       - name: Trigger variant analysis
         id: trigger
         run: |
