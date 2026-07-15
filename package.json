@@ -43,7 +43,7 @@
     "@eslint/js": "^10.0.1",
     "@octokit/types": "^16.0.0",
     "@types/archiver": "^8.0.0",
-    "@types/node": "^26.0.1",
+    "@types/node": "^26.1.0",
     "@types/semver": "^7.7.1",
     "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^8.62.1",
@@ -60,7 +60,7 @@
     "ts-node": "^10.9.2",
     "ts-unused-exports": "^11.0.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "resolutions": {
     "glob-parent": ">=5.1.2",
