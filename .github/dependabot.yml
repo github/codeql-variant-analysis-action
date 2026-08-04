@@ -28,7 +28,12 @@ updates:
         - "@actions/*"
     labels:
       - "Rebuild"
+    # ESLint 10 is blocked only by eslint-plugin-github's transitive
+    # eslint-plugin-import and eslint-plugin-jsx-a11y peers; this repo itself
+    # lints clean on ESLint 10. Lift both ignores once those plugins support it.
     ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
     groups:
