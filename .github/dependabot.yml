@@ -29,21 +29,18 @@ updates:
     labels:
       - "Rebuild"
     groups:
-      actions:
-        patterns:
-          - "@actions/*"
-      octokit:
-        patterns:
-          - "@octokit/*"
-        update-types:
-          - "minor"
-          - "patch"
-      typescript-eslint:
-        patterns:
-          - "@typescript-eslint/*"
       npm-minor:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+      actions:
+        patterns:
+          - "@actions/*"
+      octokit:
+        patterns:
+          - "@octokit/*"
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
