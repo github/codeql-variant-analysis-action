@@ -28,6 +28,9 @@ updates:
         - "@actions/*"
     labels:
       - "Rebuild"
+    ignore:
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     groups:
       eslint:
         patterns:
