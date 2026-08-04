@@ -29,6 +29,14 @@ updates:
     labels:
       - "Rebuild"
     groups:
+      eslint:
+        patterns:
+          - "eslint"
+          - "@eslint/js"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
       actions:
         patterns:
           - "@actions/*"
