@@ -1924,7 +1924,11 @@ var require_request = __commonJS({
           } else if (typeof val[i] === "object") {
             throw new InvalidArgumentError(`invalid ${key} header`);
           } else {
-            arr.push(`${val[i]}`);
+            const str = `${val[i]}`;
+            if (!isValidHeaderValue(str)) {
+              throw new InvalidArgumentError(`invalid ${key} header`);
+            }
+            arr.push(str);
           }
         }
         val = arr;
@@ -1936,6 +1940,9 @@ var require_request = __commonJS({
         val = "";
       } else {
         val = `${val}`;
+        if (!isValidHeaderValue(val)) {
+          throw new InvalidArgumentError(`invalid ${key} header`);
+        }
       }
       if (headerName === "host") {
         if (request2.host !== null) {
@@ -5666,6 +5673,7 @@ var require_client_h1 = __commonJS({
       RequestContentLengthMismatchError,
       ResponseContentLengthMismatchError,
       RequestAbortedError,
+      InvalidArgumentError,
       HeadersTimeoutError,
       HeadersOverflowError,
       SocketError,
@@ -6392,8 +6400,16 @@ var require_client_h1 = __commonJS({
         }
         body = bodyStream.stream;
         contentLength = bodyStream.length;
-      } else if (util3.isBlobLike(body) && request2.contentType == null && body.type) {
-        headers.push("content-type", body.type);
+      } else if (util3.isBlobLike(body) && request2.contentType == null) {
+        const contentType = body.type;
+        if (contentType) {
+          const contentTypeValue = `${contentType}`;
+          if (!util3.isValidHeaderValue(contentTypeValue)) {
+            util3.errorRequest(client, request2, new InvalidArgumentError("invalid content-type header"));
+            return false;
+          }
+          headers.push("content-type", contentTypeValue);
+        }
       }
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8945,6 +8961,24 @@ var require_retry_handler = __commonJS({
       const current = Date.now();
       return new Date(retryAfter).getTime() - current;
     }
+    function validatePartialResponseContentLength(headers, range, statusCode, retryCount) {
+      const contentLength = headers["content-length"];
+      if (contentLength == null) {
+        return null;
+      }
+      if (!Number.isFinite(range.start) || !Number.isFinite(range.end)) {
+        return null;
+      }
+      const length = Number(contentLength);
+      const expectedLength = range.end - range.start + 1;
+      if (!Number.isFinite(length) || length !== expectedLength) {
+        return new RequestRetryError("Content-Length mismatch", statusCode, {
+          headers,
+          data: { count: retryCount }
+        });
+      }
+      return null;
+    }
     var RetryHandler = class _RetryHandler {
       constructor(opts, handlers) {
         const { retryOptions, ...dispatchOpts } = opts;
@@ -9117,6 +9151,11 @@ var require_retry_handler = __commonJS({
             );
             return false;
           }
+          const contentLengthError = validatePartialResponseContentLength(headers, contentRange, statusCode, this.retryCount);
+          if (contentLengthError != null) {
+            this.abort(contentLengthError);
+            return false;
+          }
           const { start, size, end = size - 1 } = contentRange;
           assert(this.start === start, "content-range mismatch");
           assert(this.end == null || this.end === end, "content-range mismatch");
@@ -9133,6 +9172,11 @@ var require_retry_handler = __commonJS({
                 resume,
                 statusMessage
               );
+            }
+            const contentLengthError = validatePartialResponseContentLength(headers, range, statusCode, this.retryCount);
+            if (contentLengthError != null) {
+              this.abort(contentLengthError);
+              return false;
             }
             const { start, size, end = size - 1 } = range;
             assert(
@@ -15979,14 +16023,48 @@ var require_util6 = __commonJS({
       for (let i = 0; i < path8.length; ++i) {
         const code = path8.charCodeAt(i);
         if (code < 32 || // exclude CTLs (0-31)
-        code === 127 || // DEL
+        code > 126 || // exclude DEL and non-ascii
         code === 59) {
           throw new Error("Invalid cookie path");
         }
       }
     }
+    function isLetterOrDigit(code) {
+      return code >= 48 && code <= 57 || // 0-9
+      code >= 65 && code <= 90 || // A-Z
+      code >= 97 && code <= 122;
+    }
     function validateCookieDomain(domain) {
-      if (domain.startsWith("-") || domain.endsWith(".") || domain.endsWith("-")) {
+      if (domain === " ") {
+        return;
+      }
+      if (domain.length > 255) {
+        throw new Error("Invalid cookie domain");
+      }
+      let labelLength = 0;
+      for (let i = 0; i < domain.length; ++i) {
+        const code = domain.charCodeAt(i);
+        if (code === 46) {
+          if (labelLength === 0) {
+            throw new Error("Invalid cookie domain");
+          }
+          if (domain.charCodeAt(i - 1) === 45) {
+            throw new Error("Invalid cookie domain");
+          }
+          labelLength = 0;
+          continue;
+        }
+        if (labelLength === 0 && !isLetterOrDigit(code)) {
+          throw new Error("Invalid cookie domain");
+        }
+        if (!isLetterOrDigit(code) && code !== 45) {
+          throw new Error("Invalid cookie domain");
+        }
+        if (++labelLength > 63) {
+          throw new Error("Invalid cookie domain");
+        }
+      }
+      if (labelLength === 0 || domain.charCodeAt(domain.length - 1) === 45) {
         throw new Error("Invalid cookie domain");
       }
     }
@@ -16069,7 +16147,11 @@ var require_util6 = __commonJS({
           throw new Error("Invalid unparsed");
         }
         const [key, ...value] = part.split("=");
-        out.push(`${key.trim()}=${value.join("=")}`);
+        const trimmedKey = key.trim();
+        const joinedValue = value.join("=");
+        validateCookieName(trimmedKey);
+        validateCookieValue(joinedValue);
+        out.push(`${trimmedKey}=${joinedValue}`);
       }
       return out.join("; ");
     }
@@ -43209,7 +43291,11 @@ var require_request3 = __commonJS({
           } else if (typeof val[i] === "object") {
             throw new InvalidArgumentError(`invalid ${key} header`);
           } else {
-            arr.push(`${val[i]}`);
+            const str = `${val[i]}`;
+            if (!isValidHeaderValue(str)) {
+              throw new InvalidArgumentError(`invalid ${key} header`);
+            }
+            arr.push(str);
           }
         }
         val = arr;
@@ -43221,6 +43307,9 @@ var require_request3 = __commonJS({
         val = "";
       } else {
         val = `${val}`;
+        if (!isValidHeaderValue(val)) {
+          throw new InvalidArgumentError(`invalid ${key} header`);
+        }
       }
       if (headerName === "host") {
         if (request2.host !== null) {
@@ -47377,6 +47466,7 @@ var require_client_h12 = __commonJS({
       RequestContentLengthMismatchError,
       ResponseContentLengthMismatchError,
       RequestAbortedError,
+      InvalidArgumentError,
       HeadersTimeoutError,
       HeadersOverflowError,
       SocketError,
@@ -48222,8 +48312,16 @@ var require_client_h12 = __commonJS({
         }
         body = bodyStream.stream;
         contentLength = bodyStream.length;
-      } else if (util3.isBlobLike(body) && request2.contentType == null && body.type) {
-        headers.push("content-type", body.type);
+      } else if (util3.isBlobLike(body) && request2.contentType == null) {
+        const contentType = body.type;
+        if (contentType) {
+          const contentTypeValue = `${contentType}`;
+          if (!util3.isValidHeaderValue(contentTypeValue)) {
+            util3.errorRequest(client, request2, new InvalidArgumentError("invalid content-type header"));
+            return false;
+          }
+          headers.push("content-type", contentTypeValue);
+        }
       }
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -51720,6 +51818,23 @@ var require_retry_handler2 = __commonJS({
       const retryTime = new Date(retryAfter).getTime();
       return isNaN(retryTime) ? 0 : retryTime - Date.now();
     }
+    function validatePartialResponseContentLength(headers, range, statusCode, retryCount) {
+      const contentLength = headers["content-length"];
+      if (contentLength == null) {
+        return;
+      }
+      if (!Number.isFinite(range.start) || !Number.isFinite(range.end)) {
+        return;
+      }
+      const length = Number(contentLength);
+      const expectedLength = range.end - range.start + 1;
+      if (!Number.isFinite(length) || length !== expectedLength) {
+        throw new RequestRetryError("Content-Length mismatch", statusCode, {
+          headers,
+          data: { count: retryCount }
+        });
+      }
+    }
     var RetryHandler = class _RetryHandler {
       constructor(opts, { dispatch, handler: handler2 }) {
         const { retryOptions, ...dispatchOpts } = opts;
@@ -51888,6 +52003,7 @@ var require_retry_handler2 = __commonJS({
               data: { count: this.retryCount }
             });
           }
+          validatePartialResponseContentLength(headers, contentRange, statusCode, this.retryCount);
           const { start, size, end = size ? size - 1 : null } = contentRange;
           assert(this.start === start, "content-range mismatch");
           assert(this.end == null || this.end === end, "content-range mismatch");
@@ -51906,6 +52022,7 @@ var require_retry_handler2 = __commonJS({
               );
               return;
             }
+            validatePartialResponseContentLength(headers, range, statusCode, this.retryCount);
             const { start, size, end = size ? size - 1 : null } = range;
             assert(
               start != null && Number.isFinite(start),
@@ -56111,9 +56228,121 @@ var require_cache2 = __commonJS({
     var {
       safeHTTPMethods,
       pathHasQueryOrFragment,
-      hasSafeIterator
+      hasSafeIterator,
+      isValidHTTPToken
     } = require_util10();
     var { serializePathWithQuery } = require_util10();
+    var MAX_DELTA_SECONDS = 2147483647;
+    var RESTRICTIVE_DIRECTIVE_NAMES = ["no-store", "private", "no-cache"];
+    var kInvalidCacheControlDirectives = /* @__PURE__ */ Symbol("invalid cache-control directives");
+    function trimOWS(value) {
+      return value.replace(/^[\t ]+|[\t ]+$/g, "");
+    }
+    function arrayIncludes(array, value) {
+      for (let i = 0; i < array.length; i++) {
+        if (array[i] === value) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function trimOWSStart(value) {
+      return value.replace(/^[\t ]+/, "");
+    }
+    function trimOWSEnd(value) {
+      return value.replace(/[\t ]+$/, "");
+    }
+    function findUnescapedQuote(value, start) {
+      let escaped = false;
+      for (let i = start; i < value.length; i++) {
+        if (escaped) {
+          escaped = false;
+        } else if (value[i] === "\\") {
+          escaped = true;
+        } else if (value[i] === '"') {
+          return i;
+        }
+      }
+      return -1;
+    }
+    function splitCacheControlHeaderValue(value) {
+      const directives = [];
+      let start = 0;
+      let quoteStart = -1;
+      let inQuote = false;
+      let escaped = false;
+      for (let i = 0; i < value.length; i++) {
+        if (inQuote) {
+          if (escaped) {
+            escaped = false;
+          } else if (value[i] === "\\") {
+            escaped = true;
+          } else if (value[i] === '"') {
+            inQuote = false;
+            quoteStart = -1;
+          }
+        } else if (value[i] === '"') {
+          inQuote = true;
+          quoteStart = i;
+        } else if (value[i] === ",") {
+          directives.push({ value: value.substring(start, i), fromMalformedQuote: false });
+          start = i + 1;
+        }
+      }
+      if (!inQuote) {
+        directives.push({ value: value.substring(start), fromMalformedQuote: false });
+        return directives;
+      }
+      const tail = value.substring(start);
+      const quoteOffset = quoteStart - start;
+      let tailStart = 0;
+      for (let i = 0; i < tail.length; i++) {
+        if (tail[i] === ",") {
+          directives.push({
+            value: tail.substring(tailStart, i),
+            fromMalformedQuote: tailStart > quoteOffset
+          });
+          tailStart = i + 1;
+        }
+      }
+      directives.push({
+        value: tail.substring(tailStart),
+        fromMalformedQuote: tailStart > quoteOffset
+      });
+      return directives;
+    }
+    function markInvalidCacheControlDirective(directives, key) {
+      let invalidDirectives = directives[kInvalidCacheControlDirectives];
+      if (invalidDirectives === void 0) {
+        invalidDirectives = /* @__PURE__ */ new Set();
+        Object.defineProperty(directives, kInvalidCacheControlDirectives, {
+          value: invalidDirectives
+        });
+      }
+      invalidDirectives.add(key);
+    }
+    function hasInvalidCacheControlDirective(directives, key) {
+      return directives[kInvalidCacheControlDirectives]?.has(key) === true;
+    }
+    function getMalformedRestrictiveDirectiveName(key) {
+      for (const directiveName of RESTRICTIVE_DIRECTIVE_NAMES) {
+        if (key.startsWith(directiveName) && key.length > directiveName.length && !isValidHTTPToken(key[directiveName.length])) {
+          return directiveName;
+        }
+      }
+      let tokenOnlyKey = "";
+      let hasInvalidTokenChar = false;
+      for (let i = 0; i < key.length; i++) {
+        if (isValidHTTPToken(key[i])) {
+          tokenOnlyKey += key[i];
+        } else {
+          hasInvalidTokenChar = true;
+        }
+      }
+      if (hasInvalidTokenChar && arrayIncludes(RESTRICTIVE_DIRECTIVE_NAMES, tokenOnlyKey)) {
+        return tokenOnlyKey;
+      }
+    }
     function makeCacheKey(opts) {
       if (!opts.origin) {
         throw new Error("opts.origin is undefined");
@@ -56128,6 +56357,18 @@ var require_cache2 = __commonJS({
         path: fullPath,
         headers: opts.headers
       };
+    }
+    function appendHeader(headers, key, val) {
+      const headerName = key.toLowerCase();
+      const current = headers[headerName];
+      const values = Array.isArray(val) ? val : [val];
+      if (current === void 0) {
+        headers[headerName] = Array.isArray(val) ? val.slice() : val;
+      } else if (Array.isArray(current)) {
+        current.push(...values);
+      } else {
+        headers[headerName] = [current, ...values];
+      }
     }
     function normalizeHeaders(opts) {
       let headers;
@@ -56144,11 +56385,11 @@ var require_cache2 = __commonJS({
             if (typeof key !== "string" || typeof val !== "string") {
               throw new Error("opts.headers is not a valid header map");
             }
-            headers[key.toLowerCase()] = val;
+            appendHeader(headers, key, val);
           }
         } else {
           for (const key of Object.keys(opts.headers)) {
-            headers[key.toLowerCase()] = opts.headers[key];
+            appendHeader(headers, key, opts.headers[key]);
           }
         }
       } else {
@@ -56193,25 +56434,32 @@ var require_cache2 = __commonJS({
     }
     function parseCacheControlHeader(header) {
       const output = {};
-      let directives;
-      if (Array.isArray(header)) {
-        directives = [];
-        for (const directive of header) {
-          directives.push(...directive.split(","));
-        }
-      } else {
-        directives = header.split(",");
-      }
+      const invalidNumericDirectives = /* @__PURE__ */ new Set();
+      const invalidNoArgumentDirectives = /* @__PURE__ */ new Set();
+      const directives = splitCacheControlHeaderValue(Array.isArray(header) ? header.join(",") : header);
       for (let i = 0; i < directives.length; i++) {
-        const directive = directives[i].toLowerCase();
+        const directiveRecord = directives[i];
+        const directive = directiveRecord.value.toLowerCase();
+        const fromMalformedQuote = directiveRecord.fromMalformedQuote;
         const keyValueDelimiter = directive.indexOf("=");
         let key;
         let value;
+        let keyHasTrailingWhitespace = false;
+        let valueHasLeadingWhitespace = false;
         if (keyValueDelimiter !== -1) {
-          key = directive.substring(0, keyValueDelimiter).trimStart();
-          value = directive.substring(keyValueDelimiter + 1);
+          const rawKey = directive.substring(0, keyValueDelimiter);
+          const rawValue = directive.substring(keyValueDelimiter + 1);
+          keyHasTrailingWhitespace = trimOWSEnd(rawKey) !== rawKey;
+          valueHasLeadingWhitespace = trimOWSStart(rawValue) !== rawValue;
+          key = trimOWS(rawKey);
+          value = trimOWSStart(rawValue);
         } else {
-          key = directive.trim();
+          key = trimOWS(directive);
+        }
+        const malformedRestrictiveDirectiveName = getMalformedRestrictiveDirectiveName(key);
+        if (malformedRestrictiveDirectiveName !== void 0) {
+          output[malformedRestrictiveDirectiveName] = true;
+          continue;
         }
         switch (key) {
           case "min-fresh":
@@ -56220,48 +56468,85 @@ var require_cache2 = __commonJS({
           case "s-maxage":
           case "stale-while-revalidate":
           case "stale-if-error": {
-            if (value === void 0 || value[0] === " ") {
+            if (fromMalformedQuote || invalidNumericDirectives.has(key)) {
+              continue;
+            }
+            if (value === void 0 || keyHasTrailingWhitespace || valueHasLeadingWhitespace) {
+              delete output[key];
+              invalidNumericDirectives.add(key);
+              markInvalidCacheControlDirective(output, key);
               continue;
             }
             if (value.length >= 2 && value[0] === '"' && value[value.length - 1] === '"') {
               value = value.substring(1, value.length - 1);
             }
-            const parsedValue = parseInt(value, 10);
-            if (parsedValue !== parsedValue) {
+            if (!/^[0-9]+$/.test(value)) {
+              delete output[key];
+              invalidNumericDirectives.add(key);
+              markInvalidCacheControlDirective(output, key);
               continue;
             }
-            if (key === "max-age" && key in output && output[key] >= parsedValue) {
-              continue;
+            const parsedValue = Math.min(parseInt(value, 10), MAX_DELTA_SECONDS);
+            if (key === "min-fresh") {
+              if (!(key in output) || output[key] < parsedValue) {
+                output[key] = parsedValue;
+              }
+            } else if (!(key in output) || output[key] > parsedValue) {
+              output[key] = parsedValue;
             }
-            output[key] = parsedValue;
             break;
           }
           case "private":
           case "no-cache": {
+            if (fromMalformedQuote) {
+              output[key] = true;
+              break;
+            }
+            if (value !== void 0 && value.length === 0) {
+              output[key] = true;
+              break;
+            }
             if (value) {
               if (value[0] === '"') {
-                const headers = [value.substring(1)];
-                let foundEndingQuote = value[value.length - 1] === '"';
-                if (!foundEndingQuote) {
+                value = trimOWSEnd(value);
+                let fieldList = "";
+                let lastQuotedPart = i;
+                let foundEndingQuote = false;
+                const closingQuote = findUnescapedQuote(value, 1);
+                if (closingQuote !== -1) {
+                  fieldList = value.substring(1, closingQuote);
+                  foundEndingQuote = true;
+                } else {
+                  const fieldListParts = [value.substring(1)];
                   for (let j = i + 1; j < directives.length; j++) {
-                    const nextPart = directives[j];
-                    const nextPartLength = nextPart.length;
-                    headers.push(nextPart.trim());
-                    if (nextPartLength !== 0 && nextPart[nextPartLength - 1] === '"') {
+                    const nextPart = trimOWS(directives[j].value);
+                    const closingQuote2 = findUnescapedQuote(nextPart, 0);
+                    lastQuotedPart = j;
+                    if (closingQuote2 !== -1) {
+                      fieldListParts.push(nextPart.substring(0, closingQuote2));
                       foundEndingQuote = true;
                       break;
                     }
+                    fieldListParts.push(nextPart);
+                  }
+                  fieldList = fieldListParts.join(",");
+                }
+                if (!foundEndingQuote) {
+                  output[key] = true;
+                  break;
+                }
+                i = lastQuotedPart;
+                const headers = fieldList.split(",");
+                let validFieldNames = true;
+                for (let j = 0; j < headers.length; j++) {
+                  headers[j] = trimOWS(headers[j]);
+                  if (!isValidHTTPToken(headers[j])) {
+                    validFieldNames = false;
                   }
                 }
-                if (foundEndingQuote) {
-                  let lastHeader = headers[headers.length - 1];
-                  if (lastHeader[lastHeader.length - 1] === '"') {
-                    lastHeader = lastHeader.substring(0, lastHeader.length - 1);
-                    headers[headers.length - 1] = lastHeader;
-                  }
-                  for (let j = 0; j < headers.length; j++) {
-                    headers[j] = headers[j].trim();
-                  }
+                if (!validFieldNames) {
+                  output[key] = true;
+                } else if (output[key] !== true) {
                   if (key in output) {
                     output[key] = output[key].concat(headers);
                   } else {
@@ -56269,11 +56554,15 @@ var require_cache2 = __commonJS({
                   }
                 }
               } else {
-                const fieldName = value.trim();
-                if (key in output) {
-                  output[key] = output[key].concat(fieldName);
-                } else {
-                  output[key] = [fieldName];
+                const fieldName = trimOWS(value);
+                if (!isValidHTTPToken(fieldName)) {
+                  output[key] = true;
+                } else if (output[key] !== true) {
+                  if (key in output) {
+                    output[key] = output[key].concat(fieldName);
+                  } else {
+                    output[key] = [fieldName];
+                  }
                 }
               }
               break;
@@ -56281,16 +56570,23 @@ var require_cache2 = __commonJS({
           }
           // eslint-disable-next-line no-fallthrough
           case "public":
-          case "no-store":
           case "must-revalidate":
           case "proxy-revalidate":
           case "immutable":
           case "no-transform":
           case "must-understand":
           case "only-if-cached":
-            if (value) {
+            if (fromMalformedQuote || invalidNoArgumentDirectives.has(key)) {
               continue;
             }
+            if (value !== void 0) {
+              delete output[key];
+              invalidNoArgumentDirectives.add(key);
+              continue;
+            }
+            output[key] = true;
+            break;
+          case "no-store":
             output[key] = true;
             break;
           default:
@@ -56299,20 +56595,50 @@ var require_cache2 = __commonJS({
       }
       return output;
     }
+    function splitVaryHeader(varyHeader) {
+      const values = Array.isArray(varyHeader) ? varyHeader : [varyHeader];
+      const output = [];
+      for (let i = 0; i < values.length; i++) {
+        const parts = values[i].split(",");
+        for (let j = 0; j < parts.length; j++) {
+          output.push(parts[j]);
+        }
+      }
+      return output;
+    }
+    function hasVaryStar(varyHeader) {
+      const values = splitVaryHeader(varyHeader);
+      for (let i = 0; i < values.length; i++) {
+        if (trimOWS(values[i]).indexOf("*") !== -1) {
+          return true;
+        }
+      }
+      return false;
+    }
     function parseVaryHeader(varyHeader, headers) {
-      if (typeof varyHeader === "string" && varyHeader.includes("*")) {
+      if (hasVaryStar(varyHeader)) {
         return headers;
       }
       const output = (
         /** @type {Record<string, string | string[] | null>} */
         {}
       );
-      const varyingHeaders = typeof varyHeader === "string" ? varyHeader.split(",") : varyHeader;
+      const varyingHeaders = splitVaryHeader(varyHeader);
       for (const header of varyingHeaders) {
-        const trimmedHeader = header.trim().toLowerCase();
-        output[trimmedHeader] = headers[trimmedHeader] ?? null;
+        const trimmedHeader = trimOWS(header).toLowerCase();
+        if (trimmedHeader.length === 0) {
+          continue;
+        }
+        if (!isValidHTTPToken(trimmedHeader)) {
+          return void 0;
+        }
+        const headerValue = headers[trimmedHeader];
+        output[trimmedHeader] = Array.isArray(headerValue) ? headerValue.slice() : headerValue ?? null;
       }
       return output;
+    }
+    function isInvalidOrWildcardVaryHeader(varyHeader) {
+      return hasVaryStar(varyHeader) || parseVaryHeader(varyHeader, {}) === void 0;
     }
     function isEtagUsable(etag) {
       if (etag.length <= 2) {
@@ -56344,7 +56670,7 @@ var require_cache2 = __commonJS({
         throw new TypeError(`${name} needs to have at least one method`);
       }
       for (const method of methods) {
-        if (!safeHTTPMethods.includes(method)) {
+        if (!arrayIncludes(safeHTTPMethods, method)) {
           throw new TypeError(`element of ${name}-array needs to be one of following values: ${safeHTTPMethods.join(", ")}, got ${method}`);
         }
       }
@@ -56368,7 +56694,10 @@ var require_cache2 = __commonJS({
       assertCacheKey,
       assertCacheValue,
       parseCacheControlHeader,
+      hasInvalidCacheControlDirective,
       parseVaryHeader,
+      hasVaryStar,
+      isInvalidOrWildcardVaryHeader,
       isEtagUsable,
       assertCacheMethods,
       assertCacheStore,
@@ -56390,6 +56719,13 @@ var require_date = __commonJS({
         default:
           return parseRfc850Date(date);
       }
+    }
+    function makeDate(year, monthIdx, day, hour, minute, second, weekday) {
+      const result = new Date(Date.UTC(year, monthIdx, day, hour, minute, second));
+      if (year >= 0 && year <= 99) {
+        result.setUTCFullYear(year);
+      }
+      return result.getUTCFullYear() === year && result.getUTCMonth() === monthIdx && result.getUTCDate() === day && result.getUTCHours() === hour && result.getUTCMinutes() === minute && result.getUTCSeconds() === second && result.getUTCDay() === weekday ? result : void 0;
     }
     function parseImfDate(date) {
       if (date.length !== 29 || date[4] !== " " || date[7] !== " " || date[11] !== " " || date[16] !== " " || date[19] !== ":" || date[22] !== ":" || date[25] !== " " || date[26] !== "G" || date[27] !== "M" || date[28] !== "T") {
@@ -56551,8 +56887,7 @@ var require_date = __commonJS({
         }
         second = (code1 - 48) * 10 + (code2 - 48);
       }
-      const result = new Date(Date.UTC(year, monthIdx, day, hour, minute, second));
-      return result.getUTCDay() === weekday ? result : void 0;
+      return makeDate(year, monthIdx, day, hour, minute, second, weekday);
     }
     function parseAscTimeDate(date) {
       if (date.length !== 24 || date[7] !== " " || date[10] !== " " || date[19] !== " ") {
@@ -56714,8 +57049,7 @@ var require_date = __commonJS({
         return void 0;
       }
       const year = (yearDigit1 - 48) * 1e3 + (yearDigit2 - 48) * 100 + (yearDigit3 - 48) * 10 + (yearDigit4 - 48);
-      const result = new Date(Date.UTC(year, monthIdx, day, hour, minute, second));
-      return result.getUTCDay() === weekday ? result : void 0;
+      return makeDate(year, monthIdx, day, hour, minute, second, weekday);
     }
     function parseRfc850Date(date) {
       let commaIndex = -1;
@@ -56864,8 +57198,7 @@ var require_date = __commonJS({
         }
         second = (code1 - 48) * 10 + (code2 - 48);
       }
-      const result = new Date(Date.UTC(year, monthIdx, day, hour, minute, second));
-      return result.getUTCDay() === weekday ? result : void 0;
+      return makeDate(year, monthIdx, day, hour, minute, second, weekday);
     }
     module2.exports = {
       parseHttpDate
@@ -56880,7 +57213,10 @@ var require_cache_handler = __commonJS({
     var util3 = require_util10();
     var {
       parseCacheControlHeader,
+      hasInvalidCacheControlDirective,
       parseVaryHeader,
+      hasVaryStar,
+      isInvalidOrWildcardVaryHeader,
       isEtagUsable
     } = require_cache2();
     var { parseHttpDate } = require_date();
@@ -56904,6 +57240,78 @@ var require_cache_handler = __commonJS({
       206
     ];
     var MAX_RESPONSE_AGE = 2147483647e3;
+    function trimOWS(value) {
+      return value.replace(/^[\t ]+|[\t ]+$/g, "");
+    }
+    function arrayIncludes(array, value) {
+      for (let i = 0; i < array.length; i++) {
+        if (array[i] === value) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function appendConnectionHeaderTokens(headersToRemove, connectionHeader) {
+      const values = Array.isArray(connectionHeader) ? connectionHeader : [connectionHeader];
+      for (let i = 0; i < values.length; i++) {
+        const tokens = values[i].split(",");
+        for (let j = 0; j < tokens.length; j++) {
+          headersToRemove.push(trimOWS(tokens[j]).toLowerCase());
+        }
+      }
+    }
+    function getSameOriginPath(cacheKey, location) {
+      if (typeof location !== "string") {
+        return void 0;
+      }
+      let originUrl;
+      let requestUrl;
+      let locationUrl;
+      try {
+        originUrl = new URL(cacheKey.origin);
+        requestUrl = new URL(cacheKey.path, originUrl);
+        locationUrl = new URL(location, requestUrl);
+      } catch {
+        return void 0;
+      }
+      if (locationUrl.origin !== originUrl.origin) {
+        return void 0;
+      }
+      return locationUrl.pathname + locationUrl.search;
+    }
+    function deleteCachedUri(store, cacheKey, path8) {
+      deleteCachedValue(store, {
+        ...cacheKey,
+        path: path8
+      });
+      for (let i = 0; i < util3.safeHTTPMethods.length; i++) {
+        const method = util3.safeHTTPMethods[i];
+        if (method !== cacheKey.method) {
+          deleteCachedValue(store, {
+            ...cacheKey,
+            method,
+            path: path8
+          });
+        }
+      }
+    }
+    function deleteLocationTargets(store, cacheKey, headerValue) {
+      if (headerValue === void 0) {
+        return;
+      }
+      const values = Array.isArray(headerValue) ? headerValue : [headerValue];
+      for (let i = 0; i < values.length; i++) {
+        const path8 = getSameOriginPath(cacheKey, values[i]);
+        if (path8 !== void 0) {
+          deleteCachedUri(store, cacheKey, path8);
+        }
+      }
+    }
+    function invalidateUnsafeRequest(store, cacheKey, resHeaders) {
+      deleteCachedUri(store, cacheKey, cacheKey.path);
+      deleteLocationTargets(store, cacheKey, resHeaders.location);
+      deleteLocationTargets(store, cacheKey, resHeaders["content-location"]);
+    }
     var CacheHandler = class {
       /**
        * @type {import('../../types/cache-interceptor.d.ts').default.CacheKey}
@@ -56963,35 +57371,49 @@ var require_cache_handler = __commonJS({
           statusMessage
         );
         const handler2 = this;
-        if (!util3.safeHTTPMethods.includes(this.#cacheKey.method) && statusCode >= 200 && statusCode <= 399) {
-          try {
-            this.#store.delete(this.#cacheKey)?.catch?.(noop4);
-          } catch {
-          }
+        if (!arrayIncludes(util3.safeHTTPMethods, this.#cacheKey.method) && statusCode >= 200 && statusCode <= 399) {
+          invalidateUnsafeRequest(this.#store, this.#cacheKey, resHeaders);
           return downstreamOnHeaders();
         }
         const cacheControlHeader = resHeaders["cache-control"];
-        const heuristicallyCacheable = resHeaders["last-modified"] && HEURISTICALLY_CACHEABLE_STATUS_CODES.includes(statusCode);
+        const heuristicallyCacheable = resHeaders["last-modified"] && arrayIncludes(HEURISTICALLY_CACHEABLE_STATUS_CODES, statusCode);
         if (!cacheControlHeader && !resHeaders["expires"] && !heuristicallyCacheable && !this.#cacheByDefault) {
+          if (statusCode === 304 && resHeaders.vary && isInvalidOrWildcardVaryHeader(resHeaders.vary)) {
+            deleteCachedValue(this.#store, this.#cacheKey);
+          }
           return downstreamOnHeaders();
         }
         const cacheControlDirectives = cacheControlHeader ? parseCacheControlHeader(cacheControlHeader) : {};
         if (!canCacheResponse(this.#cacheType, statusCode, resHeaders, cacheControlDirectives, this.#cacheKey.headers)) {
+          if (statusCode === 304 && (cacheControlHeader || revalidationResponseDisallowsCachedReuse(this.#cacheType, resHeaders, cacheControlDirectives))) {
+            deleteCachedValue(this.#store, this.#cacheKey);
+          }
           return downstreamOnHeaders();
         }
         const now = Date.now();
-        const resAge = resHeaders.age ? getAge(resHeaders.age) : void 0;
-        if (resAge && resAge >= MAX_RESPONSE_AGE) {
+        const resAge = Object.hasOwn(resHeaders, "age") ? getAge(resHeaders.age) : void 0;
+        if (resAge !== void 0 && resAge >= MAX_RESPONSE_AGE) {
+          deleteCachedValueIfNotModified(statusCode, this.#store, this.#cacheKey);
           return downstreamOnHeaders();
         }
-        const resDate = typeof resHeaders.date === "string" ? parseHttpDate(resHeaders.date) : void 0;
+        const resDate = Object.hasOwn(resHeaders, "date") ? getDate(resHeaders.date) : void 0;
+        if (resDate === null) {
+          deleteCachedValueIfNotModified(statusCode, this.#store, this.#cacheKey);
+          return downstreamOnHeaders();
+        }
+        const apparentAge = resDate ? Math.max(0, now - resDate.getTime()) : 0;
+        const currentAge = Math.max(apparentAge, resAge ?? 0);
         const staleAt = determineStaleAt(this.#cacheType, now, resAge, resHeaders, resDate, cacheControlDirectives) ?? this.#cacheByDefault;
-        if (staleAt === void 0 || resAge && resAge > staleAt) {
+        if (staleAt === void 0 || currentAge >= staleAt) {
+          if (cacheControlHeader || staleAt !== void 0) {
+            deleteCachedValueIfNotModified(statusCode, this.#store, this.#cacheKey);
+          }
           return downstreamOnHeaders();
         }
-        const baseTime = resDate ? resDate.getTime() : now;
+        const baseTime = now - currentAge;
         const absoluteStaleAt = staleAt + baseTime;
         if (now >= absoluteStaleAt) {
+          deleteCachedValueIfNotModified(statusCode, this.#store, this.#cacheKey);
           return downstreamOnHeaders();
         }
         let varyDirectives;
@@ -57001,7 +57423,8 @@ var require_cache_handler = __commonJS({
             return downstreamOnHeaders();
           }
         }
-        const deleteAt = determineDeleteAt(baseTime, cacheControlDirectives, absoluteStaleAt);
+        const cachedAt = baseTime;
+        const deleteAt = determineDeleteAt(baseTime, now, cacheControlDirectives, absoluteStaleAt);
         const strippedHeaders = stripNecessaryHeaders(resHeaders, cacheControlDirectives);
         const value = {
           statusCode,
@@ -57009,7 +57432,7 @@ var require_cache_handler = __commonJS({
           headers: strippedHeaders,
           vary: varyDirectives,
           cacheControlDirectives,
-          cachedAt: resAge ? now - resAge : now,
+          cachedAt,
           staleAt: absoluteStaleAt,
           deleteAt
         };
@@ -57021,6 +57444,7 @@ var require_cache_handler = __commonJS({
             value.statusCode = cachedValue.statusCode;
             value.statusMessage = cachedValue.statusMessage;
             value.etag = cachedValue.etag;
+            value.vary = varyDirectives ?? cachedValue.vary;
             value.headers = { ...cachedValue.headers, ...strippedHeaders };
             downstreamOnHeaders();
             this.#writeStream = this.#store.createWriteStream(this.#cacheKey, value);
@@ -57111,11 +57535,25 @@ var require_cache_handler = __commonJS({
         this.#handler.onResponseError?.(controller, err);
       }
     };
+    function deleteCachedValue(store, cacheKey) {
+      try {
+        store.delete(cacheKey)?.catch?.(noop4);
+      } catch {
+      }
+    }
+    function deleteCachedValueIfNotModified(statusCode, store, cacheKey) {
+      if (statusCode === 304) {
+        deleteCachedValue(store, cacheKey);
+      }
+    }
+    function revalidationResponseDisallowsCachedReuse(cacheType, resHeaders, cacheControlDirectives) {
+      return cacheControlDirectives["no-store"] === true || cacheType === "shared" && cacheControlDirectives.private === true || (resHeaders.vary ? isInvalidOrWildcardVaryHeader(resHeaders.vary) : false);
+    }
     function canCacheResponse(cacheType, statusCode, resHeaders, cacheControlDirectives, reqHeaders) {
-      if (statusCode < 200 || NOT_UNDERSTOOD_STATUS_CODES.includes(statusCode)) {
+      if (statusCode < 200 || arrayIncludes(NOT_UNDERSTOOD_STATUS_CODES, statusCode)) {
         return false;
       }
-      if (!HEURISTICALLY_CACHEABLE_STATUS_CODES.includes(statusCode) && !resHeaders["expires"] && !cacheControlDirectives.public && cacheControlDirectives["max-age"] === void 0 && // RFC 9111: a private response directive, if the cache is not shared
+      if (!arrayIncludes(HEURISTICALLY_CACHEABLE_STATUS_CODES, statusCode) && !resHeaders["expires"] && !cacheControlDirectives.public && cacheControlDirectives["max-age"] === void 0 && // RFC 9111: a private response directive, if the cache is not shared
       !(cacheControlDirectives.private && cacheType === "private") && !(cacheControlDirectives["s-maxage"] !== void 0 && cacheType === "shared")) {
         return false;
       }
@@ -57125,60 +57563,98 @@ var require_cache_handler = __commonJS({
       if (cacheType === "shared" && cacheControlDirectives.private === true) {
         return false;
       }
-      if (resHeaders.vary?.includes("*")) {
+      if (resHeaders.vary && hasVaryStar(resHeaders.vary)) {
         return false;
       }
-      if (reqHeaders?.authorization) {
+      if (reqHeaders != null && Object.hasOwn(reqHeaders, "authorization")) {
         if (!cacheControlDirectives.public && !cacheControlDirectives["s-maxage"] && !cacheControlDirectives["must-revalidate"]) {
           return false;
         }
         if (typeof reqHeaders.authorization !== "string") {
           return false;
         }
-        if (Array.isArray(cacheControlDirectives["no-cache"]) && cacheControlDirectives["no-cache"].includes("authorization")) {
+        if (Array.isArray(cacheControlDirectives["no-cache"]) && arrayIncludes(cacheControlDirectives["no-cache"], "authorization")) {
           return false;
         }
-        if (Array.isArray(cacheControlDirectives["private"]) && cacheControlDirectives["private"].includes("authorization")) {
+        if (Array.isArray(cacheControlDirectives["private"]) && arrayIncludes(cacheControlDirectives["private"], "authorization")) {
           return false;
         }
       }
       return true;
     }
+    function getDate(dateHeader) {
+      let dateValue = dateHeader;
+      if (Array.isArray(dateValue)) {
+        if (dateValue.length !== 1) {
+          return null;
+        }
+        dateValue = dateValue[0];
+      }
+      if (typeof dateValue !== "string") {
+        return null;
+      }
+      return parseHttpDate(dateValue);
+    }
     function getAge(ageHeader) {
-      const age = parseInt(Array.isArray(ageHeader) ? ageHeader[0] : ageHeader);
-      return isNaN(age) ? void 0 : age * 1e3;
+      let ageValue = ageHeader;
+      if (Array.isArray(ageValue)) {
+        if (ageValue.length !== 1) {
+          return MAX_RESPONSE_AGE;
+        }
+        ageValue = ageValue[0];
+      }
+      if (typeof ageValue !== "string" || !/^[\t ]*[0-9]+[\t ]*$/.test(ageValue)) {
+        return MAX_RESPONSE_AGE;
+      }
+      const age = BigInt(ageValue.replace(/^[\t ]+|[\t ]+$/g, ""));
+      if (age >= BigInt(MAX_RESPONSE_AGE / 1e3)) {
+        return MAX_RESPONSE_AGE;
+      }
+      return Number(age) * 1e3;
     }
     function determineStaleAt(cacheType, now, age, resHeaders, responseDate, cacheControlDirectives) {
       if (cacheType === "shared") {
+        if (hasInvalidCacheControlDirective(cacheControlDirectives, "s-maxage")) {
+          return 0;
+        }
         const sMaxAge = cacheControlDirectives["s-maxage"];
         if (sMaxAge !== void 0) {
-          return sMaxAge > 0 ? sMaxAge * 1e3 : void 0;
+          return sMaxAge * 1e3;
         }
+      }
+      if (hasInvalidCacheControlDirective(cacheControlDirectives, "max-age")) {
+        return 0;
       }
       const maxAge = cacheControlDirectives["max-age"];
       if (maxAge !== void 0) {
-        return maxAge > 0 ? maxAge * 1e3 : void 0;
+        return maxAge * 1e3;
       }
-      if (typeof resHeaders.expires === "string") {
-        const expiresDate = parseHttpDate(resHeaders.expires);
-        if (expiresDate) {
-          if (now >= expiresDate.getTime()) {
-            return void 0;
-          }
-          if (responseDate) {
-            if (responseDate >= expiresDate) {
-              return void 0;
-            }
-            if (age !== void 0 && age > expiresDate - responseDate) {
-              return void 0;
-            }
-          }
-          return expiresDate.getTime() - now;
+      if (Object.hasOwn(resHeaders, "expires")) {
+        if (typeof resHeaders.expires !== "string") {
+          return 0;
         }
+        const expiresDate = parseHttpDate(resHeaders.expires);
+        if (!expiresDate) {
+          return 0;
+        }
+        if (now >= expiresDate.getTime()) {
+          return 0;
+        }
+        if (responseDate) {
+          if (responseDate >= expiresDate) {
+            return 0;
+          }
+          const freshnessLifetime = expiresDate.getTime() - responseDate.getTime();
+          if (age !== void 0 && age >= freshnessLifetime) {
+            return 0;
+          }
+          return freshnessLifetime;
+        }
+        return expiresDate.getTime() - now;
       }
       if (typeof resHeaders["last-modified"] === "string") {
-        const lastModified = new Date(resHeaders["last-modified"]);
-        if (isValidDate(lastModified)) {
+        const lastModified = parseHttpDate(resHeaders["last-modified"]);
+        if (lastModified) {
           if (lastModified.getTime() >= now) {
             return void 0;
           }
@@ -57187,11 +57663,11 @@ var require_cache_handler = __commonJS({
         }
       }
       if (cacheControlDirectives.immutable) {
-        return 31536e3;
+        return 31536e6;
       }
       return void 0;
     }
-    function determineDeleteAt(now, cacheControlDirectives, staleAt) {
+    function determineDeleteAt(baseTime, cachedAt, cacheControlDirectives, staleAt) {
       let staleWhileRevalidate = -Infinity;
       let staleIfError = -Infinity;
       let immutable = -Infinity;
@@ -57202,11 +57678,12 @@ var require_cache_handler = __commonJS({
         staleIfError = staleAt + cacheControlDirectives["stale-if-error"] * 1e3;
       }
       if (cacheControlDirectives.immutable && staleWhileRevalidate === -Infinity && staleIfError === -Infinity) {
-        immutable = now + 31536e6;
+        immutable = cachedAt + 31536e6;
       }
       if (staleWhileRevalidate === -Infinity && staleIfError === -Infinity && immutable === -Infinity) {
-        const freshnessLifetime = staleAt - now;
-        return staleAt + freshnessLifetime;
+        const freshnessLifetime = staleAt - baseTime;
+        const datePrecisionPadding = Math.min(Math.max(cachedAt - baseTime, 0), 1e3);
+        return staleAt + freshnessLifetime + datePrecisionPadding;
       }
       return Math.max(staleAt, staleWhileRevalidate, staleIfError, immutable);
     }
@@ -57224,11 +57701,7 @@ var require_cache_handler = __commonJS({
         "age"
       ];
       if (resHeaders["connection"]) {
-        if (Array.isArray(resHeaders["connection"])) {
-          headersToRemove.push(...resHeaders["connection"].map((header) => header.trim()));
-        } else {
-          headersToRemove.push(...resHeaders["connection"].split(",").map((header) => header.trim()));
-        }
+        appendConnectionHeaderTokens(headersToRemove, resHeaders["connection"]);
       }
       if (Array.isArray(cacheControlDirectives["no-cache"])) {
         headersToRemove.push(...cacheControlDirectives["no-cache"]);
@@ -57238,15 +57711,12 @@ var require_cache_handler = __commonJS({
       }
       let strippedHeaders;
       for (const headerName of headersToRemove) {
-        if (resHeaders[headerName]) {
+        if (Object.hasOwn(resHeaders, headerName)) {
           strippedHeaders ??= { ...resHeaders };
           delete strippedHeaders[headerName];
         }
       }
       return strippedHeaders ?? resHeaders;
-    }
-    function isValidDate(date) {
-      return date instanceof Date && Number.isFinite(date.valueOf());
     }
     module2.exports = CacheHandler;
   }
@@ -57418,12 +57888,43 @@ var require_memory_cache_store = __commonJS({
       }
     };
     function findEntry(key, entries, now) {
-      return entries.find((entry) => entry.deleteAt > now && entry.method === key.method && (entry.vary == null || Object.keys(entry.vary).every((headerName) => {
-        if (entry.vary[headerName] === null) {
-          return key.headers[headerName] === void 0;
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        if (entry.deleteAt > now && entry.method === key.method && varyMatches(key, entry)) {
+          return entry;
         }
-        return entry.vary[headerName] === key.headers[headerName];
-      })));
+      }
+    }
+    function varyMatches(key, entry) {
+      if (entry.vary == null) {
+        return true;
+      }
+      for (const headerName in entry.vary) {
+        if (Object.hasOwn(entry.vary, headerName) && !headerValueEquals(key.headers?.[headerName], entry.vary[headerName])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    function headerValueEquals(lhs, rhs) {
+      if (lhs == null && rhs == null) {
+        return true;
+      }
+      if (lhs == null && rhs != null || lhs != null && rhs == null) {
+        return false;
+      }
+      if (Array.isArray(lhs) && Array.isArray(rhs)) {
+        if (lhs.length !== rhs.length) {
+          return false;
+        }
+        for (let i = 0; i < lhs.length; i++) {
+          if (lhs[i] !== rhs[i]) {
+            return false;
+          }
+        }
+        return true;
+      }
+      return lhs === rhs;
     }
     module2.exports = MemoryCacheStore;
   }
@@ -57437,7 +57938,7 @@ var require_cache_revalidation_handler = __commonJS({
     var CacheRevalidationHandler = class {
       #successful = false;
       /**
-       * @type {((boolean, any) => void) | null}
+       * @type {((success: boolean, context?: any, statusCode?: number, headers?: import('../../types/header.d.ts').IncomingHttpHeaders) => void) | null}
        */
       #callback;
       /**
@@ -57450,7 +57951,7 @@ var require_cache_revalidation_handler = __commonJS({
        */
       #allowErrorStatusCodes;
       /**
-       * @param {(boolean) => void} callback Function to call if the cached value is valid
+       * @param {(success: boolean, context?: any, statusCode?: number, headers?: import('../../types/header.d.ts').IncomingHttpHeaders) => void} callback Function to call if the cached value is valid
        * @param {import('../../types/dispatcher.d.ts').default.DispatchHandlers} handler
        * @param {boolean} allowErrorStatusCodes
        */
@@ -57472,7 +57973,7 @@ var require_cache_revalidation_handler = __commonJS({
       onResponseStart(controller, statusCode, headers, statusMessage) {
         assert(this.#callback != null);
         this.#successful = statusCode === 304 || this.#allowErrorStatusCodes && statusCode >= 500 && statusCode <= 504;
-        this.#callback(this.#successful, this.#context);
+        this.#callback(this.#successful, this.#context, statusCode, headers);
         this.#callback = null;
         if (this.#successful) {
           return true;
@@ -57526,8 +58027,9 @@ var require_cache3 = __commonJS({
     var CacheHandler = require_cache_handler();
     var MemoryCacheStore = require_memory_cache_store();
     var CacheRevalidationHandler = require_cache_revalidation_handler();
-    var { assertCacheStore, assertCacheMethods, makeCacheKey, normalizeHeaders, parseCacheControlHeader } = require_cache2();
+    var { assertCacheStore, assertCacheMethods, makeCacheKey, normalizeHeaders, parseCacheControlHeader, isInvalidOrWildcardVaryHeader } = require_cache2();
     var { AbortError } = require_errors2();
+    var { parseHttpDate } = require_date();
     function assertCacheOrigins(origins, name) {
       if (origins === void 0) return;
       if (!Array.isArray(origins)) {
@@ -57542,6 +58044,37 @@ var require_cache3 = __commonJS({
     }
     var nop = () => {
     };
+    function trimOWS(value) {
+      return value.replace(/^[\t ]+|[\t ]+$/g, "");
+    }
+    function arrayIncludes(array, value) {
+      for (let i = 0; i < array.length; i++) {
+        if (array[i] === value) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function hasPragmaNoCache(headers) {
+      const pragma = headers?.pragma;
+      if (!pragma) {
+        return false;
+      }
+      const values = Array.isArray(pragma) ? pragma : [pragma];
+      for (let i = 0; i < values.length; i++) {
+        const value = values[i];
+        if (typeof value !== "string") {
+          continue;
+        }
+        const directives = value.split(",");
+        for (let j = 0; j < directives.length; j++) {
+          if (trimOWS(directives[j]).toLowerCase() === "no-cache") {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
     function needsRevalidation(result, cacheControlDirectives, { headers = {} }) {
       if (cacheControlDirectives?.["no-cache"]) {
         return true;
@@ -57554,10 +58087,58 @@ var require_cache3 = __commonJS({
       }
       return false;
     }
-    function isStale(result, cacheControlDirectives) {
+    function staleResponseRequiresRevalidation(result, cacheType) {
+      return result.cacheControlDirectives?.["must-revalidate"] === true || cacheType === "shared" && (result.cacheControlDirectives?.["proxy-revalidate"] === true || // https://www.rfc-editor.org/rfc/rfc9111.html#section-5.2.2.10
+      // s-maxage implies proxy-revalidate for shared caches.
+      result.cacheControlDirectives?.["s-maxage"] !== void 0);
+    }
+    function revalidationResponseDisallowsCachedReuse(cacheType, headers) {
+      if (headers.vary && isInvalidOrWildcardVaryHeader(headers.vary)) {
+        return true;
+      }
+      const cacheControl = headers["cache-control"];
+      if (!cacheControl) {
+        return false;
+      }
+      const cacheControlDirectives = parseCacheControlHeader(cacheControl);
+      return cacheControlDirectives["no-store"] === true || cacheType === "shared" && cacheControlDirectives.private === true;
+    }
+    function revalidationResponseUpdatesCacheControl(headers) {
+      return headers["cache-control"] !== void 0;
+    }
+    function deleteCachedValue(store, cacheKey) {
+      try {
+        store.delete(cacheKey)?.catch?.(nop);
+      } catch {
+      }
+    }
+    function getUsableLastModified(headers) {
+      const lastModified = headers?.["last-modified"];
+      if (typeof lastModified === "string" && parseHttpDate(lastModified)) {
+        return lastModified;
+      }
+    }
+    function makeRevalidationHeaders(opts, result) {
+      const headers = {
+        ...opts.headers,
+        "if-modified-since": getUsableLastModified(result.headers) ?? new Date(result.cachedAt).toUTCString()
+      };
+      if (result.etag) {
+        headers["if-none-match"] = result.etag;
+      }
+      if (result.vary) {
+        for (const key in result.vary) {
+          if (result.vary[key] != null) {
+            headers[key] = result.vary[key];
+          }
+        }
+      }
+      return headers;
+    }
+    function isStale(result, cacheControlDirectives, cacheType) {
       const now = Date.now();
       if (now > result.staleAt) {
-        if (cacheControlDirectives?.["max-stale"]) {
+        if (!staleResponseRequiresRevalidation(result, cacheType) && cacheControlDirectives?.["max-stale"]) {
           const gracePeriod = result.staleAt + cacheControlDirectives["max-stale"] * 1e3;
           return now > gracePeriod;
         }
@@ -57570,9 +58151,9 @@ var require_cache3 = __commonJS({
       }
       return false;
     }
-    function withinStaleWhileRevalidateWindow(result) {
+    function withinStaleWhileRevalidateWindow(result, cacheType) {
       const staleWhileRevalidate = result.cacheControlDirectives?.["stale-while-revalidate"];
-      if (!staleWhileRevalidate) {
+      if (!staleWhileRevalidate || staleResponseRequiresRevalidation(result, cacheType)) {
         return false;
       }
       const now = Date.now();
@@ -57672,32 +58253,17 @@ var require_cache3 = __commonJS({
         return dispatch(opts, new CacheHandler(globalOpts, cacheKey, handler2));
       }
       const age = Math.round((now - result.cachedAt) / 1e3);
-      if (reqCacheControl?.["max-age"] && age >= reqCacheControl["max-age"]) {
-        return dispatch(opts, handler2);
-      }
-      const stale = isStale(result, reqCacheControl);
-      const revalidate = needsRevalidation(result, reqCacheControl, opts);
+      const requestMaxAgeExpired = reqCacheControl?.["max-age"] !== void 0 && age >= reqCacheControl["max-age"];
+      const stale = requestMaxAgeExpired || isStale(result, reqCacheControl, globalOpts.type);
+      const revalidate = requestMaxAgeExpired || needsRevalidation(result, reqCacheControl, opts);
       if (stale || revalidate) {
         if (util3.isStream(opts.body) && util3.bodyLength(opts.body) !== 0) {
           return dispatch(opts, new CacheHandler(globalOpts, cacheKey, handler2));
         }
-        if (!revalidate && withinStaleWhileRevalidateWindow(result)) {
+        if (!revalidate && withinStaleWhileRevalidateWindow(result, globalOpts.type)) {
           sendCachedValue(handler2, opts, result, age, null, true);
           queueMicrotask(() => {
-            const headers2 = {
-              ...opts.headers,
-              "if-modified-since": new Date(result.cachedAt).toUTCString()
-            };
-            if (result.etag) {
-              headers2["if-none-match"] = result.etag;
-            }
-            if (result.vary) {
-              for (const key in result.vary) {
-                if (result.vary[key] != null) {
-                  headers2[key] = result.vary[key];
-                }
-              }
-            }
+            const headers2 = makeRevalidationHeaders(opts, result);
             dispatch(
               {
                 ...opts,
@@ -57723,32 +58289,33 @@ var require_cache3 = __commonJS({
           return true;
         }
         let withinStaleIfErrorThreshold = false;
-        const staleIfErrorExpiry = result.cacheControlDirectives["stale-if-error"] ?? reqCacheControl?.["stale-if-error"];
-        if (staleIfErrorExpiry) {
-          withinStaleIfErrorThreshold = now < result.staleAt + staleIfErrorExpiry * 1e3;
-        }
-        const headers = {
-          ...opts.headers,
-          "if-modified-since": new Date(result.cachedAt).toUTCString()
-        };
-        if (result.etag) {
-          headers["if-none-match"] = result.etag;
-        }
-        if (result.vary) {
-          for (const key in result.vary) {
-            if (result.vary[key] != null) {
-              headers[key] = result.vary[key];
-            }
+        if (!staleResponseRequiresRevalidation(result, globalOpts.type)) {
+          const staleIfErrorExpiry = result.cacheControlDirectives["stale-if-error"] ?? reqCacheControl?.["stale-if-error"];
+          if (staleIfErrorExpiry) {
+            withinStaleIfErrorThreshold = now < result.staleAt + staleIfErrorExpiry * 1e3;
           }
         }
+        const headers = makeRevalidationHeaders(opts, result);
         return dispatch(
           {
             ...opts,
             headers
           },
           new CacheRevalidationHandler(
-            (success, context) => {
+            (success, context, statusCode, headers2) => {
               if (success) {
+                if (statusCode === 304) {
+                  if (revalidationResponseDisallowsCachedReuse(globalOpts.type, headers2)) {
+                    if (util3.isStream(result.body)) {
+                      result.body.on("error", nop).destroy();
+                    }
+                    deleteCachedValue(globalOpts.store, cacheKey);
+                    return dispatch(opts, new CacheHandler(globalOpts, cacheKey, handler2));
+                  }
+                  if (revalidationResponseUpdatesCacheControl(headers2)) {
+                    deleteCachedValue(globalOpts.store, cacheKey);
+                  }
+                }
                 sendCachedValue(handler2, opts, result, age, context, stale);
               } else if (util3.isStream(result.body)) {
                 result.body.on("error", nop).destroy();
@@ -57790,10 +58357,16 @@ var require_cache3 = __commonJS({
         cacheByDefault,
         type
       };
-      const safeMethodsToNotCache = util3.safeHTTPMethods.filter((method) => methods.includes(method) === false);
+      const safeMethodsToNotCache = [];
+      for (let i = 0; i < util3.safeHTTPMethods.length; i++) {
+        const method = util3.safeHTTPMethods[i];
+        if (!arrayIncludes(methods, method)) {
+          safeMethodsToNotCache.push(method);
+        }
+      }
       return (dispatch) => {
         return (opts2, handler2) => {
-          if (!opts2.origin || safeMethodsToNotCache.includes(opts2.method)) {
+          if (!opts2.origin || arrayIncludes(safeMethodsToNotCache, opts2.method)) {
             return dispatch(opts2, handler2);
           }
           if (origins !== void 0) {
@@ -57819,7 +58392,7 @@ var require_cache3 = __commonJS({
             ...opts2,
             headers: normalizeHeaders(opts2)
           };
-          const reqCacheControl = opts2.headers?.["cache-control"] ? parseCacheControlHeader(opts2.headers["cache-control"]) : void 0;
+          const reqCacheControl = opts2.headers?.["cache-control"] ? parseCacheControlHeader(opts2.headers["cache-control"]) : hasPragmaNoCache(opts2.headers) ? { "no-cache": true } : void 0;
           if (reqCacheControl?.["no-store"]) {
             return dispatch(opts2, handler2);
           }
@@ -58862,7 +59435,12 @@ var require_sqlite_cache_store = __commonJS({
         if (lhs.length !== rhs.length) {
           return false;
         }
-        return lhs.every((x, i) => x === rhs[i]);
+        for (let i = 0; i < lhs.length; i++) {
+          if (lhs[i] !== rhs[i]) {
+            return false;
+          }
+        }
+        return true;
       }
       return lhs === rhs;
     }
@@ -62558,14 +63136,48 @@ var require_util13 = __commonJS({
       for (let i = 0; i < path8.length; ++i) {
         const code = path8.charCodeAt(i);
         if (code < 32 || // exclude CTLs (0-31)
-        code === 127 || // DEL
+        code > 126 || // exclude DEL and non-ascii
         code === 59) {
           throw new Error("Invalid cookie path");
         }
       }
     }
+    function isLetterOrDigit(code) {
+      return code >= 48 && code <= 57 || // 0-9
+      code >= 65 && code <= 90 || // A-Z
+      code >= 97 && code <= 122;
+    }
     function validateCookieDomain(domain) {
-      if (domain.startsWith("-") || domain.endsWith(".") || domain.endsWith("-")) {
+      if (domain === " ") {
+        return;
+      }
+      if (domain.length > 255) {
+        throw new Error("Invalid cookie domain");
+      }
+      let labelLength = 0;
+      for (let i = 0; i < domain.length; ++i) {
+        const code = domain.charCodeAt(i);
+        if (code === 46) {
+          if (labelLength === 0) {
+            throw new Error("Invalid cookie domain");
+          }
+          if (domain.charCodeAt(i - 1) === 45) {
+            throw new Error("Invalid cookie domain");
+          }
+          labelLength = 0;
+          continue;
+        }
+        if (labelLength === 0 && !isLetterOrDigit(code)) {
+          throw new Error("Invalid cookie domain");
+        }
+        if (!isLetterOrDigit(code) && code !== 45) {
+          throw new Error("Invalid cookie domain");
+        }
+        if (++labelLength > 63) {
+          throw new Error("Invalid cookie domain");
+        }
+      }
+      if (labelLength === 0 || domain.charCodeAt(domain.length - 1) === 45) {
         throw new Error("Invalid cookie domain");
       }
     }
@@ -62648,7 +63260,11 @@ var require_util13 = __commonJS({
           throw new Error("Invalid unparsed");
         }
         const [key, ...value] = part.split("=");
-        out.push(`${key.trim()}=${value.join("=")}`);
+        const trimmedKey = key.trim();
+        const joinedValue = value.join("=");
+        validateCookieName(trimmedKey);
+        validateCookieValue(joinedValue);
+        out.push(`${trimmedKey}=${joinedValue}`);
       }
       return out.join("; ");
     }
