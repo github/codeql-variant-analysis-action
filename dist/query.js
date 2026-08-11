@@ -87768,18 +87768,13 @@ function throttling(octokit, octokitOptions) {
   if (typeof connection !== "undefined") {
     common.connection = connection;
   }
-  if (groups.global == null) {
-    createGroups(Bottleneck2, common);
-  }
   const state = Object.assign(
     {
       clustering: connection != null,
       triggersNotification,
       fallbackSecondaryRateRetryAfter: 60,
       retryAfterBaseValue: 1e3,
-      retryLimiter: new Bottleneck2(),
-      id,
-      ...groups
+      id
     },
     octokitOptions.throttle
   );
@@ -87796,65 +87791,84 @@ function throttling(octokit, octokitOptions) {
         })
     `);
   }
-  const events2 = {};
-  const emitter = new Bottleneck2.Events(events2);
-  events2.on("secondary-limit", state.onSecondaryRateLimit);
-  events2.on("rate-limit", state.onRateLimit);
-  events2.on(
-    "error",
-    (e) => octokit.log.warn("Error in throttling-plugin limit handler", e)
-  );
-  state.retryLimiter.on("failed", async function(error2, info2) {
-    const [state2, request2, options] = info2.args;
-    const { pathname } = new URL(options.url, "http://github.test");
-    const shouldRetryGraphQL = pathname.startsWith("/graphql") && error2.status !== 401;
-    if (!(shouldRetryGraphQL || error2.status === 403 || error2.status === 429)) {
+  let initialized = false;
+  const initializeBottleneck = () => {
+    if (initialized) {
       return;
     }
-    const retryCount = ~~request2.retryCount;
-    request2.retryCount = retryCount;
-    options.request.retryCount = retryCount;
-    const { wantRetry, retryAfter = 0 } = await (async function() {
-      if (/\bsecondary rate\b/i.test(error2.message)) {
-        const retryAfter2 = Number(error2.response.headers["retry-after"]) || state2.fallbackSecondaryRateRetryAfter;
-        const wantRetry2 = await emitter.trigger(
-          "secondary-limit",
-          retryAfter2,
-          options,
-          octokit,
-          retryCount
-        );
-        return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
-      }
-      if (error2.response.headers != null && error2.response.headers["x-ratelimit-remaining"] === "0" || (error2.response.data?.errors ?? []).some(
-        (error22) => error22.type === "RATE_LIMITED"
-      )) {
-        const rateLimitReset = new Date(
-          ~~error2.response.headers["x-ratelimit-reset"] * 1e3
-        ).getTime();
-        const retryAfter2 = Math.max(
-          // Add one second so we retry _after_ the reset time
-          // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#exceeding-the-rate-limit
-          Math.ceil((rateLimitReset - Date.now()) / 1e3) + 1,
-          0
-        );
-        const wantRetry2 = await emitter.trigger(
-          "rate-limit",
-          retryAfter2,
-          options,
-          octokit,
-          retryCount
-        );
-        return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
-      }
-      return {};
-    })();
-    if (wantRetry) {
-      request2.retryCount++;
-      return retryAfter * state2.retryAfterBaseValue;
+    initialized = true;
+    if (groups.global == null) {
+      createGroups(Bottleneck2, common);
     }
+    state.global = state.global ?? groups.global;
+    state.auth = state.auth ?? groups.auth;
+    state.search = state.search ?? groups.search;
+    state.write = state.write ?? groups.write;
+    state.notifications = state.notifications ?? groups.notifications;
+    state.retryLimiter = state.retryLimiter ?? new Bottleneck2();
+    const events2 = {};
+    const emitter = new Bottleneck2.Events(events2);
+    events2.on("secondary-limit", state.onSecondaryRateLimit);
+    events2.on("rate-limit", state.onRateLimit);
+    events2.on(
+      "error",
+      (e) => octokit.log.warn("Error in throttling-plugin limit handler", e)
+    );
+    state.retryLimiter.on("failed", async function(error2, info2) {
+      const [state2, request2, options] = info2.args;
+      const { pathname } = new URL(options.url, "http://github.test");
+      const shouldRetryGraphQL = pathname.startsWith("/graphql") && error2.status !== 401;
+      if (!(shouldRetryGraphQL || error2.status === 403 || error2.status === 429)) {
+        return;
+      }
+      const retryCount = ~~request2.retryCount;
+      request2.retryCount = retryCount;
+      options.request.retryCount = retryCount;
+      const { wantRetry, retryAfter = 0 } = await (async function() {
+        if (/\bsecondary rate\b/i.test(error2.message)) {
+          const retryAfter2 = Number(error2.response.headers["retry-after"]) || state2.fallbackSecondaryRateRetryAfter;
+          const wantRetry2 = await emitter.trigger(
+            "secondary-limit",
+            retryAfter2,
+            options,
+            octokit,
+            retryCount
+          );
+          return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
+        }
+        if (error2.response.headers != null && error2.response.headers["x-ratelimit-remaining"] === "0" || (error2.response.data?.errors ?? []).some(
+          (error22) => error22.type === "RATE_LIMITED"
+        )) {
+          const rateLimitReset = new Date(
+            ~~error2.response.headers["x-ratelimit-reset"] * 1e3
+          ).getTime();
+          const retryAfter2 = Math.max(
+            // Add one second so we retry _after_ the reset time
+            // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#exceeding-the-rate-limit
+            Math.ceil((rateLimitReset - Date.now()) / 1e3) + 1,
+            0
+          );
+          const wantRetry2 = await emitter.trigger(
+            "rate-limit",
+            retryAfter2,
+            options,
+            octokit,
+            retryCount
+          );
+          return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
+        }
+        return {};
+      })();
+      if (wantRetry) {
+        request2.retryCount++;
+        return retryAfter * state2.retryAfterBaseValue;
+      }
+    });
+  };
+  octokit.hook.wrap("request", (request2, options) => {
+    initializeBottleneck();
+    return wrapRequest2(state, request2, options);
   });
-  octokit.hook.wrap("request", wrapRequest2.bind(null, state));
   return {};
 }
 throttling.VERSION = VERSION9;
