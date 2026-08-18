@@ -41,7 +41,7 @@
     "@types/node": "^26.1.2",
     "@types/semver": "^7.8.0",
     "@types/uuid": "^11.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.66.0",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.32.1",
     "archiver": "^8.0.0",
     "esbuild": "^0.28.1",
