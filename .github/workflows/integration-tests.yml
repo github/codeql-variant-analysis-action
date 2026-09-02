@@ -18,8 +18,8 @@ jobs:
         with:
           client-id: ${{ vars.CODEQL_CI_APP_CLIENT_ID }}
           owner: github
-          # DIAGNOSTIC: narrowing removed to test whether the analysis-workflow status
-          # callback inherits the creating token's scope. Narrow back once we know.
+          permission-actions: read # GET actions/runs
+          permission-contents: write # create/read variant analyses
           private-key: ${{ secrets.CODEQL_CI_APP_PRIVATE_KEY }}
           repositories: |-
             codeql-variant-analysis-action
