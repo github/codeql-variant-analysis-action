@@ -23704,16 +23704,17 @@ var require_utils2 = __commonJS({
       if (typeof input === "string") {
         return "string";
       }
-      if (Object.prototype.toString.call(input) === "[object Array]") {
+      var proto = Object.prototype.toString.call(input);
+      if (proto === "[object Array]") {
         return "array";
       }
       if (support.nodebuffer && nodejsUtils.isBuffer(input)) {
         return "nodebuffer";
       }
-      if (support.uint8array && input instanceof Uint8Array) {
+      if (support.uint8array && proto === "[object Uint8Array]") {
         return "uint8array";
       }
-      if (support.arraybuffer && input instanceof ArrayBuffer) {
+      if (support.arraybuffer && proto === "[object ArrayBuffer]") {
         return "arraybuffer";
       }
     };
@@ -23758,20 +23759,27 @@ var require_utils2 = __commonJS({
     exports2.prepareContent = function(name, inputData, isBinary, isOptimizedBinaryString, isBase64) {
       var promise = external.Promise.resolve(inputData).then(function(data) {
         var isBlob = support.blob && (data instanceof Blob || ["[object File]", "[object Blob]"].indexOf(Object.prototype.toString.call(data)) !== -1);
-        if (isBlob && typeof FileReader !== "undefined") {
-          return new external.Promise(function(resolve2, reject) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-              resolve2(e.target.result);
-            };
-            reader.onerror = function(e) {
-              reject(e.target.error);
-            };
-            reader.readAsArrayBuffer(data);
-          });
-        } else {
-          return data;
+        if (isBlob) {
+          if (typeof Blob.prototype.arrayBuffer !== "undefined") {
+            return data.arrayBuffer();
+          } else if (typeof FileReader !== "undefined") {
+            return new external.Promise(function(resolve2, reject) {
+              var reader = new FileReader();
+              reader.onload = function(e) {
+                resolve2(e.target.result);
+              };
+              reader.onerror = function(e) {
+                reject(e.target.error);
+              };
+              reader.readAsArrayBuffer(data);
+            });
+          } else {
+            return external.Promise.reject(
+              new Error(name + " is a Blob, but we have no way of reading it.")
+            );
+          }
         }
+        return data;
       });
       return promise.then(function(data) {
         var dataType = exports2.getTypeOf(data);
@@ -30540,7 +30548,7 @@ var require_lib3 = __commonJS({
     JSZip2.prototype.loadAsync = require_load();
     JSZip2.support = require_support();
     JSZip2.defaults = require_defaults();
-    JSZip2.version = "3.10.1";
+    JSZip2.version = "3.10.2";
     JSZip2.loadAsync = function(content, options) {
       return new JSZip2().loadAsync(content, options);
     };
@@ -75275,36 +75283,38 @@ var require_Alias = __commonJS({
           if (node.anchor === this.source)
             found = node;
         }
+        if (found && ctx) {
+          const { anchors: anchors2, doc: doc2, maxAliasCount } = ctx;
+          let data = anchors2.get(found);
+          if (!data) {
+            toJS.toJS(found, null, ctx);
+            data = anchors2.get(found);
+          }
+          if (data?.res === void 0) {
+            const msg = "This should not happen: Alias anchor was not resolved?";
+            throw new ReferenceError(msg);
+          }
+          if (maxAliasCount >= 0) {
+            data.count += 1;
+            if (data.aliasCount === 0)
+              data.aliasCount = getAliasCount(doc2, found, anchors2);
+            if (data.count * data.aliasCount > maxAliasCount) {
+              const msg = "Excessive alias count indicates a resource exhaustion attack";
+              throw new ReferenceError(msg);
+            }
+          }
+        }
         return found;
       }
       toJSON(_arg, ctx) {
         if (!ctx)
           return { source: this.source };
-        const { anchors: anchors2, doc, maxAliasCount } = ctx;
-        const source = this.resolve(doc, ctx);
+        const source = this.resolve(ctx.doc, ctx);
         if (!source) {
           const msg = `Unresolved alias (the anchor must be set before the alias): ${this.source}`;
           throw new ReferenceError(msg);
         }
-        let data = anchors2.get(source);
-        if (!data) {
-          toJS.toJS(source, null, ctx);
-          data = anchors2.get(source);
-        }
-        if (data?.res === void 0) {
-          const msg = "This should not happen: Alias anchor was not resolved?";
-          throw new ReferenceError(msg);
-        }
-        if (maxAliasCount >= 0) {
-          data.count += 1;
-          if (data.aliasCount === 0)
-            data.aliasCount = getAliasCount(doc, source, anchors2);
-          if (data.count * data.aliasCount > maxAliasCount) {
-            const msg = "Excessive alias count indicates a resource exhaustion attack";
-            throw new ReferenceError(msg);
-          }
-        }
-        return data.res;
+        return ctx.anchors.get(source).res;
       }
       toString(ctx, _onComment, _onChompKeep) {
         const src = `*${this.source}`;
@@ -79306,37 +79316,38 @@ var require_resolve_flow_scalar = __commonJS({
       }
       if (badChar)
         onError(0, "BAD_SCALAR_START", `Plain value cannot start with ${badChar}`);
-      return foldLines(source);
+      return unfoldLines(source);
     }
     function singleQuotedValue(source, onError) {
       if (source[source.length - 1] !== "'" || source.length === 1)
         onError(source.length, "MISSING_CHAR", "Missing closing 'quote");
-      return foldLines(source.slice(1, -1)).replace(/''/g, "'");
+      return unfoldLines(source.slice(1, -1)).replace(/''/g, "'");
     }
-    function foldLines(source) {
-      let first, line;
-      try {
-        first = new RegExp("(.*?)(?<![ 	])[ 	]*\r?\n", "sy");
-        line = new RegExp("[ 	]*(.*?)(?:(?<![ 	])[ 	]*)?\r?\n", "sy");
-      } catch {
-        first = /(.*?)[ \t]*\r?\n/sy;
-        line = /[ \t]*(.*?)[ \t]*\r?\n/sy;
-      }
-      let match = first.exec(source);
+    function unfoldLines(source) {
+      const line = /(.*?)\r?\n/sy;
+      let match = line.exec(source);
       if (!match)
         return source;
-      let res = match[1];
+      let trimEnd, trimBoth;
+      try {
+        trimEnd = new RegExp("(?<![ 	])[ 	]+$");
+        trimBoth = new RegExp("^[ 	]+|(?<![ 	])[ 	]+$", "g");
+      } catch {
+        trimEnd = /[ \t]+$/;
+        trimBoth = /^[ \t]+|[ \t]+$/g;
+      }
+      let res = match[1].replace(trimEnd, "");
       let sep3 = " ";
-      let pos = first.lastIndex;
-      line.lastIndex = pos;
+      let pos = line.lastIndex;
       while (match = line.exec(source)) {
-        if (match[1] === "") {
+        const lm = match[1].replace(trimBoth, "");
+        if (lm === "") {
           if (sep3 === "\n")
             res += sep3;
           else
             sep3 = "\n";
         } else {
-          res += sep3 + match[1];
+          res += sep3 + lm;
           sep3 = " ";
         }
         pos = line.lastIndex;
