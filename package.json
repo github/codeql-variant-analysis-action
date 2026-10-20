@@ -30,7 +30,7 @@
     "form-data": "^4.0.6",
     "jszip": "3.10.2",
     "semver": "^7.8.5",
-    "uuid": "^14.0.2",
+    "uuid": "^14.0.3",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
@@ -38,7 +38,7 @@
     "@eslint/js": "^9.39.5",
     "@octokit/types": "^18.0.0",
     "@types/archiver": "^8.0.0",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.5",
     "@types/semver": "^7.8.0",
     "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^8.70.1",
@@ -50,12 +50,12 @@
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-github": "^6.1.2",
     "eslint-plugin-prettier": "^5.5.6",
-    "prettier": "^3.9.8",
+    "prettier": "^3.9.10",
     "ts-json-schema-generator": "2.9.0",
     "ts-node": "^10.9.2",
     "ts-unused-exports": "^11.0.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.4"
   },
   "resolutions": {
     "glob-parent": ">=5.1.2",
