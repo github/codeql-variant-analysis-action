@@ -9,8 +9,6 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
-      exclude:
-        - "actions/*"
     groups:
       actions-minor:
         patterns:
@@ -24,8 +22,6 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
-      exclude:
-        - "@actions/*"
     labels:
       - "Rebuild"
     # ESLint 10 is blocked only by eslint-plugin-github's transitive
